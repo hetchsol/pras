@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(node scripts/hashPasswords.js:*)",
+      "Bash(npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /PID 3760 /F)",
+      "Bash(powershell -Command \"Stop-Process -Id 3760 -Force\")",
+      "Bash(curl:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 11660 -Force\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

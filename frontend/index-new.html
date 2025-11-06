@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="version" content="4.0.0">
+    <title>Purchase Requisition System</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script>
+        // Aggressive cache prevention
+        (function() {
+            const currentVersion = '4.0.0-' + Date.now();
+            const storedVersion = sessionStorage.getItem('appVersion');
+
+            // Clear service workers
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    registrations.forEach(function(registration) {
+                        registration.unregister();
+                    });
+                });
+            }
+
+            // Clear caches
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(name) {
+                        caches.delete(name);
+                    });
+                });
+            }
+
+            // Version check
+            if (storedVersion && !storedVersion.startsWith('4.0.0')) {
+                console.log('🔄 Version update detected, reloading...');
+                sessionStorage.setItem('appVersion', currentVersion);
+                window.location.reload(true);
+            } else if (!storedVersion) {
+                sessionStorage.setItem('appVersion', currentVersion);
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Load app.js -->
+    <script src="app.js?v=4.0.0"></script>
+</body>
+</html>

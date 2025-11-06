@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+          content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net;
+                   style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;">
+    <title>Admin Console - Purchase Requisition System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .admin-container {
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+        .admin-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .admin-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .nav-tabs .nav-link {
+            color: #667eea;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #764ba2;
+            font-weight: 600;
+        }
+        .table-actions button {
+            margin-right: 5px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-card h3 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        .stat-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const API_URL = 'http://localhost:3001/api';
+
+        function AdminConsole() {
+            const [user, setUser] = useState(null);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                // Check authentication
+                const token = localStorage.getItem('authToken');
+                const userData = localStorage.getItem('currentUser');
+
+                if (!token || !userData) {
+                    alert('Please login first');
+                    window.location.href = '/index.html';
+                    return;
+                }
+
+                const parsedUser = JSON.parse(userData);
+                if (parsedUser.role !== 'admin') {
+                    alert('Access denied. Admin privileges required.');
+                    window.location.href = '/index.html';
+                    return;
+                }
+
+                setUser(parsedUser);
+                setLoading(false);
+            }, []);
+
+            const logout = () => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                window.location.href = '/index.html';
+            };
+
+            if (loading) {
+                return <div className="container mt-5 text-center text-white"><h3>Loading...</h3></div>;
+            }
+
+            return (
+                <div className="container admin-container">
+                    {/* Header */}
+                    <div className="admin-header">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2>🛠️ Admin Console</h2>
+                                <p className="text-muted mb-0">System Administration & Management</p>
+                            </div>
+                            <div>
+                                <button className="btn btn-outline-secondary me-2" onClick={() => window.location.href = '/index.html'}>
+                                    Back to Dashboard
+                                </button>
+                                <button className="btn btn-danger" onClick={logout}>Logout</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Navigation Tabs */}
+                    <div className="admin-card">
+                        <ul className="nav nav-tabs">
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('dashboard')} href="#">
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'users' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('users')} href="#">
+                                    Users
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'vendors' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('vendors')} href="#">
+                                    Vendors
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'departments' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('departments')} href="#">
+                                    Departments
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'budgets' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('budgets')} href="#">
+                                    Budgets
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'reassign' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('reassign')} href="#">
+                                    Reassign Reqs
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('reports')} href="#">
+                                    Reports
+                                </a>
+                            </li>
+                        </ul>
+
+                        <div className="mt-4">
+                            {activeTab === 'dashboard' && <DashboardTab />}
+                            {activeTab === 'users' && <UsersTab />}
+                            {activeTab === 'vendors' && <VendorsTab />}
+                            {activeTab === 'departments' && <DepartmentsTab />}
+                            {activeTab === 'budgets' && <BudgetsTab />}
+                            {activeTab === 'reassign' && <ReassignTab />}
+                            {activeTab === 'reports' && <ReportsTab />}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Dashboard Tab Component
+        function DashboardTab() {
+            const [stats, setStats] = useState(null);
+
+            useEffect(() => {
+                fetchStats();
+            }, []);
+
+            const fetchStats = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/stats`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setStats(data);
+                } catch (err) {
+                    console.error('Error fetching stats:', err);
+                }
+            };
+
+            if (!stats) return <div>Loading statistics...</div>;
+
+            return (
+                <div>
+                    <h4>System Overview</h4>
+                    <div className="row">
+                        <div className="col-md-3">
+                            <div className="stat-card">
+                                <h3>{stats.totalUsers || 0}</h3>
+                                <p>Total Users</p>
+                            </div>
+                        </div>
+                        <div className="col-md-3">
+                            <div className="stat-card">
+                                <h3>{stats.totalRequisitions || 0}</h3>
+                                <p>Total Requisitions</p>
+                            </div>
+                        </div>
+                        <div className="col-md-3">
+                            <div className="stat-card">
+                                <h3>{stats.totalVendors || 0}</h3>
+                                <p>Total Vendors</p>
+                            </div>
+                        </div>
+                        <div className="col-md-3">
+                            <div className="stat-card">
+                                <h3>{stats.activeDepartments || 0}</h3>
+                                <p>Departments</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Users Tab Component
+        function UsersTab() {
+            const [users, setUsers] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [editingUser, setEditingUser] = useState(null);
+            const [formData, setFormData] = useState({
+                username: '',
+                full_name: '',
+                email: '',
+                password: '',
+                role: '',
+                department: ''
+            });
+
+            useEffect(() => {
+                fetchUsers();
+            }, []);
+
+            const fetchUsers = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setUsers(data);
+                } catch (err) {
+                    console.error('Error fetching users:', err);
+                }
+            };
+
+            const handleAdd = () => {
+                setEditingUser(null);
+                setFormData({
+                    username: '',
+                    full_name: '',
+                    email: '',
+                    password: '',
+                    role: '',
+                    department: ''
+                });
+                setShowModal(true);
+            };
+
+            const handleEdit = (user) => {
+                setEditingUser(user);
+                setFormData({
+                    username: user.username,
+                    full_name: user.full_name,
+                    email: user.email || '',
+                    password: '',
+                    role: user.role,
+                    department: user.department || ''
+                });
+                setShowModal(true);
+            };
+
+            const handleSave = async () => {
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const url = editingUser
+                        ? `${API_URL}/admin/users/${editingUser.id}`
+                        : `${API_URL}/admin/users`;
+                    const method = editingUser ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert(editingUser ? 'User updated successfully' : 'User created successfully');
+                        setShowModal(false);
+                        fetchUsers();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error saving user: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDelete = async (userId, username) => {
+                if (!confirm(`Are you sure you want to delete user: ${username}?`)) return;
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users/${userId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        alert('User deleted successfully');
+                        fetchUsers();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error deleting user: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4>User Management</h4>
+                            <p className="text-muted mb-0">Add, edit, and manage system users</p>
+                        </div>
+                        <button className="btn btn-primary" onClick={handleAdd}>
+                            + Add User
+                        </button>
+                    </div>
+
+                    <table className="table table-bordered table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map(user => (
+                                <tr key={user.id}>
+                                    <td>{user.id}</td>
+                                    <td>{user.username}</td>
+                                    <td>{user.full_name}</td>
+                                    <td>{user.email || '-'}</td>
+                                    <td><span className="badge bg-info">{user.role}</span></td>
+                                    <td>{user.department || '-'}</td>
+                                    <td className="table-actions">
+                                        <button
+                                            className="btn btn-sm btn-warning"
+                                            onClick={() => handleEdit(user)}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-danger"
+                                            onClick={() => handleDelete(user.id, user.username)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* User Modal */}
+                    {showModal && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">
+                                            {editingUser ? 'Edit User' : 'Add New User'}
+                                        </h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowModal(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="mb-3">
+                                            <label className="form-label">Username</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.username}
+                                                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                                                disabled={!!editingUser}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Full Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.full_name}
+                                                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Email</label>
+                                            <input
+                                                type="email"
+                                                className="form-control"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">
+                                                Password {editingUser && '(leave blank to keep current)'}
+                                            </label>
+                                            <input
+                                                type="password"
+                                                className="form-control"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Role</label>
+                                            <select
+                                                className="form-control"
+                                                value={formData.role}
+                                                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                            >
+                                                <option value="">Select role...</option>
+                                                <option value="initiator">Initiator</option>
+                                                <option value="hod">HOD</option>
+                                                <option value="procurement">Procurement</option>
+                                                <option value="finance">Finance Manager</option>
+                                                <option value="md">MD</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Department</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.department}
+                                                onChange={(e) => setFormData({...formData, department: e.target.value})}
+                                                placeholder="e.g., IT, HR, Finance"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Vendors Tab Component
+        function VendorsTab() {
+            const [vendors, setVendors] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [editingVendor, setEditingVendor] = useState(null);
+            const [formData, setFormData] = useState({
+                name: '',
+                contact_person: '',
+                email: '',
+                phone: '',
+                address: ''
+            });
+
+            useEffect(() => {
+                fetchVendors();
+            }, []);
+
+            const fetchVendors = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/vendors`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setVendors(data);
+                } catch (err) {
+                    console.error('Error fetching vendors:', err);
+                }
+            };
+
+            const handleAdd = () => {
+                setEditingVendor(null);
+                setFormData({
+                    name: '',
+                    contact_person: '',
+                    email: '',
+                    phone: '',
+                    address: ''
+                });
+                setShowModal(true);
+            };
+
+            const handleEdit = (vendor) => {
+                setEditingVendor(vendor);
+                setFormData({
+                    name: vendor.name,
+                    contact_person: vendor.contact_person || '',
+                    email: vendor.email || '',
+                    phone: vendor.phone || '',
+                    address: vendor.address || ''
+                });
+                setShowModal(true);
+            };
+
+            const handleSave = async () => {
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const url = editingVendor
+                        ? `${API_URL}/admin/vendors/${editingVendor.id}`
+                        : `${API_URL}/admin/vendors`;
+                    const method = editingVendor ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert(editingVendor ? 'Vendor updated successfully' : 'Vendor created successfully');
+                        setShowModal(false);
+                        fetchVendors();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error saving vendor: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDelete = async (vendorId, vendorName) => {
+                if (!confirm(`Are you sure you want to delete vendor: ${vendorName}?`)) return;
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/vendors/${vendorId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        alert('Vendor deleted successfully');
+                        fetchVendors();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error deleting vendor: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4>Vendor Management</h4>
+                            <p className="text-muted mb-0">Manage suppliers and vendors</p>
+                        </div>
+                        <button className="btn btn-primary" onClick={handleAdd}>
+                            + Add Vendor
+                        </button>
+                    </div>
+
+                    <table className="table table-bordered table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {vendors.map(vendor => (
+                                <tr key={vendor.id}>
+                                    <td>{vendor.id}</td>
+                                    <td>{vendor.name}</td>
+                                    <td>{vendor.contact_person || '-'}</td>
+                                    <td>{vendor.email || '-'}</td>
+                                    <td>{vendor.phone || '-'}</td>
+                                    <td>{vendor.address || '-'}</td>
+                                    <td className="table-actions">
+                                        <button
+                                            className="btn btn-sm btn-warning"
+                                            onClick={() => handleEdit(vendor)}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-danger"
+                                            onClick={() => handleDelete(vendor.id, vendor.name)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Vendor Modal */}
+                    {showModal && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">
+                                            {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
+                                        </h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowModal(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="mb-3">
+                                            <label className="form-label">Vendor Name *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Contact Person</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.contact_person}
+                                                onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Email</label>
+                                            <input
+                                                type="email"
+                                                className="form-control"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Phone</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Address</label>
+                                            <textarea
+                                                className="form-control"
+                                                rows="2"
+                                                value={formData.address}
+                                                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Departments Tab Component
+        function DepartmentsTab() {
+            const [departments, setDepartments] = useState([]);
+
+            useEffect(() => {
+                fetchDepartments();
+            }, []);
+
+            const fetchDepartments = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/departments`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setDepartments(data);
+                } catch (err) {
+                    console.error('Error fetching departments:', err);
+                }
+            };
+
+            return (
+                <div>
+                    <h4>Department Management</h4>
+                    <p className="text-muted">View departments and their spending</p>
+
+                    <table className="table table-bordered table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th>Department</th>
+                                <th>Total Spent (Completed Requisitions)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {departments.map((dept, idx) => (
+                                <tr key={idx}>
+                                    <td>{dept.department}</td>
+                                    <td>K {(dept.spent || 0).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+
+        // Budgets Tab Component
+        function BudgetsTab() {
+            const [budgets, setBudgets] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [formData, setFormData] = useState({
+                department: '',
+                allocated_amount: '',
+                fiscal_year: new Date().getFullYear().toString()
+            });
+
+            useEffect(() => {
+                fetchBudgets();
+            }, []);
+
+            const fetchBudgets = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/budgets`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setBudgets(data);
+                } catch (err) {
+                    console.error('Error fetching budgets:', err);
+                }
+            };
+
+            const handleAdd = () => {
+                setFormData({
+                    department: '',
+                    allocated_amount: '',
+                    fiscal_year: new Date().getFullYear().toString()
+                });
+                setShowModal(true);
+            };
+
+            const handleSave = async () => {
+                if (!formData.department || !formData.allocated_amount) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/budgets`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert('Budget saved successfully');
+                        setShowModal(false);
+                        fetchBudgets();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error saving budget: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDelete = async (department) => {
+                if (!confirm(`Delete budget for ${department}?`)) return;
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/budgets/${department}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        alert('Budget deleted successfully');
+                        fetchBudgets();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error deleting budget: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const calculatePercentage = (spent, allocated) => {
+                if (!allocated) return 0;
+                return ((spent || 0) / allocated * 100).toFixed(1);
+            };
+
+            return (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4>Budget Management</h4>
+                            <p className="text-muted mb-0">Manage departmental budgets and track spending</p>
+                        </div>
+                        <button className="btn btn-primary" onClick={handleAdd}>
+                            + Add Budget
+                        </button>
+                    </div>
+
+                    <table className="table table-bordered table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th>Department</th>
+                                <th>Fiscal Year</th>
+                                <th>Allocated Budget</th>
+                                <th>Spent</th>
+                                <th>Remaining</th>
+                                <th>Utilization %</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {budgets.map(budget => {
+                                const spent = budget.spent || 0;
+                                const remaining = budget.allocated_amount - spent;
+                                const percentage = calculatePercentage(spent, budget.allocated_amount);
+                                return (
+                                    <tr key={budget.id}>
+                                        <td><strong>{budget.department}</strong></td>
+                                        <td>{budget.fiscal_year}</td>
+                                        <td>K {budget.allocated_amount.toLocaleString()}</td>
+                                        <td>K {spent.toLocaleString()}</td>
+                                        <td className={remaining < 0 ? 'text-danger' : 'text-success'}>
+                                            K {remaining.toLocaleString()}
+                                        </td>
+                                        <td>
+                                            <div className="progress" style={{height: '20px'}}>
+                                                <div
+                                                    className={`progress-bar ${percentage > 90 ? 'bg-danger' : percentage > 75 ? 'bg-warning' : 'bg-success'}`}
+                                                    style={{width: `${Math.min(percentage, 100)}%`}}
+                                                >
+                                                    {percentage}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => handleDelete(budget.department)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+
+                    {/* Budget Modal */}
+                    {showModal && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">Add/Update Budget</h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowModal(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="mb-3">
+                                            <label className="form-label">Department *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.department}
+                                                onChange={(e) => setFormData({...formData, department: e.target.value})}
+                                                placeholder="e.g., IT, HR, Finance"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Allocated Amount (K) *</label>
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                value={formData.allocated_amount}
+                                                onChange={(e) => setFormData({...formData, allocated_amount: e.target.value})}
+                                                placeholder="e.g., 500000"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Fiscal Year *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.fiscal_year}
+                                                onChange={(e) => setFormData({...formData, fiscal_year: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Reassign Tab Component
+        function ReassignTab() {
+            const [requisitions, setRequisitions] = useState([]);
+            const [hods, setHods] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [selectedReq, setSelectedReq] = useState(null);
+            const [reassignData, setReassignData] = useState({
+                new_approver_id: '',
+                comments: ''
+            });
+
+            useEffect(() => {
+                fetchPendingRequisitions();
+                fetchHODs();
+            }, []);
+
+            const fetchPendingRequisitions = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/pending-requisitions`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setRequisitions(data);
+                } catch (err) {
+                    console.error('Error fetching requisitions:', err);
+                }
+            };
+
+            const fetchHODs = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const users = await response.json();
+                    const hodUsers = users.filter(u => u.role === 'hod');
+                    setHods(hodUsers);
+                } catch (err) {
+                    console.error('Error fetching HODs:', err);
+                }
+            };
+
+            const handleReassign = (req) => {
+                setSelectedReq(req);
+                setReassignData({
+                    new_approver_id: '',
+                    comments: ''
+                });
+                setShowModal(true);
+            };
+
+            const submitReassignment = async () => {
+                if (!reassignData.new_approver_id || !reassignData.comments.trim()) {
+                    alert('Please select a new approver and provide comments');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/reassign/${selectedReq.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(reassignData)
+                    });
+
+                    if (response.ok) {
+                        alert('Requisition reassigned successfully');
+                        setShowModal(false);
+                        fetchPendingRequisitions();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error reassigning requisition: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div>
+                    <h4>Reassign Requisitions</h4>
+                    <p className="text-muted">Reassign pending requisitions to different HODs for approval</p>
+
+                    <table className="table table-bordered table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th>Req ID</th>
+                                <th>Title</th>
+                                <th>Department</th>
+                                <th>Created By</th>
+                                <th>Status</th>
+                                <th>Total Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {requisitions.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="text-center">No pending requisitions found</td>
+                                </tr>
+                            ) : (
+                                requisitions.map(req => (
+                                    <tr key={req.id}>
+                                        <td>{req.id}</td>
+                                        <td>{req.title}</td>
+                                        <td>{req.department || '-'}</td>
+                                        <td>{req.created_by_name}</td>
+                                        <td><span className="badge bg-warning">{req.status}</span></td>
+                                        <td>K {(req.total_amount || 0).toFixed(2)}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-sm btn-primary"
+                                                onClick={() => handleReassign(req)}
+                                            >
+                                                Reassign
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+
+                    {/* Reassignment Modal */}
+                    {showModal && selectedReq && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">
+                                            Reassign Requisition #{selectedReq.id}
+                                        </h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowModal(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="mb-3">
+                                            <strong>Title:</strong> {selectedReq.title}
+                                        </div>
+                                        <div className="mb-3">
+                                            <strong>Department:</strong> {selectedReq.department}
+                                        </div>
+                                        <div className="mb-3">
+                                            <strong>Current Status:</strong> {selectedReq.status}
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Reassign to HOD *</label>
+                                            <select
+                                                className="form-control"
+                                                value={reassignData.new_approver_id}
+                                                onChange={(e) => setReassignData({...reassignData, new_approver_id: e.target.value})}
+                                            >
+                                                <option value="">Select HOD...</option>
+                                                {hods.map(hod => (
+                                                    <option key={hod.id} value={hod.id}>
+                                                        {hod.full_name} ({hod.department || 'No Dept'})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Reason for Reassignment *</label>
+                                            <textarea
+                                                className="form-control"
+                                                rows="3"
+                                                placeholder="Explain why this requisition is being reassigned..."
+                                                value={reassignData.comments}
+                                                onChange={(e) => setReassignData({...reassignData, comments: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={submitReassignment}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Reassigning...' : 'Reassign'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Reports Tab Component
+        function ReportsTab() {
+            const [report, setReport] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [filters, setFilters] = useState({
+                start_date: '',
+                end_date: '',
+                department: ''
+            });
+
+            const generateReport = async () => {
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const params = new URLSearchParams();
+                    if (filters.start_date) params.append('start_date', filters.start_date);
+                    if (filters.end_date) params.append('end_date', filters.end_date);
+                    if (filters.department) params.append('department', filters.department);
+
+                    const response = await fetch(`${API_URL}/admin/reports/summary?${params}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setReport(data);
+                } catch (err) {
+                    console.error('Error generating report:', err);
+                    alert('Error generating report');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div>
+                    <h4>Reports & Analytics</h4>
+                    <p className="text-muted">Generate summary reports with filters</p>
+
+                    <div className="card mb-4">
+                        <div className="card-body">
+                            <h6>Filters</h6>
+                            <div className="row g-3">
+                                <div className="col-md-3">
+                                    <label className="form-label">Start Date</label>
+                                    <input
+                                        type="date"
+                                        className="form-control"
+                                        value={filters.start_date}
+                                        onChange={(e) => setFilters({...filters, start_date: e.target.value})}
+                                    />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">End Date</label>
+                                    <input
+                                        type="date"
+                                        className="form-control"
+                                        value={filters.end_date}
+                                        onChange={(e) => setFilters({...filters, end_date: e.target.value})}
+                                    />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">Department</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={filters.department}
+                                        onChange={(e) => setFilters({...filters, department: e.target.value})}
+                                        placeholder="e.g., IT, HR"
+                                    />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label">&nbsp;</label>
+                                    <button
+                                        className="btn btn-primary w-100"
+                                        onClick={generateReport}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Generating...' : 'Generate Report'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {report && (
+                        <div className="row">
+                            <div className="col-md-3">
+                                <div className="stat-card">
+                                    <h3>{report.total_requisitions || 0}</h3>
+                                    <p>Total Requisitions</p>
+                                </div>
+                            </div>
+                            <div className="col-md-3">
+                                <div className="stat-card">
+                                    <h3>{report.completed || 0}</h3>
+                                    <p>Completed</p>
+                                </div>
+                            </div>
+                            <div className="col-md-3">
+                                <div className="stat-card">
+                                    <h3>{report.pending || 0}</h3>
+                                    <p>Pending</p>
+                                </div>
+                            </div>
+                            <div className="col-md-3">
+                                <div className="stat-card">
+                                    <h3>K {(report.total_spent || 0).toFixed(2)}</h3>
+                                    <p>Total Spent</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<AdminConsole />, document.getElementById('root'));
+    </script>
+</body>
+</html>

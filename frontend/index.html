@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Requisition Approval System (PRAS)</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React 18 from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+    <style>
+        /* Theme CSS Variables */
+        :root {
+            /* Brand Colors */
+            --color-primary: #0070AF;
+            --color-primary-light: #D0E3F2;
+            --color-primary-medium: #58A6D0;
+
+            /* Semantic Colors - Light Mode */
+            --color-success: #10B981;
+            --color-success-dark: #059669;
+            --color-success-bg: #D1FAE5;
+            --color-danger: #EF4444;
+            --color-danger-dark: #DC2626;
+            --color-danger-bg: #FEE2E2;
+            --color-warning: #F59E0B;
+            --color-warning-dark: #D97706;
+            --color-warning-bg: #FEF3C7;
+            --color-info: #0070AF;
+            --color-info-bg: #D0E3F2;
+
+            /* Light Mode Colors */
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F8FAFC;
+            --bg-tertiary: #F1F5F9;
+            --bg-hover: #E2E8F0;
+            --text-primary: #1E293B;
+            --text-secondary: #475569;
+            --text-tertiary: #64748B;
+            --border-color: #E2E8F0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Dark Mode Colors */
+        [data-theme="dark"] {
+            /* Semantic Colors - Dark Mode (slightly adjusted for dark backgrounds) */
+            --color-success: #10B981;
+            --color-success-dark: #059669;
+            --color-success-bg: rgba(16, 185, 129, 0.1);
+            --color-danger: #EF4444;
+            --color-danger-dark: #DC2626;
+            --color-danger-bg: rgba(239, 68, 68, 0.1);
+            --color-warning: #F59E0B;
+            --color-warning-dark: #D97706;
+            --color-warning-bg: rgba(245, 158, 11, 0.1);
+            --color-info: #0070AF;
+            --color-info-bg: rgba(0, 112, 175, 0.1);
+
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --bg-hover: #475569;
+            --text-primary: #F1F5F9;
+            --text-secondary: #CBD5E1;
+            --text-tertiary: #94A3B8;
+            --border-color: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Prevent flash of unstyled content */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        #root {
+            min-height: 100vh;
+        }
+
+        /* Loading screen */
+        .initial-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f9fafb;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error display */
+        .error-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #fef2f2;
+            padding: 20px;
+        }
+
+        .error-box {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .error-box h2 {
+            color: #dc2626;
+            margin: 0 0 15px 0;
+        }
+
+        .error-box pre {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        /* Global Theme Styles for Common Elements */
+        .bg-white {
+            background-color: var(--bg-primary) !important;
+        }
+
+        .bg-gray-50 {
+            background-color: var(--bg-secondary) !important;
+        }
+
+        .bg-gray-100 {
+            background-color: var(--bg-tertiary) !important;
+        }
+
+        .text-gray-800, .text-gray-900 {
+            color: var(--text-primary) !important;
+        }
+
+        .text-gray-600, .text-gray-700 {
+            color: var(--text-secondary) !important;
+        }
+
+        .text-gray-500 {
+            color: var(--text-tertiary) !important;
+        }
+
+        .border, .border-t, .border-b, .border-r, .border-l {
+            border-color: var(--border-color) !important;
+        }
+
+        .border-gray-200, .border-gray-300 {
+            border-color: var(--border-color) !important;
+        }
+
+        .shadow-sm {
+            box-shadow: var(--shadow-sm) !important;
+        }
+
+        .shadow, .shadow-md {
+            box-shadow: var(--shadow-md) !important;
+        }
+
+        .shadow-lg {
+            box-shadow: var(--shadow-lg) !important;
+        }
+
+        /* Card-like elements */
+        .rounded-lg, .rounded {
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Hover states for interactive elements */
+        button:not([style*="background"]):hover {
+            opacity: 0.9;
+        }
+
+        /* Table hover effects */
+        tr:hover {
+            background-color: var(--bg-hover) !important;
+        }
+
+        /* Input and select elements */
+        input, select, textarea {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: var(--text-tertiary) !important;
+        }
+
+        /* Smooth transitions for theme changes */
+        * {
+            transition-property: background-color, border-color, color;
+            transition-duration: 0.3s;
+            transition-timing-function: ease;
+        }
+
+        /* Prevent transition on page load */
+        .no-transition * {
+            transition: none !important;
+        }
+    </style>
+
+    <script>
+        // THEME INITIALIZATION - Must run before anything else to prevent flash
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <script>
+        // PERMANENT CACHE PREVENTION SYSTEM
+        (function() {
+            'use strict';
+
+            // Version control - increment this when making changes
+            const APP_VERSION = '6.7.0';
+
+            console.log('🚀 Initializing Purchase Requisition Approval System (PRAS) v' + APP_VERSION);
+
+            // Clear all caches aggressively
+            function clearAllCaches() {
+                // Clear service workers
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        registrations.forEach(function(registration) {
+                            registration.unregister();
+                            console.log('✓ Service worker unregistered');
+                        });
+                    });
+                }
+
+                // Clear cache storage
+                if ('caches' in window) {
+                    caches.keys().then(function(names) {
+                        names.forEach(function(name) {
+                            caches.delete(name);
+                            console.log('✓ Cache deleted:', name);
+                        });
+                    });
+                }
+
+                // Clear old localStorage items except auth
+                try {
+                    const keysToKeep = ['authToken', 'currentUser'];
+                    const allKeys = Object.keys(localStorage);
+                    allKeys.forEach(key => {
+                        if (!keysToKeep.includes(key)) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                } catch (e) {
+                    console.warn('Could not clear localStorage:', e);
+                }
+
+                // Clear sessionStorage version tracking
+                const storedVersion = sessionStorage.getItem('appVersion');
+                if (storedVersion !== APP_VERSION) {
+                    console.log('🔄 Version changed from', storedVersion, 'to', APP_VERSION);
+                    sessionStorage.setItem('appVersion', APP_VERSION);
+                    // Force reload on version change
+                    if (storedVersion && storedVersion !== 'undefined') {
+                        console.log('🔄 Reloading due to version change...');
+                        window.location.reload(true);
+                        return;
+                    }
+                }
+                sessionStorage.setItem('appVersion', APP_VERSION);
+            }
+
+            // Run cache clearing immediately
+            clearAllCaches();
+
+            // Global error handler
+            window.addEventListener('error', function(event) {
+                console.error('❌ Global error:', event.error);
+
+                const root = document.getElementById('root');
+                if (root && !root.innerHTML.trim()) {
+                    root.innerHTML = `
+                        <div class="error-container">
+                            <div class="error-box">
+                                <h2>⚠️ Application Error</h2>
+                                <p><strong>Message:</strong> ${event.message}</p>
+                                <p><strong>File:</strong> ${event.filename}</p>
+                                <p><strong>Line:</strong> ${event.lineno}:${event.colno}</p>
+                                <pre>${event.error ? event.error.stack : 'No stack trace available'}</pre>
+                                <button onclick="location.reload(true)"
+                                    style="background: #3b82f6; color: white; padding: 10px 20px;
+                                           border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+                                    Reload Page
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            // Detect React loading
+            window.addEventListener('DOMContentLoaded', function() {
+                console.log('✓ DOM loaded');
+
+                setTimeout(function() {
+                    if (typeof React === 'undefined') {
+                        console.error('❌ React failed to load!');
+                        document.getElementById('root').innerHTML = `
+                            <div class="error-container">
+                                <div class="error-box">
+                                    <h2>⚠️ React Failed to Load</h2>
+                                    <p>The React library could not be loaded. Please check your internet connection.</p>
+                                    <button onclick="location.reload(true)"
+                                        style="background: #3b82f6; color: white; padding: 10px 20px;
+                                               border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+                                        Retry
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        console.log('✓ React loaded successfully, version:', React.version);
+                    }
+                }, 1000);
+            });
+        })();
+    </script>
+</head>
+<body>
+    <!-- Root element where React app will mount -->
+    <div id="root">
+        <div class="initial-loading">
+            <div style="text-align: center;">
+                <div class="spinner" style="margin: 0 auto 20px;"></div>
+                <p style="color: #6b7280;">Loading Purchase Requisition Approval System (PRAS)...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the application JavaScript -->
+    <script src="app.js?v=6.7.0"></script>
+
+    <script>
+        // Verify app loaded
+        setTimeout(function() {
+            const root = document.getElementById('root');
+            const loading = root.querySelector('.initial-loading');
+
+            if (loading && loading.parentNode === root) {
+                console.warn('⚠️ App did not mount after 5 seconds, checking for errors...');
+
+                // Check if app.js loaded
+                if (typeof window.App === 'undefined') {
+                    console.error('❌ app.js failed to load or define App component');
+                    root.innerHTML = `
+                        <div class="error-container">
+                            <div class="error-box">
+                                <h2>⚠️ Application Failed to Load</h2>
+                                <p>The application JavaScript file (app.js) failed to load or initialize.</p>
+                                <p><strong>Possible causes:</strong></p>
+                                <ul style="margin: 10px 0; padding-left: 20px;">
+                                    <li>Backend server is not running</li>
+                                    <li>app.js file is missing or corrupted</li>
+                                    <li>JavaScript syntax error in app.js</li>
+                                </ul>
+                                <p><strong>Solution:</strong> Check the browser console for detailed error messages.</p>
+                                <button onclick="window.location.href='/'"
+                                    style="background: #3b82f6; color: white; padding: 10px 20px;
+                                           border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+                                    Reload Application
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
