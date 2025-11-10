@@ -2316,18 +2316,11 @@ app.get('/api/requisitions/:id/pdf', authenticate, (req, res, next) => {
 
         const reqId = req.params.id;
 
-        // Get requisition with full details
+        // Get requisition with full details from consolidated view (TIER 2 optimization)
+        // The view handles all JOINs and COALESCE logic for cleaner, faster queries
         db.get(`
-            SELECT r.*,
-                   u.full_name as created_by_name,
-                   u.department,
-                   h.full_name as hod_approved_by_name,
-                   a.recommended_vendor_name as approved_vendor
-            FROM requisitions r
-            JOIN users u ON r.created_by = u.id
-            LEFT JOIN users h ON r.hod_approved_by = h.id
-            LEFT JOIN adjudications a ON r.id = a.requisition_id
-            WHERE r.id = ?
+            SELECT * FROM vw_requisition_pdf_data
+            WHERE id = ?
         `, [reqId], (err, requisition) => {
             if (err) {
                 logError(err, { context: 'pdf_generation_get_req', requisition_id: reqId });
@@ -2346,11 +2339,27 @@ app.get('/api/requisitions/:id/pdf', authenticate, (req, res, next) => {
                 });
             }
 
-            // Get items for the requisition
+            // Get items for the requisition with proper pricing
+            // Fallback to requisitions table pricing if items have zero prices
             db.all(`
-                SELECT ri.*, v.name as vendor_name
+                SELECT ri.*,
+                       v.name as vendor_name,
+                       CASE
+                           WHEN ri.unit_price IS NULL OR ri.unit_price = 0
+                           THEN r.unit_price
+                           ELSE ri.unit_price
+                       END as unit_price,
+                       CASE
+                           WHEN ri.total_price IS NULL OR ri.total_price = 0
+                           THEN r.total_cost
+                           ELSE ri.total_price
+                       END as total_price,
+                       ri.quantity,
+                       ri.item_name,
+                       ri.specifications
                 FROM requisition_items ri
                 LEFT JOIN vendors v ON ri.vendor_id = v.id
+                LEFT JOIN requisitions r ON ri.requisition_id = r.id
                 WHERE ri.requisition_id = ?
                 ORDER BY ri.id
             `, [reqId], (err, items) => {
