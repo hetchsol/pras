@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: purchase-requisition-system
+    name: pras
     runtime: node
     buildCommand: cd backend && npm install && node init-db.js
     startCommand: cd backend && npm start
@@ -30,6 +30,6 @@ services:
       - key: RATE_LIMIT_MAX_REQUESTS
         value: 100
       - key: ALLOWED_ORIGINS
-        value: https://purchase-requisition-system.onrender.com
+        value: https://pras.onrender.com
       - key: SESSION_SECRET
         generateValue: true
