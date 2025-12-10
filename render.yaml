@@ -5,7 +5,6 @@ services:
     buildCommand: cd backend && npm install && node init-db.js
     startCommand: cd backend && npm start
     plan: starter
-    region: oregon
     disk:
       name: purchase-req-data
       mountPath: /opt/render/project/src/backend
