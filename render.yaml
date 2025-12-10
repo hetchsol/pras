@@ -2,15 +2,21 @@ services:
   - type: web
     name: purchase-requisition-system
     runtime: node
-    buildCommand: cd backend && npm install
+    buildCommand: cd backend && npm install && node init-db.js
     startCommand: cd backend && npm start
+    plan: starter
+    region: oregon
+    disk:
+      name: purchase-req-data
+      mountPath: /opt/render/project/src/backend
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: DATABASE_PATH
-        value: ./purchase_requisition.db
+        value: /opt/render/project/src/backend/purchase_requisition.db
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
@@ -24,4 +30,6 @@ services:
       - key: RATE_LIMIT_MAX_REQUESTS
         value: 100
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: https://purchase-requisition-system.onrender.com
+      - key: SESSION_SECRET
+        generateValue: true
