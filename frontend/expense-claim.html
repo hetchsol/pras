@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Claim Form - PRAS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary: #0070AF;
+            --color-primary-light: #D0E3F2;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F8FAFC;
+            --text-primary: #1E293B;
+            --border-color: #E2E8F0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: var(--bg-secondary);
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: #005a8c;
+        }
+
+        .btn-secondary {
+            background-color: #6B7280;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .btn-danger {
+            background-color: #EF4444;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-light);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        table th {
+            background-color: var(--bg-secondary);
+            font-weight: 600;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Header -->
+        <div class="form-section">
+            <div class="flex items-center justify-between mb-4">
+                <button onclick="window.location.href='index.html'" class="text-gray-600 hover:text-gray-800">
+                    &larr; Back to Dashboard
+                </button>
+                <h1 class="text-2xl font-bold text-gray-800">Expense Claim Form</h1>
+                <div class="text-sm text-gray-500">FM-FI-014</div>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <form id="expenseClaimForm">
+            <!-- Employee Information -->
+            <div class="form-section">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Employee Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Employee Name *</label>
+                        <input type="text" id="employee_name" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Employee Number *</label>
+                        <input type="text" id="employee_number" class="input-field" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Department *</label>
+                        <input type="text" id="department" class="input-field" required placeholder="Enter department">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Trip *</label>
+                    <textarea id="reason_for_trip" rows="2" class="input-field" required></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">KM Rate (ZMW per km)</label>
+                        <input type="number" step="0.01" id="km_rate" class="input-field" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount Advanced (ZMW)</label>
+                        <input type="number" step="0.01" id="amount_advanced" class="input-field" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expense Items Table -->
+            <div class="form-section">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-700">Expense Items</h2>
+                    <button type="button" onclick="addExpenseItem()" class="btn-primary">+ Add Item</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="expenseItemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th style="width: 120px;">Date *</th>
+                                <th style="width: 200px;">Details *</th>
+                                <th style="width: 60px;">KM</th>
+                                <th style="width: 40px;">B</th>
+                                <th style="width: 40px;">L</th>
+                                <th style="width: 40px;">D</th>
+                                <th style="width: 80px;">Meals (ZMW)</th>
+                                <th style="width: 100px;">Accommodation (ZMW)</th>
+                                <th style="width: 100px;">Sundries/Phone (ZMW)</th>
+                                <th style="width: 100px;">Total (ZMW)</th>
+                                <th style="width: 60px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseItemsBody">
+                            <!-- Items will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Totals Section -->
+            <div class="form-section">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Claim Summary</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium">Total Kilometers:</span>
+                            <span id="total_kilometers" class="font-bold">0.00</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium">Sub Total (Items):</span>
+                            <span id="sub_total" class="font-bold">K 0.00</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium">Total Travel (KM × Rate):</span>
+                            <span id="total_travel" class="font-bold">K 0.00</span>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-semibold">Total Claim:</span>
+                            <span id="total_claim" class="font-bold text-lg">K 0.00</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium">Less Amount Advanced:</span>
+                            <span id="display_advanced" class="font-bold">K 0.00</span>
+                        </div>
+                        <div class="flex justify-between pt-2 border-t-2 border-blue-300">
+                            <span class="font-semibold text-lg">Amount Due:</span>
+                            <span id="amount_due" class="font-bold text-xl text-blue-600">K 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-section">
+                <div class="flex gap-4">
+                    <button type="button" onclick="saveDraft()" class="btn-secondary">Save as Draft</button>
+                    <button type="submit" class="btn-primary">Submit for Approval</button>
+                    <button type="button" onclick="window.location.href='index.html'" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        let expenseItems = [];
+        let itemCounter = 0;
+
+        // Load user info and departments on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                // Fetch user info
+                const userRes = await fetch(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userData = await userRes.json();
+
+                // Auto-populate employee information
+                document.getElementById('employee_name').value = userData.name;
+                document.getElementById('employee_number').value = userData.employee_number || '';
+                document.getElementById('department').value = userData.department || '';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Error loading form data');
+            }
+
+            // Add initial expense item
+            addExpenseItem();
+        });
+
+        function addExpenseItem() {
+            itemCounter++;
+            const row = document.createElement('tr');
+            row.id = `item-${itemCounter}`;
+            row.innerHTML = `
+                <td class="text-center">${itemCounter}</td>
+                <td><input type="date" class="input-field item-date" required></td>
+                <td><input type="text" class="input-field item-details" required></td>
+                <td><input type="number" step="0.01" class="input-field item-km" value="0" onchange="calculateItemTotal(${itemCounter})"></td>
+                <td class="checkbox-cell"><input type="checkbox" class="item-breakfast"></td>
+                <td class="checkbox-cell"><input type="checkbox" class="item-lunch"></td>
+                <td class="checkbox-cell"><input type="checkbox" class="item-dinner"></td>
+                <td><input type="number" step="0.01" class="input-field item-meals" value="0" onchange="calculateItemTotal(${itemCounter})"></td>
+                <td><input type="number" step="0.01" class="input-field item-accommodation" value="0" onchange="calculateItemTotal(${itemCounter})"></td>
+                <td><input type="number" step="0.01" class="input-field item-sundries" value="0" onchange="calculateItemTotal(${itemCounter})"></td>
+                <td><input type="number" step="0.01" class="input-field item-total" value="0" readonly></td>
+                <td class="text-center">
+                    <button type="button" onclick="removeItem(${itemCounter})" class="btn-danger">×</button>
+                </td>
+            `;
+            document.getElementById('expenseItemsBody').appendChild(row);
+        }
+
+        function removeItem(id) {
+            const row = document.getElementById(`item-${id}`);
+            if (row) {
+                row.remove();
+                renumberItems();
+                calculateTotals();
+            }
+        }
+
+        function renumberItems() {
+            const rows = document.querySelectorAll('#expenseItemsBody tr');
+            rows.forEach((row, index) => {
+                row.querySelector('td:first-child').textContent = index + 1;
+            });
+        }
+
+        function calculateItemTotal(itemId) {
+            const row = document.getElementById(`item-${itemId}`);
+            if (!row) return;
+
+            const meals = parseFloat(row.querySelector('.item-meals').value) || 0;
+            const accommodation = parseFloat(row.querySelector('.item-accommodation').value) || 0;
+            const sundries = parseFloat(row.querySelector('.item-sundries').value) || 0;
+
+            const total = meals + accommodation + sundries;
+            row.querySelector('.item-total').value = total.toFixed(2);
+
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            const rows = document.querySelectorAll('#expenseItemsBody tr');
+            let totalKm = 0;
+            let subTotal = 0;
+
+            rows.forEach(row => {
+                const km = parseFloat(row.querySelector('.item-km').value) || 0;
+                const itemTotal = parseFloat(row.querySelector('.item-total').value) || 0;
+                totalKm += km;
+                subTotal += itemTotal;
+            });
+
+            const kmRate = parseFloat(document.getElementById('km_rate').value) || 0;
+            const travelTotal = totalKm * kmRate;
+            const totalClaim = subTotal + travelTotal;
+            const amountAdvanced = parseFloat(document.getElementById('amount_advanced').value) || 0;
+            const amountDue = totalClaim - amountAdvanced;
+
+            document.getElementById('total_kilometers').textContent = totalKm.toFixed(2);
+            document.getElementById('sub_total').textContent = `K ${subTotal.toFixed(2)}`;
+            document.getElementById('total_travel').textContent = `K ${travelTotal.toFixed(2)}`;
+            document.getElementById('total_claim').textContent = `K ${totalClaim.toFixed(2)}`;
+            document.getElementById('display_advanced').textContent = `K ${amountAdvanced.toFixed(2)}`;
+            document.getElementById('amount_due').textContent = `K ${amountDue.toFixed(2)}`;
+        }
+
+        // Update totals when km_rate or amount_advanced changes
+        document.getElementById('km_rate').addEventListener('change', calculateTotals);
+        document.getElementById('amount_advanced').addEventListener('change', calculateTotals);
+
+        function collectFormData() {
+            const rows = document.querySelectorAll('#expenseItemsBody tr');
+            const items = [];
+
+            rows.forEach((row, index) => {
+                items.push({
+                    report_no: index + 1,
+                    date: row.querySelector('.item-date').value,
+                    details: row.querySelector('.item-details').value,
+                    km: parseFloat(row.querySelector('.item-km').value) || 0,
+                    breakfast: row.querySelector('.item-breakfast').checked ? 1 : 0,
+                    lunch: row.querySelector('.item-lunch').checked ? 1 : 0,
+                    dinner: row.querySelector('.item-dinner').checked ? 1 : 0,
+                    meals: parseFloat(row.querySelector('.item-meals').value) || 0,
+                    accommodation: parseFloat(row.querySelector('.item-accommodation').value) || 0,
+                    sundries_phone: parseFloat(row.querySelector('.item-sundries').value) || 0,
+                    total_zmw: parseFloat(row.querySelector('.item-total').value) || 0
+                });
+            });
+
+            return {
+                employee_name: document.getElementById('employee_name').value,
+                employee_number: document.getElementById('employee_number').value,
+                department: document.getElementById('department').value,
+                reason_for_trip: document.getElementById('reason_for_trip').value,
+                km_rate: parseFloat(document.getElementById('km_rate').value) || 0,
+                amount_advanced: parseFloat(document.getElementById('amount_advanced').value) || 0,
+                items
+            };
+        }
+
+        async function saveDraft() {
+            const data = collectFormData();
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+            try {
+                const response = await fetch(`${API_BASE}/forms/expense-claims`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Expense claim saved as draft successfully!');
+                    window.location.href = 'index.html';
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error saving expense claim');
+            }
+        }
+
+        document.getElementById('expenseClaimForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = collectFormData();
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+            try {
+                // First create the claim
+                const createResponse = await fetch(`${API_BASE}/forms/expense-claims`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const createResult = await createResponse.json();
+
+                if (!createResponse.ok) {
+                    alert(`Error: ${createResult.error}`);
+                    return;
+                }
+
+                // Then submit it for approval
+                const submitResponse = await fetch(`${API_BASE}/forms/expense-claims/${createResult.id}/submit`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const submitResult = await submitResponse.json();
+
+                if (submitResponse.ok) {
+                    alert('Expense claim submitted successfully!');
+                    window.location.href = 'index.html';
+                } else {
+                    alert(`Error: ${submitResult.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error submitting expense claim');
+            }
+        });
+    </script>
+</body>
+</html>

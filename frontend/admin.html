@@ -6,7 +6,7 @@
     <meta http-equiv="Content-Security-Policy"
           content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net;
                    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;">
-    <title>Admin Console - Purchase Requisition System</title>
+    <title>Admin Console - Purchase Requisition System v3.1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -143,6 +143,12 @@
                                 </a>
                             </li>
                             <li className="nav-item">
+                                <a className={`nav-link ${activeTab === 'hods' ? 'active' : ''}`}
+                                   onClick={() => setActiveTab('hods')} href="#">
+                                    HODs
+                                </a>
+                            </li>
+                            <li className="nav-item">
                                 <a className={`nav-link ${activeTab === 'vendors' ? 'active' : ''}`}
                                    onClick={() => setActiveTab('vendors')} href="#">
                                     Vendors
@@ -177,6 +183,7 @@
                         <div className="mt-4">
                             {activeTab === 'dashboard' && <DashboardTab />}
                             {activeTab === 'users' && <UsersTab />}
+                            {activeTab === 'hods' && <HODsTab />}
                             {activeTab === 'vendors' && <VendorsTab />}
                             {activeTab === 'departments' && <DepartmentsTab />}
                             {activeTab === 'budgets' && <BudgetsTab />}
@@ -247,6 +254,8 @@
         // Users Tab Component
         function UsersTab() {
             const [users, setUsers] = useState([]);
+            const [hods, setHods] = useState([]);
+            const [departments, setDepartments] = useState([]);
             const [loading, setLoading] = useState(false);
             const [showModal, setShowModal] = useState(false);
             const [editingUser, setEditingUser] = useState(null);
@@ -256,11 +265,14 @@
                 email: '',
                 password: '',
                 role: '',
-                department: ''
+                department: '',
+                assigned_hod: ''
             });
 
             useEffect(() => {
                 fetchUsers();
+                fetchHODs();
+                fetchDepartments();
             }, []);
 
             const fetchUsers = async () => {
@@ -276,6 +288,33 @@
                 }
             };
 
+            const fetchHODs = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const allUsers = await response.json();
+                    const hodUsers = allUsers.filter(u => u.role === 'hod');
+                    setHods(hodUsers);
+                } catch (err) {
+                    console.error('Error fetching HODs:', err);
+                }
+            };
+
+            const fetchDepartments = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/departments`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setDepartments(data);
+                } catch (err) {
+                    console.error('Error fetching departments:', err);
+                }
+            };
+
             const handleAdd = () => {
                 setEditingUser(null);
                 setFormData({
@@ -284,7 +323,8 @@
                     email: '',
                     password: '',
                     role: '',
-                    department: ''
+                    department: '',
+                    assigned_hod: ''
                 });
                 setShowModal(true);
             };
@@ -297,12 +337,34 @@
                     email: user.email || '',
                     password: '',
                     role: user.role,
-                    department: user.department || ''
+                    department: user.department || '',
+                    assigned_hod: user.assigned_hod || ''
                 });
                 setShowModal(true);
             };
 
             const handleSave = async () => {
+                // Validation
+                if (!formData.username || !formData.full_name || !formData.role) {
+                    alert('Username, Full Name, and Role are required');
+                    return;
+                }
+
+                if (!editingUser && !formData.password) {
+                    alert('Password is required for new users');
+                    return;
+                }
+
+                if (!formData.department) {
+                    alert('Department is required');
+                    return;
+                }
+
+                if (!formData.assigned_hod) {
+                    alert('Assigned HOD is required. Please select a Head of Department for this user.');
+                    return;
+                }
+
                 setLoading(true);
                 try {
                     const token = localStorage.getItem('authToken');
@@ -324,6 +386,7 @@
                         alert(editingUser ? 'User updated successfully' : 'User created successfully');
                         setShowModal(false);
                         fetchUsers();
+                        fetchHODs(); // Refresh HOD list if a new HOD was added
                     } else {
                         const error = await response.json();
                         alert('Error: ' + error.error);
@@ -381,34 +444,51 @@
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Department</th>
+                                <th>Assigned HOD</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map(user => (
-                                <tr key={user.id}>
-                                    <td>{user.id}</td>
-                                    <td>{user.username}</td>
-                                    <td>{user.full_name}</td>
-                                    <td>{user.email || '-'}</td>
-                                    <td><span className="badge bg-info">{user.role}</span></td>
-                                    <td>{user.department || '-'}</td>
-                                    <td className="table-actions">
-                                        <button
-                                            className="btn btn-sm btn-warning"
-                                            onClick={() => handleEdit(user)}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            className="btn btn-sm btn-danger"
-                                            onClick={() => handleDelete(user.id, user.username)}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {users.map(user => {
+                                const assignedHOD = hods.find(h => h.id === user.assigned_hod);
+                                return (
+                                    <tr key={user.id}>
+                                        <td>{user.id}</td>
+                                        <td>{user.username}</td>
+                                        <td>{user.full_name}</td>
+                                        <td>{user.email || '-'}</td>
+                                        <td><span className="badge bg-info">{user.role}</span></td>
+                                        <td>{user.department || '-'}</td>
+                                        <td>
+                                            {assignedHOD ? (
+                                                <span className="badge bg-success">
+                                                    {assignedHOD.full_name}
+                                                </span>
+                                            ) : user.assigned_hod ? (
+                                                <span className="badge bg-warning">
+                                                    ID: {user.assigned_hod}
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted">-</span>
+                                            )}
+                                        </td>
+                                        <td className="table-actions">
+                                            <button
+                                                className="btn btn-sm btn-warning"
+                                                onClick={() => handleEdit(user)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => handleDelete(user.id, user.username)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
 
@@ -484,14 +564,44 @@
                                             </select>
                                         </div>
                                         <div className="mb-3">
-                                            <label className="form-label">Department</label>
-                                            <input
-                                                type="text"
+                                            <label className="form-label">Department *</label>
+                                            <select
                                                 className="form-control"
                                                 value={formData.department}
                                                 onChange={(e) => setFormData({...formData, department: e.target.value})}
-                                                placeholder="e.g., IT, HR, Finance"
-                                            />
+                                            >
+                                                <option value="">Select department...</option>
+                                                {departments.map(dept => (
+                                                    <option key={dept.id} value={dept.name}>
+                                                        {dept.name} ({dept.code})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <small className="form-text text-muted">
+                                                User's organizational department
+                                            </small>
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Assigned HOD *</label>
+                                            <select
+                                                className="form-control"
+                                                value={formData.assigned_hod}
+                                                onChange={(e) => setFormData({...formData, assigned_hod: e.target.value})}
+                                            >
+                                                <option value="">Select HOD...</option>
+                                                {hods.map(hod => (
+                                                    <option key={hod.id} value={hod.id}>
+                                                        {hod.full_name} - {hod.department || 'No Dept'} ({hod.username})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <small className="form-text text-muted">
+                                                {hods.length === 0 ? (
+                                                    <span className="text-danger">⚠️ No HODs available. Please create a HOD user first.</span>
+                                                ) : (
+                                                    `HOD who will approve this user's requisitions`
+                                                )}
+                                            </small>
                                         </div>
                                     </div>
                                     <div className="modal-footer">
@@ -509,6 +619,364 @@
                                             disabled={loading}
                                         >
                                             {loading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // HODs Tab Component
+        function HODsTab() {
+            const [hods, setHods] = useState([]);
+            const [departments, setDepartments] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [editingHOD, setEditingHOD] = useState(null);
+            const [formData, setFormData] = useState({
+                username: '',
+                full_name: '',
+                email: '',
+                password: '',
+                department: ''
+            });
+
+            useEffect(() => {
+                fetchHODs();
+                fetchDepartments();
+            }, []);
+
+            const fetchHODs = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    const hodUsers = data.filter(u => u.role === 'hod');
+                    setHods(hodUsers);
+                } catch (err) {
+                    console.error('Error fetching HODs:', err);
+                }
+            };
+
+            const fetchDepartments = async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/departments`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    setDepartments(data);
+                } catch (err) {
+                    console.error('Error fetching departments:', err);
+                }
+            };
+
+            const handleAdd = () => {
+                setEditingHOD(null);
+                setFormData({
+                    username: '',
+                    full_name: '',
+                    email: '',
+                    password: '',
+                    department: ''
+                });
+                setShowModal(true);
+            };
+
+            const handleEdit = (hod) => {
+                setEditingHOD(hod);
+                setFormData({
+                    username: hod.username,
+                    full_name: hod.full_name,
+                    email: hod.email || '',
+                    password: '',
+                    department: hod.department || ''
+                });
+                setShowModal(true);
+            };
+
+            const handleSave = async () => {
+                // Validation
+                if (!formData.username || !formData.full_name) {
+                    alert('Username and Full Name are required');
+                    return;
+                }
+
+                if (!editingHOD && !formData.password) {
+                    alert('Password is required for new HODs');
+                    return;
+                }
+
+                if (!formData.department) {
+                    alert('Department is required');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+
+                    // For HODs, we always set role to 'hod' and assigned_hod to their own ID (self-approval) or null
+                    const hodData = {
+                        ...formData,
+                        role: 'hod',
+                        assigned_hod: editingHOD ? editingHOD.id : null // Will be updated after creation
+                    };
+
+                    const url = editingHOD
+                        ? `${API_URL}/admin/users/${editingHOD.id}`
+                        : `${API_URL}/admin/users`;
+                    const method = editingHOD ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(hodData)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+
+                        // If new HOD was created, update their assigned_hod to themselves
+                        if (!editingHOD && result.userId) {
+                            await fetch(`${API_URL}/admin/users/${result.userId}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    ...hodData,
+                                    assigned_hod: result.userId
+                                })
+                            });
+                        }
+
+                        alert(editingHOD ? 'HOD updated successfully' : 'HOD created successfully');
+                        setShowModal(false);
+                        fetchHODs();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error saving HOD: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDelete = async (hodId, hodName) => {
+                if (!confirm(`Are you sure you want to delete HOD: ${hodName}?\n\nWarning: Users assigned to this HOD will need to be reassigned.`)) return;
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users/${hodId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        alert('HOD deleted successfully');
+                        fetchHODs();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error deleting HOD: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4>HOD Management</h4>
+                            <p className="text-muted mb-0">Manage Heads of Department who approve requisitions</p>
+                        </div>
+                        <button className="btn btn-primary" onClick={handleAdd}>
+                            + Add HOD
+                        </button>
+                    </div>
+
+                    {hods.length === 0 && (
+                        <div className="alert alert-info">
+                            <strong>ℹ️ No HODs Found</strong><br/>
+                            HODs are department heads who approve requisitions. Click "+ Add HOD" to create one.
+                        </div>
+                    )}
+
+                    <table className="table table-bordered table-hover">
+                        <thead className="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {hods.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="text-center text-muted">
+                                        No HODs created yet. Click "+ Add HOD" to create your first HOD.
+                                    </td>
+                                </tr>
+                            ) : (
+                                hods.map(hod => (
+                                    <tr key={hod.id}>
+                                        <td>{hod.id}</td>
+                                        <td><strong>{hod.username}</strong></td>
+                                        <td>{hod.full_name}</td>
+                                        <td>{hod.email || '-'}</td>
+                                        <td>
+                                            <span className="badge bg-primary">{hod.department || 'Not Set'}</span>
+                                        </td>
+                                        <td>
+                                            <span className="badge bg-success">Active HOD</span>
+                                        </td>
+                                        <td className="table-actions">
+                                            <button
+                                                className="btn btn-sm btn-warning"
+                                                onClick={() => handleEdit(hod)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => handleDelete(hod.id, hod.full_name)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+
+                    {/* HOD Modal */}
+                    {showModal && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">
+                                            {editingHOD ? 'Edit HOD' : 'Add New HOD'}
+                                        </h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowModal(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="alert alert-info">
+                                            <strong>ℹ️ About HODs:</strong> HODs (Heads of Department) approve requisitions from their department members.
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Username *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.username}
+                                                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                                                disabled={!!editingHOD}
+                                                placeholder="e.g., john_hod"
+                                            />
+                                            <small className="form-text text-muted">
+                                                Login username for this HOD
+                                            </small>
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Full Name *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.full_name}
+                                                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                                                placeholder="e.g., John Smith"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Email</label>
+                                            <input
+                                                type="email"
+                                                className="form-control"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                                placeholder="john.smith@company.com"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">
+                                                Password {editingHOD && '(leave blank to keep current)'}
+                                            </label>
+                                            <input
+                                                type="password"
+                                                className="form-control"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                                placeholder={editingHOD ? 'Leave blank to keep current password' : 'Enter password'}
+                                            />
+                                            {!editingHOD && (
+                                                <small className="form-text text-muted">
+                                                    Required for new HODs
+                                                </small>
+                                            )}
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Department *</label>
+                                            <select
+                                                className="form-control"
+                                                value={formData.department}
+                                                onChange={(e) => setFormData({...formData, department: e.target.value})}
+                                            >
+                                                <option value="">Select department...</option>
+                                                {departments.map(dept => (
+                                                    <option key={dept.id} value={dept.name}>
+                                                        {dept.name} ({dept.code})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <small className="form-text text-muted">
+                                                Department this HOD heads
+                                            </small>
+                                        </div>
+                                        <div className="alert alert-warning">
+                                            <strong>⚠️ Note:</strong> Role is automatically set to "HOD". Users in this department can be assigned to this HOD for approvals.
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Saving...' : 'Save HOD'}
                                         </button>
                                     </div>
                                 </div>
@@ -774,6 +1242,15 @@
         // Departments Tab Component
         function DepartmentsTab() {
             const [departments, setDepartments] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [editingDept, setEditingDept] = useState(null);
+            const [formData, setFormData] = useState({
+                name: '',
+                code: '',
+                description: '',
+                is_active: 1
+            });
 
             useEffect(() => {
                 fetchDepartments();
@@ -792,27 +1269,230 @@
                 }
             };
 
+            const handleAdd = () => {
+                setEditingDept(null);
+                setFormData({
+                    name: '',
+                    code: '',
+                    description: '',
+                    is_active: 1
+                });
+                setShowModal(true);
+            };
+
+            const handleEdit = (dept) => {
+                setEditingDept(dept);
+                setFormData({
+                    name: dept.name,
+                    code: dept.code,
+                    description: dept.description || '',
+                    is_active: dept.is_active
+                });
+                setShowModal(true);
+            };
+
+            const handleSave = async () => {
+                if (!formData.name.trim() || !formData.code.trim()) {
+                    alert('Name and Code are required');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const url = editingDept
+                        ? `${API_URL}/admin/departments/${editingDept.id}`
+                        : `${API_URL}/admin/departments`;
+                    const method = editingDept ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert(editingDept ? 'Department updated successfully' : 'Department created successfully');
+                        setShowModal(false);
+                        fetchDepartments();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error saving department: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDelete = async (deptId, deptName) => {
+                if (!confirm(`Are you sure you want to delete department: ${deptName}?`)) return;
+
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/departments/${deptId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        alert('Department deleted successfully');
+                        fetchDepartments();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (err) {
+                    alert('Error deleting department: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
             return (
                 <div>
-                    <h4>Department Management</h4>
-                    <p className="text-muted">View departments and their spending</p>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4>Department Management</h4>
+                            <p className="text-muted mb-0">Manage organizational departments</p>
+                        </div>
+                        <button className="btn btn-primary" onClick={handleAdd}>
+                            + Add Department
+                        </button>
+                    </div>
 
                     <table className="table table-bordered table-hover">
                         <thead className="table-light">
                             <tr>
-                                <th>Department</th>
-                                <th>Total Spent (Completed Requisitions)</th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {departments.map((dept, idx) => (
-                                <tr key={idx}>
-                                    <td>{dept.department}</td>
-                                    <td>K {(dept.spent || 0).toFixed(2)}</td>
+                            {departments.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="text-center">No departments found</td>
                                 </tr>
-                            ))}
+                            ) : (
+                                departments.map(dept => (
+                                    <tr key={dept.id}>
+                                        <td>{dept.id}</td>
+                                        <td><strong>{dept.name}</strong></td>
+                                        <td><span className="badge bg-secondary">{dept.code}</span></td>
+                                        <td>{dept.description || '-'}</td>
+                                        <td>
+                                            <span className={`badge ${dept.is_active ? 'bg-success' : 'bg-danger'}`}>
+                                                {dept.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
+                                        <td className="table-actions">
+                                            <button
+                                                className="btn btn-sm btn-warning"
+                                                onClick={() => handleEdit(dept)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => handleDelete(dept.id, dept.name)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
+
+                    {/* Department Modal */}
+                    {showModal && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">
+                                            {editingDept ? 'Edit Department' : 'Add New Department'}
+                                        </h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowModal(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="mb-3">
+                                            <label className="form-label">Department Name *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                placeholder="e.g., Information Technology"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Department Code *</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={formData.code}
+                                                onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
+                                                placeholder="e.g., IT"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Description</label>
+                                            <textarea
+                                                className="form-control"
+                                                rows="3"
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                                placeholder="Brief description of the department"
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Status</label>
+                                            <select
+                                                className="form-control"
+                                                value={formData.is_active}
+                                                onChange={(e) => setFormData({...formData, is_active: parseInt(e.target.value)})}
+                                            >
+                                                <option value={1}>Active</option>
+                                                <option value={0}>Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -1214,10 +1894,13 @@
                                                 <option value="">Select HOD...</option>
                                                 {hods.map(hod => (
                                                     <option key={hod.id} value={hod.id}>
-                                                        {hod.full_name} ({hod.department || 'No Dept'})
+                                                        {hod.full_name} - {hod.department || 'No Department'} ({hod.username})
                                                     </option>
                                                 ))}
                                             </select>
+                                            <small className="form-text text-muted">
+                                                {hods.length} HOD(s) available
+                                            </small>
                                         </div>
                                         <div className="mb-3">
                                             <label className="form-label">Reason for Reassignment *</label>

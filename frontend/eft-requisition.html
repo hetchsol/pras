@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFT/Cheque Requisition - PRAS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary: #0066B3;
+            --color-primary-dark: #004d87;
+            --color-secondary: #323232;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F5;
+            --bg-light: #f8f9fa;
+            --text-primary: #323232;
+            --text-light: #666666;
+            --border-color: #E0E0E0;
+            --shadow-sm: 0 2px 4px rgba(0, 102, 179, 0.08);
+            --shadow-md: 0 4px 8px rgba(0, 102, 179, 0.12);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            min-height: 100vh;
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .form-section:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--color-primary);
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 102, 179, 0.2);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 102, 179, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background-color: #252525;
+            transform: translateY(-1px);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: var(--bg-light);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(0, 102, 179, 0.1);
+        }
+
+        .input-field:hover {
+            border-color: var(--color-primary);
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .required-field::after {
+            content: '*';
+            color: #dc2626;
+            margin-left: 4px;
+        }
+
+        .header-card {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border: 2px solid var(--color-primary);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .summary-item {
+            margin-bottom: 16px;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-primary-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 4px;
+        }
+
+        .amount-display {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--color-primary);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-4xl mx-auto p-6">
+        <!-- Header -->
+        <div class="form-section">
+            <div class="flex items-center justify-between mb-4">
+                <button onclick="window.location.href='index.html'" class="text-gray-600 hover:text-gray-800">
+                    &larr; Back to Dashboard
+                </button>
+                <h1 class="text-2xl font-bold text-gray-800">EFT/Cheque Requisition Form</h1>
+                <div class="text-sm text-gray-500">EFT Form</div>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <form id="eftRequisitionForm">
+            <!-- Payment Details -->
+            <div class="form-section">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Payment Information</h2>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Amount (ZMW) *</label>
+                    <input type="number" step="0.01" id="amount" class="input-field" required onchange="updateAmountInWords()">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount in Words *</label>
+                    <input type="text" id="amount_in_words" class="input-field" required>
+                    <p class="text-xs text-gray-500 mt-1">Example: Three Thousand Seven Hundred Kwacha</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">In Favour Of (Payee/Beneficiary) *</label>
+                    <input type="text" id="in_favour_of" class="input-field" required
+                           placeholder="Enter name of person or company to receive payment">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Account Number *</label>
+                    <input type="text" id="bank_account_number" class="input-field" required
+                           placeholder="Enter bank account number">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name *</label>
+                        <input type="text" id="bank_name" class="input-field" required
+                               placeholder="Enter bank name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Branch *</label>
+                        <input type="text" id="branch" class="input-field" required
+                               placeholder="Enter branch name/location">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purpose Details -->
+            <div class="form-section">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Purpose & Description</h2>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Purpose (Give Details in Full) *</label>
+                    <textarea id="purpose" rows="4" class="input-field" required
+                              placeholder="Provide detailed explanation of the purpose for this payment"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Account Code</label>
+                        <input type="text" id="account_code" class="input-field"
+                               placeholder="e.g., L12940641LO">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <input type="text" id="description" class="input-field"
+                               placeholder="Short description of payment">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="form-section">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Requisition Summary</h2>
+                <div class="bg-blue-50 p-6 rounded-lg">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Date:</p>
+                            <p class="text-lg font-semibold" id="display_date">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Payment Type:</p>
+                            <p class="text-lg font-semibold">Electronic Funds Transfer (EFT)</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Requested By:</p>
+                            <p class="font-semibold" id="display_initiator">Loading...</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">Total Amount:</p>
+                            <p class="text-2xl font-bold text-blue-600" id="display_amount">K 0.00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-section">
+                <div class="flex gap-4">
+                    <button type="submit" class="btn-primary flex-1">Submit Requisition</button>
+                    <button type="button" onclick="window.location.href='index.html'" class="btn-secondary">Cancel</button>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">
+                    * This requisition will be sent to Finance Manager for approval, then to Managing Director for final approval.
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        let currentUser = null;
+
+        // Number to words conversion
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+        function numberToWords(num) {
+            if (num === 0) return 'Zero';
+
+            function convertLessThanThousand(n) {
+                if (n === 0) return '';
+
+                if (n < 10) return ones[n];
+                if (n < 20) return teens[n - 10];
+                if (n < 100) {
+                    const ten = Math.floor(n / 10);
+                    const one = n % 10;
+                    return tens[ten] + (one ? ' ' + ones[one] : '');
+                }
+
+                const hundred = Math.floor(n / 100);
+                const remainder = n % 100;
+                return ones[hundred] + ' Hundred' + (remainder ? ' and ' + convertLessThanThousand(remainder) : '');
+            }
+
+            if (num < 1000) return convertLessThanThousand(num);
+
+            const thousands = Math.floor(num / 1000);
+            const remainder = num % 1000;
+
+            let result = convertLessThanThousand(thousands) + ' Thousand';
+            if (remainder > 0) {
+                result += ' ' + convertLessThanThousand(remainder);
+            }
+
+            return result;
+        }
+
+        function updateAmountInWords() {
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            document.getElementById('display_amount').textContent = `K ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            if (amount > 0) {
+                const kwacha = Math.floor(amount);
+                const ngwee = Math.round((amount - kwacha) * 100);
+
+                let words = numberToWords(kwacha) + ' Kwacha';
+                if (ngwee > 0) {
+                    words += ' and ' + numberToWords(ngwee) + ' Ngwee';
+                }
+
+                document.getElementById('amount_in_words').value = words;
+            }
+        }
+
+        // Load user info on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const userRes = await fetch(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                currentUser = await userRes.json();
+
+                // Auto-populate initiator name
+                document.getElementById('display_initiator').textContent = currentUser.name;
+
+                // Auto-populate "In Favour Of" field with user's name
+                document.getElementById('in_favour_of').value = currentUser.name;
+
+                // Auto-populate current date
+                const today = new Date();
+                const formattedDate = today.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+                document.getElementById('display_date').textContent = formattedDate;
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                alert('Error loading form data');
+            }
+        });
+
+        document.getElementById('eftRequisitionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+            const data = {
+                amount: parseFloat(document.getElementById('amount').value),
+                amount_in_words: document.getElementById('amount_in_words').value,
+                in_favour_of: document.getElementById('in_favour_of').value,
+                bank_account_number: document.getElementById('bank_account_number').value,
+                bank_name: document.getElementById('bank_name').value,
+                branch: document.getElementById('branch').value,
+                purpose: document.getElementById('purpose').value,
+                account_code: document.getElementById('account_code').value || null,
+                description: document.getElementById('description').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/forms/eft-requisitions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('EFT Requisition submitted successfully! It will be reviewed by Finance Manager.');
+                    window.location.href = 'index.html';
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error submitting EFT requisition');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -49,7 +49,11 @@ const authorize = (...allowedRoles) => {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    // Normalize roles to lowercase for case-insensitive comparison
+    const userRole = req.user.role ? req.user.role.toLowerCase() : '';
+    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
+
+    if (!normalizedAllowedRoles.includes(userRole)) {
       return res.status(403).json({
         error: 'Access forbidden. Insufficient permissions.'
       });

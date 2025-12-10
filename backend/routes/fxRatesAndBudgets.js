@@ -221,6 +221,48 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
     // ============================================
 
     /**
+     * GET /api/budgets/all-departments
+     * Get all departments with their budget information
+     * Access: Finance Manager, MD, Admin
+     */
+    app.get('/api/budgets/all-departments', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+        try {
+            const fiscalYear = req.query.fiscal_year || new Date().getFullYear().toString();
+
+            db.all(`
+                SELECT
+                    d.id as dept_id,
+                    d.name as department,
+                    d.code as dept_code,
+                    d.description as dept_description,
+                    d.is_active,
+                    b.id as budget_id,
+                    b.allocated_amount,
+                    b.committed_amount,
+                    b.spent_amount,
+                    (COALESCE(b.allocated_amount, 0) - COALESCE(b.committed_amount, 0) - COALESCE(b.spent_amount, 0)) as available_amount,
+                    CASE
+                        WHEN COALESCE(b.allocated_amount, 0) > 0
+                        THEN ((COALESCE(b.committed_amount, 0) + COALESCE(b.spent_amount, 0)) / b.allocated_amount) * 100
+                        ELSE 0
+                    END as utilization_percentage
+                FROM departments d
+                LEFT JOIN budgets b ON d.name = b.department AND b.fiscal_year = ?
+                WHERE d.is_active = 1
+                ORDER BY d.name
+            `, [fiscalYear], (err, departments) => {
+                if (err) {
+                    logError(err, { context: 'get_all_departments_with_budgets' });
+                    return next(new AppError('Database error', 500));
+                }
+                res.json(departments || []);
+            });
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    /**
      * GET /api/budgets/overview
      * Get budget overview with spending details
      * Access: Finance Manager, MD, Admin
@@ -296,6 +338,59 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
                     });
                 });
             });
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    /**
+     * POST /api/budgets/create
+     * Create a new budget for a department
+     * Access: Finance Manager, MD, Admin
+     */
+    app.post('/api/budgets/create', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+        try {
+            const { department, allocated_amount, fiscal_year } = req.body;
+
+            if (!department || !allocated_amount || !fiscal_year) {
+                return res.status(400).json({ error: 'Department, allocated amount, and fiscal year are required' });
+            }
+
+            if (allocated_amount < 0) {
+                return res.status(400).json({ error: 'Allocated amount must be greater than or equal to 0' });
+            }
+
+            // Check if budget already exists
+            db.get(`SELECT id FROM budgets WHERE department = ? AND fiscal_year = ?`,
+                [department, fiscal_year],
+                (err, existing) => {
+                    if (err) {
+                        logError(err, { context: 'check_budget_exists' });
+                        return next(new AppError('Database error', 500));
+                    }
+
+                    if (existing) {
+                        return res.status(400).json({ error: 'Budget already exists for this department and fiscal year' });
+                    }
+
+                    // Insert new budget
+                    db.run(`
+                        INSERT INTO budgets (department, fiscal_year, allocated_amount, committed_amount, spent_amount, available_amount)
+                        VALUES (?, ?, ?, 0, 0, ?)
+                    `, [department, fiscal_year, allocated_amount, allocated_amount],
+                    function(insertErr) {
+                        if (insertErr) {
+                            logError(insertErr, { context: 'create_budget' });
+                            return next(new AppError('Failed to create budget', 500));
+                        }
+
+                        res.json({
+                            success: true,
+                            message: 'Budget created successfully',
+                            id: this.lastID
+                        });
+                    });
+                });
         } catch (error) {
             next(error);
         }
@@ -738,12 +833,13 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
         }
     });
 
+    // COMMENTED OUT: Departmental PDF download endpoint - not needed
     /**
      * GET /api/reports/department/:department/pdf
      * Generate departmental spending PDF report
      * Access: Finance Manager, MD, Admin, HOD (own department)
      */
-    app.get('/api/reports/department/:department/pdf', authenticate, authorize('finance', 'md', 'admin', 'hod'), (req, res, next) => {
+    /* app.get('/api/reports/department/:department/pdf', authenticate, authorize('finance', 'md', 'admin', 'hod'), (req, res, next) => {
         try {
             const department = req.params.department;
 
@@ -813,7 +909,7 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
         } catch (error) {
             next(error);
         }
-    });
+    }); */
 
     console.log('✅ FX Rates, Budget Management, and Reporting routes loaded');
 };
