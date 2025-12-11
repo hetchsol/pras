@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const path = require('path');
 const { hashPassword, comparePassword, generateToken, generateRefreshToken, getRefreshTokenExpiry, verifyToken } = require('./utils/auth');
 const { authenticate, authorize } = require('./middleware/auth');
@@ -102,163 +102,197 @@ app.use(express.static(path.join(__dirname, '../frontend'), {
 
 app.use(requestLogger); // Log all requests
 
-// Database setup
-const db = new sqlite3.Database('./purchase_requisition.db', (err) => {
-    if (err) {
-        console.error('Error connecting to database:', err);
-    } else {
-        console.log('✅ Connected to SQLite database');
-        initializeDatabase();
-    }
+// PostgreSQL Database setup
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Initialize database tables
-function initializeDatabase() {
-    db.serialize(() => {
+pool.on('connect', () => {
+    console.log('✅ Connected to PostgreSQL database');
+});
+
+pool.on('error', (err) => {
+    console.error('❌ Unexpected error on idle PostgreSQL client', err);
+});
+
+// Initialize database on startup
+initializeDatabase();
+
+// Initialize database tables (PostgreSQL async)
+async function initializeDatabase() {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
         // Users table
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            full_name TEXT NOT NULL,
-            email TEXT,
-            role TEXT NOT NULL,
-            department TEXT,
-            is_hod BOOLEAN DEFAULT 0,
-            assigned_hod INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (assigned_hod) REFERENCES users(id)
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                full_name TEXT NOT NULL,
+                email TEXT,
+                role TEXT NOT NULL,
+                department TEXT,
+                is_hod BOOLEAN DEFAULT false,
+                assigned_hod INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (assigned_hod) REFERENCES users(id)
+            )
+        `);
 
         // Requisitions table
-        db.run(`CREATE TABLE IF NOT EXISTS requisitions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            req_number TEXT UNIQUE NOT NULL,
-            title TEXT NOT NULL,
-            description TEXT,
-            delivery_location TEXT,
-            urgency TEXT DEFAULT 'Medium',
-            required_date DATE,
-            account_code TEXT,
-            created_by INTEGER NOT NULL,
-            status TEXT DEFAULT 'draft',
-            hod_approval_status TEXT DEFAULT 'pending',
-            hod_approved_by INTEGER,
-            hod_approved_at DATETIME,
-            hod_comments TEXT,
-            total_amount REAL DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (created_by) REFERENCES users(id)
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS requisitions (
+                id SERIAL PRIMARY KEY,
+                req_number VARCHAR(255) UNIQUE NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                delivery_location TEXT,
+                urgency TEXT DEFAULT 'Medium',
+                required_date DATE,
+                account_code TEXT,
+                created_by INTEGER NOT NULL,
+                status TEXT DEFAULT 'draft',
+                hod_approval_status TEXT DEFAULT 'pending',
+                hod_approved_by INTEGER,
+                hod_approved_at TIMESTAMP,
+                hod_comments TEXT,
+                total_amount REAL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(id)
+            )
+        `);
 
         // Requisition items table
-        db.run(`CREATE TABLE IF NOT EXISTS requisition_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            requisition_id INTEGER NOT NULL,
-            item_name TEXT NOT NULL,
-            quantity INTEGER NOT NULL,
-            unit_price REAL DEFAULT 0,
-            total_price REAL DEFAULT 0,
-            specifications TEXT,
-            vendor_id INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
-            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS requisition_items (
+                id SERIAL PRIMARY KEY,
+                requisition_id INTEGER NOT NULL,
+                item_name TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                unit_price REAL DEFAULT 0,
+                total_price REAL DEFAULT 0,
+                specifications TEXT,
+                vendor_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
+                FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+            )
+        `);
 
         // Vendors table
-        db.run(`CREATE TABLE IF NOT EXISTS vendors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            code TEXT UNIQUE NOT NULL,
-            tier INTEGER NOT NULL,
-            rating REAL NOT NULL,
-            category TEXT NOT NULL,
-            status TEXT NOT NULL,
-            email TEXT,
-            phone TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS vendors (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                code VARCHAR(255) UNIQUE NOT NULL,
+                tier INTEGER NOT NULL,
+                rating REAL NOT NULL,
+                category TEXT NOT NULL,
+                status TEXT NOT NULL,
+                email TEXT,
+                phone TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
         // Audit log table
-        db.run(`CREATE TABLE IF NOT EXISTS audit_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            requisition_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            action TEXT NOT NULL,
-            details TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id SERIAL PRIMARY KEY,
+                requisition_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        `);
 
         // Refresh tokens table
-        db.run(`CREATE TABLE IF NOT EXISTS refresh_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            token TEXT UNIQUE NOT NULL,
-            expires_at DATETIME NOT NULL,
-            ip_address TEXT,
-            user_agent TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        `);
 
         // Departments table
-        db.run(`CREATE TABLE IF NOT EXISTS departments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            code TEXT UNIQUE NOT NULL,
-            description TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS departments (
+                id SERIAL PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL,
+                code VARCHAR(255) UNIQUE NOT NULL,
+                description TEXT,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
         // Department codes table (for sub-codes or additional codes)
-        db.run(`CREATE TABLE IF NOT EXISTS department_codes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            department_id INTEGER,
-            code TEXT UNIQUE NOT NULL,
-            description TEXT,
-            is_active BOOLEAN DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (department_id) REFERENCES departments(id)
-        )`, () => {
-            seedDefaultData();
-        });
-    });
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS department_codes (
+                id SERIAL PRIMARY KEY,
+                department_id INTEGER,
+                code VARCHAR(255) UNIQUE NOT NULL,
+                description TEXT,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (department_id) REFERENCES departments(id)
+            )
+        `);
+
+        await client.query('COMMIT');
+        console.log('✅ Database tables created successfully');
+
+        // Seed default data after tables are created
+        await seedDefaultData();
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('❌ Error initializing database:', err);
+    } finally {
+        client.release();
+    }
 }
 
-// Seed default data
-function seedDefaultData() {
-    // Check if users exist
-db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
-        if (err) {
-            console.error('Error checking users:', err);
-            return;
-        }
-        if (row && row.count === 0) {
+// Seed default data (PostgreSQL async)
+async function seedDefaultData() {
+    try {
+        // Check if users exist
+        const userCount = await pool.query("SELECT COUNT(*) as count FROM users");
+        if (parseInt(userCount.rows[0].count) === 0) {
             const defaultUsers = [
-                ['john.banda', 'password123', 'John Banda', 'john@company.zm', 'initiator', 'IT', 0],
-                ['mary.mwanza', 'password123', 'Mary Mwanza', 'mary@company.zm', 'hod', 'IT', 1],
-                ['james.phiri', 'password123', 'James Phiri', 'james@company.zm', 'procurement', 'Procurement', 0],
-                ['sarah.banda', 'password123', 'Sarah Banda', 'sarah@company.zm', 'finance', 'Finance', 1],
-                ['david.mulenga', 'password123', 'David Mulenga', 'david@company.zm', 'md', 'Executive', 0],
-                ['admin', 'admin123', 'System Admin', 'admin@company.zm', 'admin', 'IT', 0]
+                ['john.banda', 'password123', 'John Banda', 'john@company.zm', 'initiator', 'IT', false],
+                ['mary.mwanza', 'password123', 'Mary Mwanza', 'mary@company.zm', 'hod', 'IT', true],
+                ['james.phiri', 'password123', 'James Phiri', 'james@company.zm', 'procurement', 'Procurement', false],
+                ['sarah.banda', 'password123', 'Sarah Banda', 'sarah@company.zm', 'finance', 'Finance', true],
+                ['david.mulenga', 'password123', 'David Mulenga', 'david@company.zm', 'md', 'Executive', false],
+                ['admin', 'admin123', 'System Admin', 'admin@company.zm', 'admin', 'IT', false]
             ];
 
-            const stmt = db.prepare("INSERT INTO users (username, password, full_name, email, role, department, is_hod) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            defaultUsers.forEach(user => stmt.run(user));
-            stmt.finalize();
+            for (const user of defaultUsers) {
+                await pool.query(
+                    "INSERT INTO users (username, password, full_name, email, role, department, is_hod) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                    user
+                );
+            }
             console.log('✅ Default users created');
         }
-    });
 
-    // Check if vendors exist
-    db.get("SELECT COUNT(*) as count FROM vendors", (err, row) => {
-        if (row && row.count === 0) {
+        // Check if vendors exist
+        const vendorCount = await pool.query("SELECT COUNT(*) as count FROM vendors");
+        if (parseInt(vendorCount.rows[0].count) === 0) {
             const defaultVendors = [
                 ['Tech Solutions Ltd', 'TSL001', 1, 4.5, 'Technology', 'active', 'sales@techsolutions.zm', '+260 211 123456'],
                 ['Office Supplies Co', 'OSC002', 1, 4.8, 'Office Supplies', 'active', 'info@officesupplies.zm', '+260 211 234567'],
@@ -267,31 +301,38 @@ db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
                 ['Medical Supplies Ltd', 'MSL005', 1, 4.9, 'Medical', 'active', 'info@medsupplies.zm', '+260 211 567890']
             ];
 
-            const stmt = db.prepare("INSERT INTO vendors (name, code, tier, rating, category, status, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            defaultVendors.forEach(vendor => stmt.run(vendor));
-            stmt.finalize();
+            for (const vendor of defaultVendors) {
+                await pool.query(
+                    "INSERT INTO vendors (name, code, tier, rating, category, status, email, phone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                    vendor
+                );
+            }
             console.log('✅ Default vendors created');
         }
-    });
 
-    // Check if departments exist
-    db.get("SELECT COUNT(*) as count FROM departments", (err, row) => {
-        if (row && row.count === 0) {
+        // Check if departments exist
+        const deptCount = await pool.query("SELECT COUNT(*) as count FROM departments");
+        if (parseInt(deptCount.rows[0].count) === 0) {
             const defaultDepartments = [
-                ['IT', 'IT', 'Information Technology Department', 1],
-                ['HR', 'HR', 'Human Resources Department', 1],
-                ['Finance', 'FIN', 'Finance Department', 1],
-                ['Operations', 'OPS', 'Operations Department', 1],
-                ['Procurement', 'PROC', 'Procurement Department', 1],
-                ['Executive', 'EXEC', 'Executive Management', 1]
+                ['IT', 'IT', 'Information Technology Department', true],
+                ['HR', 'HR', 'Human Resources Department', true],
+                ['Finance', 'FIN', 'Finance Department', true],
+                ['Operations', 'OPS', 'Operations Department', true],
+                ['Procurement', 'PROC', 'Procurement Department', true],
+                ['Executive', 'EXEC', 'Executive Management', true]
             ];
 
-            const stmt = db.prepare("INSERT INTO departments (name, code, description, is_active) VALUES (?, ?, ?, ?)");
-            defaultDepartments.forEach(dept => stmt.run(dept));
-            stmt.finalize();
+            for (const dept of defaultDepartments) {
+                await pool.query(
+                    "INSERT INTO departments (name, code, description, is_active) VALUES ($1, $2, $3, $4)",
+                    dept
+                );
+            }
             console.log('✅ Default departments created');
         }
-    });
+    } catch (err) {
+        console.error('❌ Error seeding default data:', err);
+    }
 }
 
 // ============================================
