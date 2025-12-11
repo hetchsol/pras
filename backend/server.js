@@ -535,93 +535,88 @@ app.post('/api/auth/logout', authenticate, async (req, res, next) => {
 });
 
 // Get all requisitions (with filters)
-app.get('/api/requisitions', authenticate, (req, res, next) => {
+app.get('/api/requisitions', authenticate, async (req, res, next) => {
     try {
         const { user_id, role, status } = req.query;
-    
-    let query = `
-        SELECT r.*, u.full_name as created_by_name, u.department
-        FROM requisitions r
-        JOIN users u ON r.created_by = u.id
-        WHERE 1=1
-    `;
-    const params = [];
-    
-    if (status) {
-        query += " AND r.status = ?";
-        params.push(status);
-    }
-    
-    if (role === 'initiator' && user_id) {
-        query += " AND r.created_by = ?";
-        params.push(user_id);
-    } else if (role === 'hod' && user_id) {
-        // HODs see requisitions from their department OR specifically assigned to them
-        query += " AND (u.department = (SELECT department FROM users WHERE id = ?) OR (r.assigned_to = ? AND r.assigned_role = 'hod'))";
-        params.push(user_id);
-        params.push(user_id);
-    } else if (role === 'finance' && user_id) {
-        // Finance sees requisitions assigned to them via universal assignment
-        query += " AND (r.assigned_to = ? AND r.assigned_role = 'finance')";
-        params.push(user_id);
-    } else if (role === 'md' && user_id) {
-        // MD sees requisitions assigned to them via universal assignment
-        query += " AND (r.assigned_to = ? AND r.assigned_role = 'md')";
-        params.push(user_id);
-    } else if (role === 'procurement' && user_id) {
-        // Procurement sees requisitions assigned to them via universal assignment
-        query += " AND (r.assigned_to = ? AND r.assigned_role = 'procurement')";
-        params.push(user_id);
-    }
-    
-    query += " ORDER BY r.created_at DESC";
 
-        db.all(query, params, (err, rows) => {
-            if (err) {
-                return next(new AppError('Database error', 500));
-            }
-            res.json(rows);
-        });
+        let query = `
+            SELECT r.*, u.full_name as created_by_name, u.department
+            FROM requisitions r
+            JOIN users u ON r.created_by = u.id
+            WHERE 1=1
+        `;
+        const params = [];
+        let paramIndex = 1;
+
+        if (status) {
+            query += ` AND r.status = $${paramIndex++}`;
+            params.push(status);
+        }
+
+        if (role === 'initiator' && user_id) {
+            query += ` AND r.created_by = $${paramIndex++}`;
+            params.push(user_id);
+        } else if (role === 'hod' && user_id) {
+            // HODs see requisitions from their department OR specifically assigned to them
+            query += ` AND (u.department = (SELECT department FROM users WHERE id = $${paramIndex++}) OR (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'hod'))`;
+            params.push(user_id);
+            params.push(user_id);
+        } else if (role === 'finance' && user_id) {
+            // Finance sees requisitions assigned to them via universal assignment
+            query += ` AND (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'finance')`;
+            params.push(user_id);
+        } else if (role === 'md' && user_id) {
+            // MD sees requisitions assigned to them via universal assignment
+            query += ` AND (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'md')`;
+            params.push(user_id);
+        } else if (role === 'procurement' && user_id) {
+            // Procurement sees requisitions assigned to them via universal assignment
+            query += ` AND (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'procurement')`;
+            params.push(user_id);
+        }
+
+        query += " ORDER BY r.created_at DESC";
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
     } catch (error) {
-        next(error);
+        console.error('Get requisitions error:', error);
+        next(new AppError('Failed to get requisitions', 500));
     }
 });
 
 // Get single requisition with items
-app.get('/api/requisitions/:id', authenticate, validateId, (req, res, next) => {
+app.get('/api/requisitions/:id', authenticate, validateId, async (req, res, next) => {
     try {
         const reqId = req.params.id;
-    
-    db.get(`
-        SELECT r.*, u.full_name as created_by_name, u.department
-        FROM requisitions r
-        JOIN users u ON r.created_by = u.id
-        WHERE r.id = ?
-    `, [reqId], (err, requisition) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+
+        // Get requisition
+        const reqResult = await pool.query(`
+            SELECT r.*, u.full_name as created_by_name, u.department
+            FROM requisitions r
+            JOIN users u ON r.created_by = u.id
+            WHERE r.id = $1
+        `, [reqId]);
+
+        const requisition = reqResult.rows[0];
+
         if (!requisition) {
             return res.status(404).json({ error: 'Requisition not found' });
         }
-        
-            // Get items
-            db.all(`
-                SELECT ri.*, v.name as vendor_name
-                FROM requisition_items ri
-                LEFT JOIN vendors v ON ri.vendor_id = v.id
-                WHERE ri.requisition_id = ?
-            `, [reqId], (err, items) => {
-                if (err) {
-                    return next(new AppError('Database error', 500));
-                }
 
-                requisition.items = items;
-                res.json(requisition);
-            });
-        });
+        // Get items
+        const itemsResult = await pool.query(`
+            SELECT ri.*, v.name as vendor_name
+            FROM requisition_items ri
+            LEFT JOIN vendors v ON ri.vendor_id = v.id
+            WHERE ri.requisition_id = $1
+        `, [reqId]);
+
+        requisition.items = itemsResult.rows;
+        res.json(requisition);
     } catch (error) {
-        next(error);
+        console.error('Get requisition error:', error);
+        next(new AppError('Failed to get requisition', 500));
     }
 });
 
