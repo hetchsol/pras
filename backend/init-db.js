@@ -46,17 +46,15 @@ users.forEach(user => {
   try {
     const hashedPassword = bcrypt.hashSync(user.password, 10);
     db.prepare(`
-      INSERT INTO users (username, password, full_name, role, department, email, is_hod, employee_number)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (username, password, name, role, department, email)
+      VALUES (?, ?, ?, ?, ?, ?)
     `).run(
       user.username,
       hashedPassword,
       user.full_name,
       user.role,
       user.department,
-      user.email,
-      user.is_hod,
-      user.employee_number
+      user.email
     );
     console.log(`✅ Created user: ${user.username}`);
   } catch (err) {
@@ -84,9 +82,9 @@ const departments = [
 departments.forEach(dept => {
   try {
     db.prepare(`
-      INSERT INTO departments (name, code, description, is_active)
-      VALUES (?, ?, ?, 1)
-    `).run(dept.name, dept.code, dept.description);
+      INSERT INTO departments (name, budget, spent)
+      VALUES (?, 100000, 0)
+    `).run(dept.name);
     console.log(`✅ Created department: ${dept.name}`);
   } catch (err) {
     if (err.message.includes('UNIQUE constraint failed')) {
@@ -114,8 +112,8 @@ const vendors = [
 vendors.forEach(vendor => {
   try {
     db.prepare(`
-      INSERT INTO vendors (name, code, tier, rating, category, status, email, phone, currency, country)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO vendors (name, code, tier, rating, category, status, email, phone)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       vendor.name,
       vendor.code,
@@ -124,9 +122,7 @@ vendors.forEach(vendor => {
       vendor.category,
       vendor.status,
       vendor.email,
-      vendor.phone,
-      vendor.currency,
-      vendor.country
+      vendor.phone
     );
     console.log(`✅ Created vendor: ${vendor.name}`);
   } catch (err) {
