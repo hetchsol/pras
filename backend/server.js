@@ -740,44 +740,42 @@ app.put('/api/requisitions/:id/update-draft', authenticate, authorize('initiator
 });
 
 // Submit requisition for approval
-app.put('/api/requisitions/:id/submit', authenticate, authorize('initiator', 'procurement', 'admin'), validateUpdateRequisition, (req, res, next) => {
+app.put('/api/requisitions/:id/submit', authenticate, authorize('initiator', 'procurement', 'admin'), validateUpdateRequisition, async (req, res, next) => {
     try {
         const reqId = req.params.id;
         const { user_id, selected_hod_id } = req.body;
 
-    // If procurement is submitting and has selected an HOD, store it
-    let updateQuery = `UPDATE requisitions SET status = 'pending_hod', updated_at = CURRENT_TIMESTAMP`;
-    let updateParams = [];
+        // If procurement is submitting and has selected an HOD, store it
+        let updateQuery = `UPDATE requisitions SET status = 'pending_hod', updated_at = CURRENT_TIMESTAMP`;
+        const updateParams = [];
+        let paramIndex = 1;
 
-    if (selected_hod_id) {
-        updateQuery += `, assigned_hod_id = ?`;
-        updateParams.push(selected_hod_id);
-    }
-
-    updateQuery += ` WHERE id = ?`;
-    updateParams.push(reqId);
-
-    db.run(updateQuery, updateParams, function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+        if (selected_hod_id) {
+            updateQuery += `, assigned_hod_id = $${paramIndex++}`;
+            updateParams.push(selected_hod_id);
         }
 
-        db.run(`
+        updateQuery += ` WHERE id = $${paramIndex}`;
+        updateParams.push(reqId);
+
+        await pool.query(updateQuery, updateParams);
+
+        await pool.query(`
             INSERT INTO audit_log (requisition_id, user_id, action, details)
-            VALUES (?, ?, 'submitted', 'Submitted for HOD approval')
+            VALUES ($1, $2, 'submitted', 'Submitted for HOD approval')
         `, [reqId, user_id]);
 
-            res.json({ success: true });
-        });
+        res.json({ success: true });
     } catch (error) {
-        next(error);
+        console.error('Submit requisition error:', error);
+        next(new AppError('Failed to submit requisition', 500));
     }
 });
 
 // HOD Approval/Rejection
 // Allow HOD, Finance, MD, and Admin to approve at HOD stage
 // Finance and MD can act as HOD for pre-adjudication requisitions
-app.put('/api/requisitions/:id/hod-approve', authenticate, authorize('hod', 'finance', 'md', 'admin'), validateUpdateRequisition, (req, res, next) => {
+app.put('/api/requisitions/:id/hod-approve', authenticate, authorize('hod', 'finance', 'md', 'admin'), validateUpdateRequisition, async (req, res, next) => {
     try {
         const reqId = req.params.id;
         const { user_id, approved, comments } = req.body;
@@ -795,55 +793,52 @@ app.put('/api/requisitions/:id/hod-approve', authenticate, authorize('hod', 'fin
         if (approved) {
             updateQuery = `
                 UPDATE requisitions
-                SET status = ?,
-                    hod_approval_status = ?,
-                    hod_approved_by = ?,
+                SET status = $1,
+                    hod_approval_status = $2,
+                    hod_approved_by = $3,
                     hod_approved_at = CURRENT_TIMESTAMP,
-                    hod_comments = ?,
+                    hod_comments = $4,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                WHERE id = $5
             `;
             updateParams = [newStatus, approvalStatus, user_id, comments, reqId];
         } else {
             updateQuery = `
                 UPDATE requisitions
-                SET status = ?,
-                    hod_approval_status = ?,
-                    rejected_by = ?,
+                SET status = $1,
+                    hod_approval_status = $2,
+                    rejected_by = $3,
                     rejected_at = CURRENT_TIMESTAMP,
-                    rejection_reason = ?,
-                    hod_comments = ?,
+                    rejection_reason = $4,
+                    hod_comments = $5,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                WHERE id = $6
             `;
             updateParams = [newStatus, approvalStatus, user_id, comments, comments, reqId];
         }
 
-        db.run(updateQuery, updateParams, function(err) {
-            if (err) {
-                logError(err, { context: 'hod_approve', requisition_id: reqId });
-                return next(new AppError('Database error', 500));
-            }
+        await pool.query(updateQuery, updateParams);
 
-            db.run(`
-                INSERT INTO audit_log (requisition_id, user_id, action, details)
-                VALUES (?, ?, ?, ?)
-            `, [reqId, user_id, 'hod_' + approvalStatus, 'HOD ' + approvalStatus + (comments ? ': ' + comments : '')]);
+        await pool.query(`
+            INSERT INTO audit_log (requisition_id, user_id, action, details)
+            VALUES ($1, $2, $3, $4)
+        `, [reqId, user_id, 'hod_' + approvalStatus, 'HOD ' + approvalStatus + (comments ? ': ' + comments : '')]);
 
-            logSecurity(approved ? 'requisition_approved' : 'requisition_rejected', {
-                requisition_id: reqId,
-                user_id,
-                reason: comments
-            });
+        logSecurity(approved ? 'requisition_approved' : 'requisition_rejected', {
+            requisition_id: reqId,
+            user_id,
+            reason: comments
+        });
 
-            res.json({
-                success: true,
-                message: approved ? 'Requisition approved successfully' : 'Requisition rejected',
-                status: newStatus
-            });
+        res.json({
+            success: true,
+            message: approved ? 'Requisition approved successfully' : 'Requisition rejected',
+            status: newStatus
         });
     } catch (error) {
-        next(error);
+        console.error('HOD approval error:', error);
+        logError(error, { context: 'hod_approve', requisition_id: reqId });
+        next(new AppError('Failed to process HOD approval', 500));
     }
 });
 
