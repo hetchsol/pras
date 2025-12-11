@@ -621,128 +621,121 @@ app.get('/api/requisitions/:id', authenticate, validateId, async (req, res, next
 });
 
 // Create new requisition
-app.post('/api/requisitions', authenticate, authorize('initiator', 'admin'), validateCreateRequisition, (req, res, next) => {
+app.post('/api/requisitions', authenticate, authorize('initiator', 'admin'), validateCreateRequisition, async (req, res, next) => {
     try {
         const { description, delivery_location, urgency, required_date, account_code, created_by, items } = req.body;
 
         // Get user details to generate proper req number
-        db.get('SELECT full_name, department FROM users WHERE id = ?', [created_by], (err, user) => {
-            if (err || !user) {
-                return next(new AppError('User not found', 404));
+        const userResult = await pool.query(
+            'SELECT full_name, department FROM users WHERE id = $1',
+            [created_by]
+        );
+
+        const user = userResult.rows[0];
+        if (!user) {
+            return next(new AppError('User not found', 404));
+        }
+
+        // Generate requisition number: KSB-DeptCode-InitiatorInitials-FullTimeStamp
+        const deptCode = user.department ? user.department.substring(0, 3).toUpperCase() : 'GEN';
+        const initials = user.full_name
+            .split(' ')
+            .map(name => name.charAt(0))
+            .join('')
+            .toUpperCase();
+        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14); // YYYYMMDDHHmmss
+        const reqNumber = `KSB-${deptCode}-${initials}-${timestamp}`;
+
+        // Use req_number as title for simplified flow
+        const title = reqNumber;
+
+        // Insert requisition and get ID
+        const reqResult = await pool.query(`
+            INSERT INTO requisitions (req_number, title, description, delivery_location, urgency, required_date, account_code, created_by, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft')
+            RETURNING id
+        `, [reqNumber, title, description, delivery_location, urgency, required_date, account_code, created_by]);
+
+        const requisitionId = reqResult.rows[0].id;
+
+        // Insert items
+        if (items && items.length > 0) {
+            for (const item of items) {
+                await pool.query(`
+                    INSERT INTO requisition_items (requisition_id, item_name, quantity, specifications)
+                    VALUES ($1, $2, $3, $4)
+                `, [requisitionId, item.item_name, item.quantity, item.specifications]);
             }
+        }
 
-            // Generate requisition number: KSB-DeptCode-InitiatorInitials-FullTimeStamp
-            const deptCode = user.department ? user.department.substring(0, 3).toUpperCase() : 'GEN';
-            const initials = user.full_name
-                .split(' ')
-                .map(name => name.charAt(0))
-                .join('')
-                .toUpperCase();
-            const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14); // YYYYMMDDHHmmss
-            const reqNumber = `KSB-${deptCode}-${initials}-${timestamp}`;
+        // Log action
+        await pool.query(`
+            INSERT INTO audit_log (requisition_id, user_id, action, details)
+            VALUES ($1, $2, 'created', 'Requisition created')
+        `, [requisitionId, created_by]);
 
-            // Use req_number as title for simplified flow
-            const title = reqNumber;
-
-            db.run(`
-                INSERT INTO requisitions (req_number, title, description, delivery_location, urgency, required_date, account_code, created_by, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft')
-            `, [reqNumber, title, description, delivery_location, urgency, required_date, account_code, created_by], function(err) {
-                if (err) {
-                    console.error('Database error creating requisition:', err.message);
-                    return next(new AppError(`Database error: ${err.message}`, 500));
-                }
-
-                const requisitionId = this.lastID;
-
-                // Insert items
-                if (items && items.length > 0) {
-                    const stmt = db.prepare(`
-                        INSERT INTO requisition_items (requisition_id, item_name, quantity, specifications)
-                        VALUES (?, ?, ?, ?)
-                    `);
-
-                    items.forEach(item => {
-                        stmt.run([requisitionId, item.item_name, item.quantity, item.specifications]);
-                    });
-
-                    stmt.finalize();
-                }
-
-                // Log action
-                db.run(`
-                    INSERT INTO audit_log (requisition_id, user_id, action, details)
-                    VALUES (?, ?, 'created', 'Requisition created')
-                `, [requisitionId, created_by]);
-
-                res.json({
-                    success: true,
-                    requisition_id: requisitionId,
-                    req_number: reqNumber
-                });
-            });
+        res.json({
+            success: true,
+            requisition_id: requisitionId,
+            req_number: reqNumber
         });
     } catch (error) {
-        next(error);
+        console.error('Create requisition error:', error);
+        next(new AppError('Failed to create requisition', 500));
     }
 });
 
 // Update draft requisition
-app.put('/api/requisitions/:id/update-draft', authenticate, authorize('initiator', 'admin'), (req, res, next) => {
+app.put('/api/requisitions/:id/update-draft', authenticate, authorize('initiator', 'admin'), async (req, res, next) => {
     try {
         const reqId = req.params.id;
         const { description, quantity, required_date, justification, urgency, user_id } = req.body;
 
         // Check if requisition is in draft status
-        db.get('SELECT status FROM requisitions WHERE id = ?', [reqId], (err, req) => {
-            if (err) {
-                return next(new AppError('Database error', 500));
-            }
-            if (!req) {
-                return res.status(404).json({ error: 'Requisition not found' });
-            }
-            if (req.status !== 'draft') {
-                return res.status(400).json({ error: 'Only draft requisitions can be edited' });
-            }
+        const checkResult = await pool.query(
+            'SELECT status FROM requisitions WHERE id = $1',
+            [reqId]
+        );
 
-            // Update requisition
-            db.run(`
-                UPDATE requisitions
-                SET description = ?,
-                    quantity = ?,
-                    required_date = ?,
-                    urgency = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `, [description, quantity, required_date, urgency, reqId], function(err) {
-                if (err) {
-                    return next(new AppError('Database error updating requisition', 500));
-                }
+        const requisition = checkResult.rows[0];
 
-                // Update the first item (simplified requisition has one item)
-                db.run(`
-                    UPDATE requisition_items
-                    SET item_name = ?,
-                        quantity = ?,
-                        specifications = ?
-                    WHERE requisition_id = ?
-                `, [description, quantity, justification, reqId], function(err) {
-                    if (err) {
-                        console.error('Error updating item:', err);
-                    }
+        if (!requisition) {
+            return res.status(404).json({ error: 'Requisition not found' });
+        }
+        if (requisition.status !== 'draft') {
+            return res.status(400).json({ error: 'Only draft requisitions can be edited' });
+        }
 
-                    // Log action
-                    db.run(`
-                        INSERT INTO audit_log (requisition_id, user_id, action, details)
-                        VALUES (?, ?, 'draft_updated', 'Draft requisition updated')
-                    `, [reqId, user_id]);
+        // Update requisition
+        await pool.query(`
+            UPDATE requisitions
+            SET description = $1,
+                quantity = $2,
+                required_date = $3,
+                urgency = $4,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $5
+        `, [description, quantity, required_date, urgency, reqId]);
 
-                    res.json({ success: true, message: 'Draft updated successfully' });
-                });
-            });
-        });
+        // Update the first item (simplified requisition has one item)
+        await pool.query(`
+            UPDATE requisition_items
+            SET item_name = $1,
+                quantity = $2,
+                specifications = $3
+            WHERE requisition_id = $4
+        `, [description, quantity, justification, reqId]);
+
+        // Log action
+        await pool.query(`
+            INSERT INTO audit_log (requisition_id, user_id, action, details)
+            VALUES ($1, $2, 'draft_updated', 'Draft requisition updated')
+        `, [reqId, user_id]);
+
+        res.json({ success: true, message: 'Draft updated successfully' });
     } catch (error) {
-        next(error);
+        console.error('Update draft error:', error);
+        next(new AppError('Failed to update draft', 500));
     }
 });
 
