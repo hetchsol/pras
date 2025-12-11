@@ -349,81 +349,76 @@ app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res, next) 
     try {
         const { username, password } = req.body;
 
-        db.get("SELECT * FROM users WHERE username = ?",
-            [username],
-            async (err, user) => {
-                if (err) {
-                    return next(new AppError('Database error', 500));
-                }
-                if (!user) {
-                    logAuth('login_attempt', null, false, {
-                        username,
-                        reason: 'user_not_found',
-                        ip: req.ip
-                    });
-                    return res.status(401).json({ error: 'Invalid credentials' });
-                }
-
-                // Compare password with hash
-                const isPasswordValid = await comparePassword(password, user.password);
-                if (!isPasswordValid) {
-                    logAuth('login_attempt', user.id, false, {
-                        username,
-                        reason: 'invalid_password',
-                        ip: req.ip
-                    });
-                    return res.status(401).json({ error: 'Invalid credentials' });
-                }
-
-                // Generate JWT access token and refresh token
-                const token = generateToken(user);
-                const refreshToken = generateRefreshToken();
-                const refreshTokenExpiry = getRefreshTokenExpiry();
-
-                // Store refresh token in database
-                const ipAddress = req.ip || req.connection.remoteAddress;
-                const userAgent = req.get('user-agent');
-
-                db.run(
-                    `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
-                     VALUES (?, ?, ?, ?, ?)`,
-                    [user.id, refreshToken, refreshTokenExpiry, ipAddress, userAgent],
-                    (err) => {
-                        if (err) {
-                            console.error('Error storing refresh token:', err);
-                            logError(err, { context: 'storing_refresh_token', userId: user.id });
-                            return next(new AppError('Failed to create session', 500));
-                        }
-
-                        // Log successful login
-                        logAuth('login_success', user.id, true, {
-                            username: user.username,
-                            role: user.role,
-                            ip: ipAddress,
-                            userAgent
-                        });
-
-                        res.json({
-                            success: true,
-                            token,
-                            refreshToken,
-                            expiresIn: '15m', // Access token expiry
-                            user: {
-                                id: user.id,
-                                username: user.username,
-                                full_name: user.full_name,
-                                email: user.email,
-                                role: user.role,
-                                department: user.department,
-                                is_hod: user.is_hod
-                            }
-                        });
-                    }
-                );
-            }
+        // Query user from PostgreSQL
+        const result = await pool.query(
+            "SELECT * FROM users WHERE username = $1",
+            [username]
         );
+
+        const user = result.rows[0];
+
+        if (!user) {
+            logAuth('login_attempt', null, false, {
+                username,
+                reason: 'user_not_found',
+                ip: req.ip
+            });
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Compare password with hash
+        const isPasswordValid = await comparePassword(password, user.password);
+        if (!isPasswordValid) {
+            logAuth('login_attempt', user.id, false, {
+                username,
+                reason: 'invalid_password',
+                ip: req.ip
+            });
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Generate JWT access token and refresh token
+        const token = generateToken(user);
+        const refreshToken = generateRefreshToken();
+        const refreshTokenExpiry = getRefreshTokenExpiry();
+
+        // Store refresh token in database
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        const userAgent = req.get('user-agent');
+
+        await pool.query(
+            `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [user.id, refreshToken, refreshTokenExpiry, ipAddress, userAgent]
+        );
+
+        // Log successful login
+        logAuth('login_success', user.id, true, {
+            username: user.username,
+            role: user.role,
+            ip: ipAddress,
+            userAgent
+        });
+
+        res.json({
+            success: true,
+            token,
+            refreshToken,
+            expiresIn: '15m', // Access token expiry
+            user: {
+                id: user.id,
+                username: user.username,
+                full_name: user.full_name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                is_hod: user.is_hod
+            }
+        });
     } catch (error) {
-        next(error);
+        console.error('Login error:', error);
+        logError(error, { context: 'login', username: req.body?.username });
+        next(new AppError('Login failed', 500));
     }
 });
 
