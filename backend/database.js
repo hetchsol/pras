@@ -1,200 +1,302 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 
-const db = new Database(path.join(__dirname, 'requisitions.db'));
-db.pragma('journal_mode = WAL');
+// Database connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-// Enable foreign keys
-db.prepare('PRAGMA foreign_keys = ON').run();
+// Test connection
+pool.on('connect', () => {
+  console.log('✅ Connected to PostgreSQL database');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle client', err);
+  process.exit(-1);
+});
 
 // Create tables
-const createTables = () => {
-  // Users table
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL,
-      department TEXT NOT NULL,
-      email TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
+const createTables = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  // Vendors table
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS vendors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      tier INTEGER NOT NULL,
-      rating REAL NOT NULL,
-      category TEXT NOT NULL,
-      status TEXT NOT NULL,
-      email TEXT,
-      phone TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
+    // Users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        department TEXT NOT NULL,
+        email TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Departments table
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS departments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE NOT NULL,
-      budget REAL NOT NULL,
-      spent REAL DEFAULT 0
-    )
-  `).run();
+    // Vendors table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS vendors (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        code VARCHAR(255) UNIQUE NOT NULL,
+        tier INTEGER NOT NULL,
+        rating REAL NOT NULL,
+        category TEXT NOT NULL,
+        status TEXT NOT NULL,
+        email TEXT,
+        phone TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // FX Rates table
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS fx_rates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      currency_code TEXT NOT NULL,
-      currency_name TEXT NOT NULL,
-      rate_to_zmw REAL NOT NULL,
-      is_active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
+    // Departments table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS departments (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        budget REAL NOT NULL,
+        spent REAL DEFAULT 0
+      )
+    `);
 
-  // Requisitions table
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS requisitions (
-      id TEXT PRIMARY KEY,
-      description TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      estimated_cost REAL NOT NULL,
-      amount REAL NOT NULL,
-      justification TEXT NOT NULL,
-      department TEXT NOT NULL,
-      urgency TEXT NOT NULL,
-      initiator_id INTEGER NOT NULL,
-      initiator_name TEXT NOT NULL,
-      status TEXT NOT NULL,
-      selected_vendor TEXT,
-      vendor_currency TEXT DEFAULT 'ZMW',
-      unit_price REAL,
-      total_cost REAL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (initiator_id) REFERENCES users(id)
-    )
-  `).run();
+    // FX Rates table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS fx_rates (
+        id SERIAL PRIMARY KEY,
+        currency_code TEXT NOT NULL,
+        currency_name TEXT NOT NULL,
+        rate_to_zmw REAL NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Approvals table
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS approvals (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      requisition_id TEXT NOT NULL,
-      role TEXT NOT NULL,
-      user_name TEXT NOT NULL,
-      action TEXT NOT NULL,
-      comment TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (requisition_id) REFERENCES requisitions(id)
-    )
-  `).run();
+    // Requisitions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS requisitions (
+        id TEXT PRIMARY KEY,
+        description TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        estimated_cost REAL NOT NULL,
+        amount REAL NOT NULL,
+        justification TEXT NOT NULL,
+        department TEXT NOT NULL,
+        urgency TEXT NOT NULL,
+        initiator_id INTEGER NOT NULL,
+        initiator_name TEXT NOT NULL,
+        status TEXT NOT NULL,
+        selected_vendor TEXT,
+        vendor_currency TEXT DEFAULT 'ZMW',
+        unit_price REAL,
+        total_cost REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (initiator_id) REFERENCES users(id)
+      )
+    `);
 
-  console.log('✅ Database tables created successfully');
+    // Approvals table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS approvals (
+        id SERIAL PRIMARY KEY,
+        requisition_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        action TEXT NOT NULL,
+        comment TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (requisition_id) REFERENCES requisitions(id)
+      )
+    `);
+
+    await client.query('COMMIT');
+    console.log('✅ Database tables created successfully');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('❌ Error creating tables:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // CRUD Operations
 
 // Users
-const getUsers = () => db.prepare('SELECT * FROM users').all();
-const getUserByUsername = (username) => db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-const createUser = (user) => {
-  return db.prepare(`
-    INSERT INTO users (username, password, name, role, department, email)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(user.username, user.password, user.name, user.role, user.department, user.email);
+const getUsers = async () => {
+  const result = await pool.query('SELECT * FROM users');
+  return result.rows;
 };
-const deleteUser = (id) => db.prepare('DELETE FROM users WHERE id = ?').run(id);
+
+const getUserByUsername = async (username) => {
+  const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  return result.rows[0];
+};
+
+const getUserById = async (id) => {
+  const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+  return result.rows[0];
+};
+
+const createUser = async (user) => {
+  const result = await pool.query(
+    `INSERT INTO users (username, password, name, role, department, email)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [user.username, user.password, user.name, user.role, user.department, user.email]
+  );
+  return result.rows[0];
+};
+
+const deleteUser = async (id) => {
+  const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  return result.rows[0];
+};
 
 // Vendors
-const getVendors = () => db.prepare('SELECT * FROM vendors').all();
-const createVendor = (vendor) => {
-  return db.prepare(`
-    INSERT INTO vendors (name, code, tier, rating, category, status, email, phone)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(vendor.name, vendor.code, vendor.tier, vendor.rating, vendor.category, vendor.status, vendor.email, vendor.phone);
+const getVendors = async () => {
+  const result = await pool.query('SELECT * FROM vendors');
+  return result.rows;
 };
-const deleteVendor = (id) => db.prepare('DELETE FROM vendors WHERE id = ?').run(id);
+
+const createVendor = async (vendor) => {
+  const result = await pool.query(
+    `INSERT INTO vendors (name, code, tier, rating, category, status, email, phone)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [vendor.name, vendor.code, vendor.tier, vendor.rating, vendor.category, vendor.status, vendor.email, vendor.phone]
+  );
+  return result.rows[0];
+};
+
+const deleteVendor = async (id) => {
+  const result = await pool.query('DELETE FROM vendors WHERE id = $1 RETURNING *', [id]);
+  return result.rows[0];
+};
 
 // Departments
-const getDepartments = () => db.prepare('SELECT * FROM departments').all();
+const getDepartments = async () => {
+  const result = await pool.query('SELECT * FROM departments');
+  return result.rows;
+};
 
 // Requisitions
-const getRequisitions = () => db.prepare('SELECT * FROM requisitions').all();
-const getRequisitionById = (id) => db.prepare('SELECT * FROM requisitions WHERE id = ?').get(id);
-const createRequisition = (req) => {
-  return db.prepare(`
-    INSERT INTO requisitions (id, description, quantity, estimated_cost, amount, justification, 
-                             department, urgency, initiator_id, initiator_name, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(req.id, req.description, req.quantity, req.estimatedCost, req.amount, req.justification,
-         req.department, req.urgency, req.initiatorId, req.initiatorName, req.status);
-};
-const updateRequisitionStatus = (id, status, selectedVendor = null) => {
-  if (selectedVendor) {
-    return db.prepare('UPDATE requisitions SET status = ?, selected_vendor = ? WHERE id = ?')
-      .run(status, selectedVendor, id);
-  }
-  return db.prepare('UPDATE requisitions SET status = ? WHERE id = ?').run(status, id);
+const getRequisitions = async () => {
+  const result = await pool.query('SELECT * FROM requisitions');
+  return result.rows;
 };
 
-const updateRequisitionByProcurement = (id, data) => {
+const getRequisitionById = async (id) => {
+  const result = await pool.query('SELECT * FROM requisitions WHERE id = $1', [id]);
+  return result.rows[0];
+};
+
+const createRequisition = async (req) => {
+  const result = await pool.query(
+    `INSERT INTO requisitions (id, description, quantity, estimated_cost, amount, justification,
+                             department, urgency, initiator_id, initiator_name, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     RETURNING *`,
+    [req.id, req.description, req.quantity, req.estimatedCost, req.amount, req.justification,
+     req.department, req.urgency, req.initiatorId, req.initiatorName, req.status]
+  );
+  return result.rows[0];
+};
+
+const updateRequisitionStatus = async (id, status, selectedVendor = null) => {
+  let query, params;
+  if (selectedVendor) {
+    query = 'UPDATE requisitions SET status = $1, selected_vendor = $2 WHERE id = $3 RETURNING *';
+    params = [status, selectedVendor, id];
+  } else {
+    query = 'UPDATE requisitions SET status = $1 WHERE id = $2 RETURNING *';
+    params = [status, id];
+  }
+  const result = await pool.query(query, params);
+  return result.rows[0];
+};
+
+const updateRequisitionByProcurement = async (id, data) => {
   const fields = [];
   const values = [];
+  let paramIndex = 1;
 
-  if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }
-  if (data.quantity !== undefined) { fields.push('quantity = ?'); values.push(data.quantity); }
-  if (data.selected_vendor !== undefined) { fields.push('selected_vendor = ?'); values.push(data.selected_vendor); }
-  if (data.vendor_currency !== undefined) { fields.push('vendor_currency = ?'); values.push(data.vendor_currency); }
-  if (data.unit_price !== undefined) { fields.push('unit_price = ?'); values.push(data.unit_price); }
-  if (data.total_cost !== undefined) { fields.push('total_cost = ?'); values.push(data.total_cost); }
-  if (data.status !== undefined) { fields.push('status = ?'); values.push(data.status); }
-  if (data.justification !== undefined) { fields.push('justification = ?'); values.push(data.justification); }
-  if (data.urgency !== undefined) { fields.push('urgency = ?'); values.push(data.urgency); }
+  if (data.description !== undefined) { fields.push(`description = $${paramIndex++}`); values.push(data.description); }
+  if (data.quantity !== undefined) { fields.push(`quantity = $${paramIndex++}`); values.push(data.quantity); }
+  if (data.selected_vendor !== undefined) { fields.push(`selected_vendor = $${paramIndex++}`); values.push(data.selected_vendor); }
+  if (data.vendor_currency !== undefined) { fields.push(`vendor_currency = $${paramIndex++}`); values.push(data.vendor_currency); }
+  if (data.unit_price !== undefined) { fields.push(`unit_price = $${paramIndex++}`); values.push(data.unit_price); }
+  if (data.total_cost !== undefined) { fields.push(`total_cost = $${paramIndex++}`); values.push(data.total_cost); }
+  if (data.status !== undefined) { fields.push(`status = $${paramIndex++}`); values.push(data.status); }
+  if (data.justification !== undefined) { fields.push(`justification = $${paramIndex++}`); values.push(data.justification); }
+  if (data.urgency !== undefined) { fields.push(`urgency = $${paramIndex++}`); values.push(data.urgency); }
 
   values.push(id);
 
-  return db.prepare(`UPDATE requisitions SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  const result = await pool.query(
+    `UPDATE requisitions SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+    values
+  );
+  return result.rows[0];
 };
 
 // Approvals
-const getApprovalsByRequisitionId = (reqId) => {
-  return db.prepare('SELECT * FROM approvals WHERE requisition_id = ? ORDER BY timestamp ASC').all(reqId);
+const getApprovalsByRequisitionId = async (reqId) => {
+  const result = await pool.query(
+    'SELECT * FROM approvals WHERE requisition_id = $1 ORDER BY timestamp ASC',
+    [reqId]
+  );
+  return result.rows;
 };
-const createApproval = (approval) => {
-  return db.prepare(`
-    INSERT INTO approvals (requisition_id, role, user_name, action, comment)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(approval.requisition_id, approval.role, approval.userName, approval.action, approval.comment);
+
+const createApproval = async (approval) => {
+  const result = await pool.query(
+    `INSERT INTO approvals (requisition_id, role, user_name, action, comment)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    [approval.requisition_id, approval.role, approval.userName, approval.action, approval.comment]
+  );
+  return result.rows[0];
 };
 
 // FX Rates
-const getFXRates = () => db.prepare('SELECT * FROM fx_rates WHERE is_active = 1').all();
-const getAllFXRates = () => db.prepare('SELECT * FROM fx_rates').all();
-const createFXRate = (fxRate) => {
-  return db.prepare(`
-    INSERT INTO fx_rates (currency_code, currency_name, rate_to_zmw, is_active)
-    VALUES (?, ?, ?, 1)
-  `).run(fxRate.currency_code, fxRate.currency_name, fxRate.rate_to_zmw);
+const getFXRates = async () => {
+  const result = await pool.query('SELECT * FROM fx_rates WHERE is_active = true');
+  return result.rows;
 };
-const updateFXRate = (id, rate_to_zmw) => {
-  return db.prepare('UPDATE fx_rates SET rate_to_zmw = ? WHERE id = ?').run(rate_to_zmw, id);
+
+const getAllFXRates = async () => {
+  const result = await pool.query('SELECT * FROM fx_rates');
+  return result.rows;
+};
+
+const createFXRate = async (fxRate) => {
+  const result = await pool.query(
+    `INSERT INTO fx_rates (currency_code, currency_name, rate_to_zmw, is_active)
+     VALUES ($1, $2, $3, true)
+     RETURNING *`,
+    [fxRate.currency_code, fxRate.currency_name, fxRate.rate_to_zmw]
+  );
+  return result.rows[0];
+};
+
+const updateFXRate = async (id, rate_to_zmw) => {
+  const result = await pool.query(
+    'UPDATE fx_rates SET rate_to_zmw = $1 WHERE id = $2 RETURNING *',
+    [rate_to_zmw, id]
+  );
+  return result.rows[0];
 };
 
 module.exports = {
-  db,
+  pool,
   createTables,
   // Users
   getUsers,
   getUserByUsername,
+  getUserById,
   createUser,
   deleteUser,
   // Vendors
