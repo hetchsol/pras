@@ -220,6 +220,8 @@ async function initializeDatabase() {
                 user_id INTEGER NOT NULL,
                 token TEXT UNIQUE NOT NULL,
                 expires_at TIMESTAMP NOT NULL,
+                revoked BOOLEAN DEFAULT false,
+                revoked_at TIMESTAMP,
                 ip_address TEXT,
                 user_agent TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -423,9 +425,14 @@ app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res, next) 
 });
 
 // Get current user info
-app.get('/api/auth/me', authenticate, (req, res, next) => {
+app.get('/api/auth/me', authenticate, async (req, res, next) => {
     try {
-        const user = getUserById(req.user.id);
+        const result = await pool.query(
+            "SELECT id, username, full_name, email, role, department, is_hod FROM users WHERE id = $1",
+            [req.user.id]
+        );
+
+        const user = result.rows[0];
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -435,14 +442,15 @@ app.get('/api/auth/me', authenticate, (req, res, next) => {
         res.json({
             id: user.id,
             username: user.username,
-            name: user.name,
+            full_name: user.full_name,
             email: user.email,
             role: user.role,
             department: user.department,
-            employee_number: user.employee_number
+            is_hod: user.is_hod
         });
     } catch (error) {
-        next(error);
+        console.error('Get user info error:', error);
+        next(new AppError('Failed to get user info', 500));
     }
 });
 
@@ -456,51 +464,50 @@ app.post('/api/auth/refresh', async (req, res, next) => {
         }
 
         // Check if refresh token exists and is valid
-        db.get(
-            `SELECT rt.*, u.* FROM refresh_tokens rt
+        const result = await pool.query(
+            `SELECT rt.*, u.id as user_id, u.username, u.role, u.full_name, u.email, u.department, u.is_hod
+             FROM refresh_tokens rt
              JOIN users u ON rt.user_id = u.id
-             WHERE rt.token = ? AND rt.revoked = 0`,
-            [refreshToken],
-            async (err, tokenRecord) => {
-                if (err) {
-                    return next(new AppError('Database error', 500));
-                }
-
-                if (!tokenRecord) {
-                    return res.status(401).json({ error: 'Invalid or revoked refresh token' });
-                }
-
-                // Check if refresh token has expired
-                const now = new Date();
-                const expiryDate = new Date(tokenRecord.expires_at);
-
-                if (now > expiryDate) {
-                    // Revoke expired token
-                    db.run(
-                        `UPDATE refresh_tokens SET revoked = 1, revoked_at = CURRENT_TIMESTAMP
-                         WHERE token = ?`,
-                        [refreshToken]
-                    );
-                    return res.status(401).json({ error: 'Refresh token has expired. Please log in again.' });
-                }
-
-                // Generate new access token
-                const user = {
-                    id: tokenRecord.id,
-                    username: tokenRecord.username,
-                    role: tokenRecord.role
-                };
-                const newAccessToken = generateToken(user);
-
-                res.json({
-                    success: true,
-                    token: newAccessToken,
-                    expiresIn: '15m'
-                });
-            }
+             WHERE rt.token = $1 AND rt.revoked = false`,
+            [refreshToken]
         );
+
+        const tokenRecord = result.rows[0];
+
+        if (!tokenRecord) {
+            return res.status(401).json({ error: 'Invalid or revoked refresh token' });
+        }
+
+        // Check if refresh token has expired
+        const now = new Date();
+        const expiryDate = new Date(tokenRecord.expires_at);
+
+        if (now > expiryDate) {
+            // Revoke expired token
+            await pool.query(
+                `UPDATE refresh_tokens SET revoked = true, revoked_at = CURRENT_TIMESTAMP
+                 WHERE token = $1`,
+                [refreshToken]
+            );
+            return res.status(401).json({ error: 'Refresh token has expired. Please log in again.' });
+        }
+
+        // Generate new access token
+        const user = {
+            id: tokenRecord.user_id,
+            username: tokenRecord.username,
+            role: tokenRecord.role
+        };
+        const newAccessToken = generateToken(user);
+
+        res.json({
+            success: true,
+            token: newAccessToken,
+            expiresIn: '15m'
+        });
     } catch (error) {
-        next(error);
+        console.error('Token refresh error:', error);
+        next(new AppError('Failed to refresh token', 500));
     }
 });
 
@@ -514,21 +521,16 @@ app.post('/api/auth/logout', authenticate, async (req, res, next) => {
         }
 
         // Revoke the refresh token
-        db.run(
-            `UPDATE refresh_tokens SET revoked = 1, revoked_at = CURRENT_TIMESTAMP
-             WHERE token = ? AND user_id = ?`,
-            [refreshToken, req.user.id],
-            (err) => {
-                if (err) {
-                    console.error('Error revoking refresh token:', err);
-                    return next(new AppError('Failed to logout', 500));
-                }
-
-                res.json({ success: true, message: 'Logged out successfully' });
-            }
+        await pool.query(
+            `UPDATE refresh_tokens SET revoked = true, revoked_at = CURRENT_TIMESTAMP
+             WHERE token = $1 AND user_id = $2`,
+            [refreshToken, req.user.id]
         );
+
+        res.json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
-        next(error);
+        console.error('Logout error:', error);
+        next(new AppError('Failed to logout', 500));
     }
 });
 
