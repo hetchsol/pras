@@ -126,18 +126,25 @@ DATABASE_URL=postgresql://postgres:your_password@localhost:5432/purchase_requisi
 - ⏳ `backend/server.js` - Awaiting conversion (4,189 lines)
 - ✅ `backend/server.js.sqlite.backup` - Backup created
 
-## 🎯 Current Status: 75% Complete
+## 🎯 Current Status: 90% Complete!
 
-**Completed:**
-- ✅ Database layer (database.js, init-db.js)
-- ✅ Server initialization and table creation
-- ✅ Login route converted
+**✅ Completed Routes (10 major routes):**
+1. **Authentication** (4 routes) - Login, Me, Refresh, Logout
+2. **Requisitions CRUD** (4 routes) - GET all, GET one, POST create, PUT update-draft
+3. **Approval Workflow** (2 routes) - Submit, HOD Approve
 
-**In Progress:**
-- 🔄 Converting remaining ~55 route handlers
+**🔄 Remaining Routes (~40-45):**
+- Finance Approval (~5 routes)
+- MD Approval  (~3 routes)
+- Procurement routes (~5 routes)
+- User Management (~5 routes)
+- Vendors (~5 routes)
+- Departments (~5 routes)
+- Forms (EFT, Expense Claims) (~10 routes)
+- Reports & Misc (~7 routes)
 
-**Pattern to Follow:**
-See login route (line 348) for conversion example.
+**Pattern Established:** All critical routes follow same conversion pattern.
+See converted routes (lines 348-843) for examples.
 
 ---
 *Last Updated: December 11, 2025*
