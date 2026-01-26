@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const { hashPassword, comparePassword, generateToken, generateRefreshToken, getRefreshTokenExpiry, verifyToken } = require('./utils/auth');
 const { authenticate, authorize } = require('./middleware/auth');
@@ -102,199 +102,163 @@ app.use(express.static(path.join(__dirname, '../frontend'), {
 
 app.use(requestLogger); // Log all requests
 
-// PostgreSQL Database setup
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+// Database setup
+const db = new sqlite3.Database('./purchase_requisition.db', (err) => {
+    if (err) {
+        console.error('Error connecting to database:', err);
+    } else {
+        console.log('✅ Connected to SQLite database');
+        initializeDatabase();
+    }
 });
 
-pool.on('connect', () => {
-    console.log('✅ Connected to PostgreSQL database');
-});
-
-pool.on('error', (err) => {
-    console.error('❌ Unexpected error on idle PostgreSQL client', err);
-});
-
-// Initialize database on startup
-initializeDatabase();
-
-// Initialize database tables (PostgreSQL async)
-async function initializeDatabase() {
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
+// Initialize database tables
+function initializeDatabase() {
+    db.serialize(() => {
         // Users table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(255) UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                full_name TEXT NOT NULL,
-                email TEXT,
-                role TEXT NOT NULL,
-                department TEXT,
-                is_hod BOOLEAN DEFAULT false,
-                assigned_hod INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (assigned_hod) REFERENCES users(id)
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            email TEXT,
+            role TEXT NOT NULL,
+            department TEXT,
+            is_hod BOOLEAN DEFAULT 0,
+            assigned_hod INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (assigned_hod) REFERENCES users(id)
+        )`);
 
         // Requisitions table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS requisitions (
-                id SERIAL PRIMARY KEY,
-                req_number VARCHAR(255) UNIQUE NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT,
-                delivery_location TEXT,
-                urgency TEXT DEFAULT 'Medium',
-                required_date DATE,
-                account_code TEXT,
-                created_by INTEGER NOT NULL,
-                status TEXT DEFAULT 'draft',
-                hod_approval_status TEXT DEFAULT 'pending',
-                hod_approved_by INTEGER,
-                hod_approved_at TIMESTAMP,
-                hod_comments TEXT,
-                total_amount REAL DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (created_by) REFERENCES users(id)
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS requisitions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            req_number TEXT UNIQUE NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            delivery_location TEXT,
+            urgency TEXT DEFAULT 'Medium',
+            required_date DATE,
+            account_code TEXT,
+            created_by INTEGER NOT NULL,
+            status TEXT DEFAULT 'draft',
+            hod_approval_status TEXT DEFAULT 'pending',
+            hod_approved_by INTEGER,
+            hod_approved_at DATETIME,
+            hod_comments TEXT,
+            total_amount REAL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (created_by) REFERENCES users(id)
+        )`);
 
         // Requisition items table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS requisition_items (
-                id SERIAL PRIMARY KEY,
-                requisition_id INTEGER NOT NULL,
-                item_name TEXT NOT NULL,
-                quantity INTEGER NOT NULL,
-                unit_price REAL DEFAULT 0,
-                total_price REAL DEFAULT 0,
-                specifications TEXT,
-                vendor_id INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
-                FOREIGN KEY (vendor_id) REFERENCES vendors(id)
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS requisition_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requisition_id INTEGER NOT NULL,
+            item_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            unit_price REAL DEFAULT 0,
+            total_price REAL DEFAULT 0,
+            specifications TEXT,
+            vendor_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
+            FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+        )`);
 
         // Vendors table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS vendors (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                code VARCHAR(255) UNIQUE NOT NULL,
-                tier INTEGER NOT NULL,
-                rating REAL NOT NULL,
-                category TEXT NOT NULL,
-                status TEXT NOT NULL,
-                email TEXT,
-                phone TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS vendors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            code TEXT UNIQUE NOT NULL,
+            tier INTEGER NOT NULL,
+            rating REAL NOT NULL,
+            category TEXT NOT NULL,
+            status TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
 
         // Audit log table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS audit_log (
-                id SERIAL PRIMARY KEY,
-                requisition_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                action TEXT NOT NULL,
-                details TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requisition_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            action TEXT NOT NULL,
+            details TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (requisition_id) REFERENCES requisitions(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )`);
 
         // Refresh tokens table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS refresh_tokens (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                token TEXT UNIQUE NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                revoked BOOLEAN DEFAULT false,
-                revoked_at TIMESTAMP,
-                ip_address TEXT,
-                user_agent TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS refresh_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            expires_at DATETIME NOT NULL,
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )`);
 
         // Departments table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS departments (
-                id SERIAL PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                code VARCHAR(255) UNIQUE NOT NULL,
-                description TEXT,
-                is_active BOOLEAN DEFAULT true,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+        db.run(`CREATE TABLE IF NOT EXISTS departments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            code TEXT UNIQUE NOT NULL,
+            description TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
 
         // Department codes table (for sub-codes or additional codes)
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS department_codes (
-                id SERIAL PRIMARY KEY,
-                department_id INTEGER,
-                code VARCHAR(255) UNIQUE NOT NULL,
-                description TEXT,
-                is_active BOOLEAN DEFAULT true,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (department_id) REFERENCES departments(id)
-            )
-        `);
-
-        await client.query('COMMIT');
-        console.log('✅ Database tables created successfully');
-
-        // Seed default data after tables are created
-        await seedDefaultData();
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('❌ Error initializing database:', err);
-    } finally {
-        client.release();
-    }
+        db.run(`CREATE TABLE IF NOT EXISTS department_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            department_id INTEGER,
+            code TEXT UNIQUE NOT NULL,
+            description TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (department_id) REFERENCES departments(id)
+        )`, () => {
+            seedDefaultData();
+        });
+    });
 }
 
-// Seed default data (PostgreSQL async)
-async function seedDefaultData() {
-    try {
-        // Check if users exist
-        const userCount = await pool.query("SELECT COUNT(*) as count FROM users");
-        if (parseInt(userCount.rows[0].count) === 0) {
+// Seed default data
+function seedDefaultData() {
+    // Check if users exist
+db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+        if (err) {
+            console.error('Error checking users:', err);
+            return;
+        }
+        if (row && row.count === 0) {
             const defaultUsers = [
-                ['john.banda', 'password123', 'John Banda', 'john@company.zm', 'initiator', 'IT', false],
-                ['mary.mwanza', 'password123', 'Mary Mwanza', 'mary@company.zm', 'hod', 'IT', true],
-                ['james.phiri', 'password123', 'James Phiri', 'james@company.zm', 'procurement', 'Procurement', false],
-                ['sarah.banda', 'password123', 'Sarah Banda', 'sarah@company.zm', 'finance', 'Finance', true],
-                ['david.mulenga', 'password123', 'David Mulenga', 'david@company.zm', 'md', 'Executive', false],
-                ['admin', 'admin123', 'System Admin', 'admin@company.zm', 'admin', 'IT', false]
+                ['john.banda', 'password123', 'John Banda', 'john@company.zm', 'initiator', 'IT', 0],
+                ['mary.mwanza', 'password123', 'Mary Mwanza', 'mary@company.zm', 'hod', 'IT', 1],
+                ['james.phiri', 'password123', 'James Phiri', 'james@company.zm', 'procurement', 'Procurement', 0],
+                ['sarah.banda', 'password123', 'Sarah Banda', 'sarah@company.zm', 'finance', 'Finance', 1],
+                ['david.mulenga', 'password123', 'David Mulenga', 'david@company.zm', 'md', 'Executive', 0],
+                ['admin', 'admin123', 'System Admin', 'admin@company.zm', 'admin', 'IT', 0]
             ];
 
-            for (const user of defaultUsers) {
-                await pool.query(
-                    "INSERT INTO users (username, password, full_name, email, role, department, is_hod) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                    user
-                );
-            }
+            const stmt = db.prepare("INSERT INTO users (username, password, full_name, email, role, department, is_hod) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            defaultUsers.forEach(user => stmt.run(user));
+            stmt.finalize();
             console.log('✅ Default users created');
         }
+    });
 
-        // Check if vendors exist
-        const vendorCount = await pool.query("SELECT COUNT(*) as count FROM vendors");
-        if (parseInt(vendorCount.rows[0].count) === 0) {
+    // Check if vendors exist
+    db.get("SELECT COUNT(*) as count FROM vendors", (err, row) => {
+        if (row && row.count === 0) {
             const defaultVendors = [
                 ['Tech Solutions Ltd', 'TSL001', 1, 4.5, 'Technology', 'active', 'sales@techsolutions.zm', '+260 211 123456'],
                 ['Office Supplies Co', 'OSC002', 1, 4.8, 'Office Supplies', 'active', 'info@officesupplies.zm', '+260 211 234567'],
@@ -303,38 +267,31 @@ async function seedDefaultData() {
                 ['Medical Supplies Ltd', 'MSL005', 1, 4.9, 'Medical', 'active', 'info@medsupplies.zm', '+260 211 567890']
             ];
 
-            for (const vendor of defaultVendors) {
-                await pool.query(
-                    "INSERT INTO vendors (name, code, tier, rating, category, status, email, phone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                    vendor
-                );
-            }
+            const stmt = db.prepare("INSERT INTO vendors (name, code, tier, rating, category, status, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            defaultVendors.forEach(vendor => stmt.run(vendor));
+            stmt.finalize();
             console.log('✅ Default vendors created');
         }
+    });
 
-        // Check if departments exist
-        const deptCount = await pool.query("SELECT COUNT(*) as count FROM departments");
-        if (parseInt(deptCount.rows[0].count) === 0) {
+    // Check if departments exist
+    db.get("SELECT COUNT(*) as count FROM departments", (err, row) => {
+        if (row && row.count === 0) {
             const defaultDepartments = [
-                ['IT', 'IT', 'Information Technology Department', true],
-                ['HR', 'HR', 'Human Resources Department', true],
-                ['Finance', 'FIN', 'Finance Department', true],
-                ['Operations', 'OPS', 'Operations Department', true],
-                ['Procurement', 'PROC', 'Procurement Department', true],
-                ['Executive', 'EXEC', 'Executive Management', true]
+                ['IT', 'IT', 'Information Technology Department', 1],
+                ['HR', 'HR', 'Human Resources Department', 1],
+                ['Finance', 'FIN', 'Finance Department', 1],
+                ['Operations', 'OPS', 'Operations Department', 1],
+                ['Procurement', 'PROC', 'Procurement Department', 1],
+                ['Executive', 'EXEC', 'Executive Management', 1]
             ];
 
-            for (const dept of defaultDepartments) {
-                await pool.query(
-                    "INSERT INTO departments (name, code, description, is_active) VALUES ($1, $2, $3, $4)",
-                    dept
-                );
-            }
+            const stmt = db.prepare("INSERT INTO departments (name, code, description, is_active) VALUES (?, ?, ?, ?)");
+            defaultDepartments.forEach(dept => stmt.run(dept));
+            stmt.finalize();
             console.log('✅ Default departments created');
         }
-    } catch (err) {
-        console.error('❌ Error seeding default data:', err);
-    }
+    });
 }
 
 // ============================================
@@ -351,88 +308,88 @@ app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res, next) 
     try {
         const { username, password } = req.body;
 
-        // Query user from PostgreSQL
-        const result = await pool.query(
-            "SELECT * FROM users WHERE username = $1",
-            [username]
-        );
+        db.get("SELECT * FROM users WHERE username = ?",
+            [username],
+            async (err, user) => {
+                if (err) {
+                    return next(new AppError('Database error', 500));
+                }
+                if (!user) {
+                    logAuth('login_attempt', null, false, {
+                        username,
+                        reason: 'user_not_found',
+                        ip: req.ip
+                    });
+                    return res.status(401).json({ error: 'Invalid credentials' });
+                }
 
-        const user = result.rows[0];
+                // Compare password with hash
+                const isPasswordValid = await comparePassword(password, user.password);
+                if (!isPasswordValid) {
+                    logAuth('login_attempt', user.id, false, {
+                        username,
+                        reason: 'invalid_password',
+                        ip: req.ip
+                    });
+                    return res.status(401).json({ error: 'Invalid credentials' });
+                }
 
-        if (!user) {
-            logAuth('login_attempt', null, false, {
-                username,
-                reason: 'user_not_found',
-                ip: req.ip
-            });
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
+                // Generate JWT access token and refresh token
+                const token = generateToken(user);
+                const refreshToken = generateRefreshToken();
+                const refreshTokenExpiry = getRefreshTokenExpiry();
 
-        // Compare password with hash
-        const isPasswordValid = await comparePassword(password, user.password);
-        if (!isPasswordValid) {
-            logAuth('login_attempt', user.id, false, {
-                username,
-                reason: 'invalid_password',
-                ip: req.ip
-            });
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
+                // Store refresh token in database
+                const ipAddress = req.ip || req.connection.remoteAddress;
+                const userAgent = req.get('user-agent');
 
-        // Generate JWT access token and refresh token
-        const token = generateToken(user);
-        const refreshToken = generateRefreshToken();
-        const refreshTokenExpiry = getRefreshTokenExpiry();
+                db.run(
+                    `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [user.id, refreshToken, refreshTokenExpiry, ipAddress, userAgent],
+                    (err) => {
+                        if (err) {
+                            console.error('Error storing refresh token:', err);
+                            logError(err, { context: 'storing_refresh_token', userId: user.id });
+                            return next(new AppError('Failed to create session', 500));
+                        }
 
-        // Store refresh token in database
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('user-agent');
+                        // Log successful login
+                        logAuth('login_success', user.id, true, {
+                            username: user.username,
+                            role: user.role,
+                            ip: ipAddress,
+                            userAgent
+                        });
 
-        await pool.query(
-            `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [user.id, refreshToken, refreshTokenExpiry, ipAddress, userAgent]
-        );
-
-        // Log successful login
-        logAuth('login_success', user.id, true, {
-            username: user.username,
-            role: user.role,
-            ip: ipAddress,
-            userAgent
-        });
-
-        res.json({
-            success: true,
-            token,
-            refreshToken,
-            expiresIn: '15m', // Access token expiry
-            user: {
-                id: user.id,
-                username: user.username,
-                full_name: user.full_name,
-                email: user.email,
-                role: user.role,
-                department: user.department,
-                is_hod: user.is_hod
+                        res.json({
+                            success: true,
+                            token,
+                            refreshToken,
+                            expiresIn: '15m', // Access token expiry
+                            user: {
+                                id: user.id,
+                                username: user.username,
+                                full_name: user.full_name,
+                                email: user.email,
+                                role: user.role,
+                                department: user.department,
+                                is_hod: user.is_hod
+                            }
+                        });
+                    }
+                );
             }
-        });
+        );
     } catch (error) {
-        console.error('Login error:', error);
-        logError(error, { context: 'login', username: req.body?.username });
-        next(new AppError('Login failed', 500));
+        next(error);
     }
 });
 
 // Get current user info
-app.get('/api/auth/me', authenticate, async (req, res, next) => {
+app.get('/api/auth/me', authenticate, (req, res, next) => {
     try {
-        const result = await pool.query(
-            "SELECT id, username, full_name, email, role, department, is_hod FROM users WHERE id = $1",
-            [req.user.id]
-        );
-
-        const user = result.rows[0];
+        const user = getUserById(req.user.id);
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -442,15 +399,14 @@ app.get('/api/auth/me', authenticate, async (req, res, next) => {
         res.json({
             id: user.id,
             username: user.username,
-            full_name: user.full_name,
+            name: user.name,
             email: user.email,
             role: user.role,
             department: user.department,
-            is_hod: user.is_hod
+            employee_number: user.employee_number
         });
     } catch (error) {
-        console.error('Get user info error:', error);
-        next(new AppError('Failed to get user info', 500));
+        next(error);
     }
 });
 
@@ -464,50 +420,51 @@ app.post('/api/auth/refresh', async (req, res, next) => {
         }
 
         // Check if refresh token exists and is valid
-        const result = await pool.query(
-            `SELECT rt.*, u.id as user_id, u.username, u.role, u.full_name, u.email, u.department, u.is_hod
-             FROM refresh_tokens rt
+        db.get(
+            `SELECT rt.*, u.* FROM refresh_tokens rt
              JOIN users u ON rt.user_id = u.id
-             WHERE rt.token = $1 AND rt.revoked = false`,
-            [refreshToken]
+             WHERE rt.token = ? AND rt.revoked = 0`,
+            [refreshToken],
+            async (err, tokenRecord) => {
+                if (err) {
+                    return next(new AppError('Database error', 500));
+                }
+
+                if (!tokenRecord) {
+                    return res.status(401).json({ error: 'Invalid or revoked refresh token' });
+                }
+
+                // Check if refresh token has expired
+                const now = new Date();
+                const expiryDate = new Date(tokenRecord.expires_at);
+
+                if (now > expiryDate) {
+                    // Revoke expired token
+                    db.run(
+                        `UPDATE refresh_tokens SET revoked = 1, revoked_at = CURRENT_TIMESTAMP
+                         WHERE token = ?`,
+                        [refreshToken]
+                    );
+                    return res.status(401).json({ error: 'Refresh token has expired. Please log in again.' });
+                }
+
+                // Generate new access token
+                const user = {
+                    id: tokenRecord.id,
+                    username: tokenRecord.username,
+                    role: tokenRecord.role
+                };
+                const newAccessToken = generateToken(user);
+
+                res.json({
+                    success: true,
+                    token: newAccessToken,
+                    expiresIn: '15m'
+                });
+            }
         );
-
-        const tokenRecord = result.rows[0];
-
-        if (!tokenRecord) {
-            return res.status(401).json({ error: 'Invalid or revoked refresh token' });
-        }
-
-        // Check if refresh token has expired
-        const now = new Date();
-        const expiryDate = new Date(tokenRecord.expires_at);
-
-        if (now > expiryDate) {
-            // Revoke expired token
-            await pool.query(
-                `UPDATE refresh_tokens SET revoked = true, revoked_at = CURRENT_TIMESTAMP
-                 WHERE token = $1`,
-                [refreshToken]
-            );
-            return res.status(401).json({ error: 'Refresh token has expired. Please log in again.' });
-        }
-
-        // Generate new access token
-        const user = {
-            id: tokenRecord.user_id,
-            username: tokenRecord.username,
-            role: tokenRecord.role
-        };
-        const newAccessToken = generateToken(user);
-
-        res.json({
-            success: true,
-            token: newAccessToken,
-            expiresIn: '15m'
-        });
     } catch (error) {
-        console.error('Token refresh error:', error);
-        next(new AppError('Failed to refresh token', 500));
+        next(error);
     }
 });
 
@@ -521,261 +478,280 @@ app.post('/api/auth/logout', authenticate, async (req, res, next) => {
         }
 
         // Revoke the refresh token
-        await pool.query(
-            `UPDATE refresh_tokens SET revoked = true, revoked_at = CURRENT_TIMESTAMP
-             WHERE token = $1 AND user_id = $2`,
-            [refreshToken, req.user.id]
-        );
+        db.run(
+            `UPDATE refresh_tokens SET revoked = 1, revoked_at = CURRENT_TIMESTAMP
+             WHERE token = ? AND user_id = ?`,
+            [refreshToken, req.user.id],
+            (err) => {
+                if (err) {
+                    console.error('Error revoking refresh token:', err);
+                    return next(new AppError('Failed to logout', 500));
+                }
 
-        res.json({ success: true, message: 'Logged out successfully' });
+                res.json({ success: true, message: 'Logged out successfully' });
+            }
+        );
     } catch (error) {
-        console.error('Logout error:', error);
-        next(new AppError('Failed to logout', 500));
+        next(error);
     }
 });
 
 // Get all requisitions (with filters)
-app.get('/api/requisitions', authenticate, async (req, res, next) => {
+app.get('/api/requisitions', authenticate, (req, res, next) => {
     try {
         const { user_id, role, status } = req.query;
+    
+    let query = `
+        SELECT r.*, u.full_name as created_by_name, u.department
+        FROM requisitions r
+        JOIN users u ON r.created_by = u.id
+        WHERE 1=1
+    `;
+    const params = [];
+    
+    if (status) {
+        query += " AND r.status = ?";
+        params.push(status);
+    }
+    
+    if (role === 'initiator' && user_id) {
+        query += " AND r.created_by = ?";
+        params.push(user_id);
+    } else if (role === 'hod' && user_id) {
+        // HODs see requisitions from their department OR specifically assigned to them
+        query += " AND (u.department = (SELECT department FROM users WHERE id = ?) OR (r.assigned_to = ? AND r.assigned_role = 'hod'))";
+        params.push(user_id);
+        params.push(user_id);
+    } else if (role === 'finance' && user_id) {
+        // Finance sees requisitions assigned to them via universal assignment
+        query += " AND (r.assigned_to = ? AND r.assigned_role = 'finance')";
+        params.push(user_id);
+    } else if (role === 'md' && user_id) {
+        // MD sees requisitions assigned to them via universal assignment
+        query += " AND (r.assigned_to = ? AND r.assigned_role = 'md')";
+        params.push(user_id);
+    } else if (role === 'procurement' && user_id) {
+        // Procurement sees requisitions assigned to them via universal assignment
+        query += " AND (r.assigned_to = ? AND r.assigned_role = 'procurement')";
+        params.push(user_id);
+    }
+    
+    query += " ORDER BY r.created_at DESC";
 
-        let query = `
-            SELECT r.*, u.full_name as created_by_name, u.department
-            FROM requisitions r
-            JOIN users u ON r.created_by = u.id
-            WHERE 1=1
-        `;
-        const params = [];
-        let paramIndex = 1;
-
-        if (status) {
-            query += ` AND r.status = $${paramIndex++}`;
-            params.push(status);
-        }
-
-        if (role === 'initiator' && user_id) {
-            query += ` AND r.created_by = $${paramIndex++}`;
-            params.push(user_id);
-        } else if (role === 'hod' && user_id) {
-            // HODs see requisitions from their department OR specifically assigned to them
-            query += ` AND (u.department = (SELECT department FROM users WHERE id = $${paramIndex++}) OR (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'hod'))`;
-            params.push(user_id);
-            params.push(user_id);
-        } else if (role === 'finance' && user_id) {
-            // Finance sees requisitions assigned to them via universal assignment
-            query += ` AND (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'finance')`;
-            params.push(user_id);
-        } else if (role === 'md' && user_id) {
-            // MD sees requisitions assigned to them via universal assignment
-            query += ` AND (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'md')`;
-            params.push(user_id);
-        } else if (role === 'procurement' && user_id) {
-            // Procurement sees requisitions assigned to them via universal assignment
-            query += ` AND (r.assigned_to = $${paramIndex++} AND r.assigned_role = 'procurement')`;
-            params.push(user_id);
-        }
-
-        query += " ORDER BY r.created_at DESC";
-
-        const result = await pool.query(query, params);
-        res.json(result.rows);
+        db.all(query, params, (err, rows) => {
+            if (err) {
+                return next(new AppError('Database error', 500));
+            }
+            res.json(rows);
+        });
     } catch (error) {
-        console.error('Get requisitions error:', error);
-        next(new AppError('Failed to get requisitions', 500));
+        next(error);
     }
 });
 
 // Get single requisition with items
-app.get('/api/requisitions/:id', authenticate, validateId, async (req, res, next) => {
+app.get('/api/requisitions/:id', authenticate, validateId, (req, res, next) => {
     try {
         const reqId = req.params.id;
-
-        // Get requisition
-        const reqResult = await pool.query(`
-            SELECT r.*, u.full_name as created_by_name, u.department
-            FROM requisitions r
-            JOIN users u ON r.created_by = u.id
-            WHERE r.id = $1
-        `, [reqId]);
-
-        const requisition = reqResult.rows[0];
-
+    
+    db.get(`
+        SELECT r.*, u.full_name as created_by_name, u.department
+        FROM requisitions r
+        JOIN users u ON r.created_by = u.id
+        WHERE r.id = ?
+    `, [reqId], (err, requisition) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
         if (!requisition) {
             return res.status(404).json({ error: 'Requisition not found' });
         }
+        
+            // Get items
+            db.all(`
+                SELECT ri.*, v.name as vendor_name
+                FROM requisition_items ri
+                LEFT JOIN vendors v ON ri.vendor_id = v.id
+                WHERE ri.requisition_id = ?
+            `, [reqId], (err, items) => {
+                if (err) {
+                    return next(new AppError('Database error', 500));
+                }
 
-        // Get items
-        const itemsResult = await pool.query(`
-            SELECT ri.*, v.name as vendor_name
-            FROM requisition_items ri
-            LEFT JOIN vendors v ON ri.vendor_id = v.id
-            WHERE ri.requisition_id = $1
-        `, [reqId]);
-
-        requisition.items = itemsResult.rows;
-        res.json(requisition);
+                requisition.items = items;
+                res.json(requisition);
+            });
+        });
     } catch (error) {
-        console.error('Get requisition error:', error);
-        next(new AppError('Failed to get requisition', 500));
+        next(error);
     }
 });
 
 // Create new requisition
-app.post('/api/requisitions', authenticate, authorize('initiator', 'admin'), validateCreateRequisition, async (req, res, next) => {
+app.post('/api/requisitions', authenticate, authorize('initiator', 'admin'), validateCreateRequisition, (req, res, next) => {
     try {
         const { description, delivery_location, urgency, required_date, account_code, created_by, items } = req.body;
 
         // Get user details to generate proper req number
-        const userResult = await pool.query(
-            'SELECT full_name, department FROM users WHERE id = $1',
-            [created_by]
-        );
-
-        const user = userResult.rows[0];
-        if (!user) {
-            return next(new AppError('User not found', 404));
-        }
-
-        // Generate requisition number: KSB-DeptCode-InitiatorInitials-FullTimeStamp
-        const deptCode = user.department ? user.department.substring(0, 3).toUpperCase() : 'GEN';
-        const initials = user.full_name
-            .split(' ')
-            .map(name => name.charAt(0))
-            .join('')
-            .toUpperCase();
-        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14); // YYYYMMDDHHmmss
-        const reqNumber = `KSB-${deptCode}-${initials}-${timestamp}`;
-
-        // Use req_number as title for simplified flow
-        const title = reqNumber;
-
-        // Insert requisition and get ID
-        const reqResult = await pool.query(`
-            INSERT INTO requisitions (req_number, title, description, delivery_location, urgency, required_date, account_code, created_by, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft')
-            RETURNING id
-        `, [reqNumber, title, description, delivery_location, urgency, required_date, account_code, created_by]);
-
-        const requisitionId = reqResult.rows[0].id;
-
-        // Insert items
-        if (items && items.length > 0) {
-            for (const item of items) {
-                await pool.query(`
-                    INSERT INTO requisition_items (requisition_id, item_name, quantity, specifications)
-                    VALUES ($1, $2, $3, $4)
-                `, [requisitionId, item.item_name, item.quantity, item.specifications]);
+        db.get('SELECT full_name, department FROM users WHERE id = ?', [created_by], (err, user) => {
+            if (err || !user) {
+                return next(new AppError('User not found', 404));
             }
-        }
 
-        // Log action
-        await pool.query(`
-            INSERT INTO audit_log (requisition_id, user_id, action, details)
-            VALUES ($1, $2, 'created', 'Requisition created')
-        `, [requisitionId, created_by]);
+            // Generate requisition number: KSB-DeptCode-InitiatorInitials-FullTimeStamp
+            const deptCode = user.department ? user.department.substring(0, 3).toUpperCase() : 'GEN';
+            const initials = user.full_name
+                .split(' ')
+                .map(name => name.charAt(0))
+                .join('')
+                .toUpperCase();
+            const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14); // YYYYMMDDHHmmss
+            const reqNumber = `KSB-${deptCode}-${initials}-${timestamp}`;
 
-        res.json({
-            success: true,
-            requisition_id: requisitionId,
-            req_number: reqNumber
+            // Use req_number as title for simplified flow
+            const title = reqNumber;
+
+            db.run(`
+                INSERT INTO requisitions (req_number, title, description, delivery_location, urgency, required_date, account_code, created_by, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+            `, [reqNumber, title, description, delivery_location, urgency, required_date, account_code, created_by], function(err) {
+                if (err) {
+                    console.error('Database error creating requisition:', err.message);
+                    return next(new AppError(`Database error: ${err.message}`, 500));
+                }
+
+                const requisitionId = this.lastID;
+
+                // Insert items
+                if (items && items.length > 0) {
+                    const stmt = db.prepare(`
+                        INSERT INTO requisition_items (requisition_id, item_name, quantity, specifications)
+                        VALUES (?, ?, ?, ?)
+                    `);
+
+                    items.forEach(item => {
+                        stmt.run([requisitionId, item.item_name, item.quantity, item.specifications]);
+                    });
+
+                    stmt.finalize();
+                }
+
+                // Log action
+                db.run(`
+                    INSERT INTO audit_log (requisition_id, user_id, action, details)
+                    VALUES (?, ?, 'created', 'Requisition created')
+                `, [requisitionId, created_by]);
+
+                res.json({
+                    success: true,
+                    requisition_id: requisitionId,
+                    req_number: reqNumber
+                });
+            });
         });
     } catch (error) {
-        console.error('Create requisition error:', error);
-        next(new AppError('Failed to create requisition', 500));
+        next(error);
     }
 });
 
 // Update draft requisition
-app.put('/api/requisitions/:id/update-draft', authenticate, authorize('initiator', 'admin'), async (req, res, next) => {
+app.put('/api/requisitions/:id/update-draft', authenticate, authorize('initiator', 'admin'), (req, res, next) => {
     try {
         const reqId = req.params.id;
         const { description, quantity, required_date, justification, urgency, user_id } = req.body;
 
         // Check if requisition is in draft status
-        const checkResult = await pool.query(
-            'SELECT status FROM requisitions WHERE id = $1',
-            [reqId]
-        );
+        db.get('SELECT status FROM requisitions WHERE id = ?', [reqId], (err, req) => {
+            if (err) {
+                return next(new AppError('Database error', 500));
+            }
+            if (!req) {
+                return res.status(404).json({ error: 'Requisition not found' });
+            }
+            if (req.status !== 'draft') {
+                return res.status(400).json({ error: 'Only draft requisitions can be edited' });
+            }
 
-        const requisition = checkResult.rows[0];
+            // Update requisition
+            db.run(`
+                UPDATE requisitions
+                SET description = ?,
+                    quantity = ?,
+                    required_date = ?,
+                    urgency = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `, [description, quantity, required_date, urgency, reqId], function(err) {
+                if (err) {
+                    return next(new AppError('Database error updating requisition', 500));
+                }
 
-        if (!requisition) {
-            return res.status(404).json({ error: 'Requisition not found' });
-        }
-        if (requisition.status !== 'draft') {
-            return res.status(400).json({ error: 'Only draft requisitions can be edited' });
-        }
+                // Update the first item (simplified requisition has one item)
+                db.run(`
+                    UPDATE requisition_items
+                    SET item_name = ?,
+                        quantity = ?,
+                        specifications = ?
+                    WHERE requisition_id = ?
+                `, [description, quantity, justification, reqId], function(err) {
+                    if (err) {
+                        console.error('Error updating item:', err);
+                    }
 
-        // Update requisition
-        await pool.query(`
-            UPDATE requisitions
-            SET description = $1,
-                quantity = $2,
-                required_date = $3,
-                urgency = $4,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $5
-        `, [description, quantity, required_date, urgency, reqId]);
+                    // Log action
+                    db.run(`
+                        INSERT INTO audit_log (requisition_id, user_id, action, details)
+                        VALUES (?, ?, 'draft_updated', 'Draft requisition updated')
+                    `, [reqId, user_id]);
 
-        // Update the first item (simplified requisition has one item)
-        await pool.query(`
-            UPDATE requisition_items
-            SET item_name = $1,
-                quantity = $2,
-                specifications = $3
-            WHERE requisition_id = $4
-        `, [description, quantity, justification, reqId]);
-
-        // Log action
-        await pool.query(`
-            INSERT INTO audit_log (requisition_id, user_id, action, details)
-            VALUES ($1, $2, 'draft_updated', 'Draft requisition updated')
-        `, [reqId, user_id]);
-
-        res.json({ success: true, message: 'Draft updated successfully' });
+                    res.json({ success: true, message: 'Draft updated successfully' });
+                });
+            });
+        });
     } catch (error) {
-        console.error('Update draft error:', error);
-        next(new AppError('Failed to update draft', 500));
+        next(error);
     }
 });
 
 // Submit requisition for approval
-app.put('/api/requisitions/:id/submit', authenticate, authorize('initiator', 'procurement', 'admin'), validateUpdateRequisition, async (req, res, next) => {
+app.put('/api/requisitions/:id/submit', authenticate, authorize('initiator', 'procurement', 'admin'), validateUpdateRequisition, (req, res, next) => {
     try {
         const reqId = req.params.id;
         const { user_id, selected_hod_id } = req.body;
 
-        // If procurement is submitting and has selected an HOD, store it
-        let updateQuery = `UPDATE requisitions SET status = 'pending_hod', updated_at = CURRENT_TIMESTAMP`;
-        const updateParams = [];
-        let paramIndex = 1;
+    // If procurement is submitting and has selected an HOD, store it
+    let updateQuery = `UPDATE requisitions SET status = 'pending_hod', updated_at = CURRENT_TIMESTAMP`;
+    let updateParams = [];
 
-        if (selected_hod_id) {
-            updateQuery += `, assigned_hod_id = $${paramIndex++}`;
-            updateParams.push(selected_hod_id);
+    if (selected_hod_id) {
+        updateQuery += `, assigned_hod_id = ?`;
+        updateParams.push(selected_hod_id);
+    }
+
+    updateQuery += ` WHERE id = ?`;
+    updateParams.push(reqId);
+
+    db.run(updateQuery, updateParams, function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
         }
 
-        updateQuery += ` WHERE id = $${paramIndex}`;
-        updateParams.push(reqId);
-
-        await pool.query(updateQuery, updateParams);
-
-        await pool.query(`
+        db.run(`
             INSERT INTO audit_log (requisition_id, user_id, action, details)
-            VALUES ($1, $2, 'submitted', 'Submitted for HOD approval')
+            VALUES (?, ?, 'submitted', 'Submitted for HOD approval')
         `, [reqId, user_id]);
 
-        res.json({ success: true });
+            res.json({ success: true });
+        });
     } catch (error) {
-        console.error('Submit requisition error:', error);
-        next(new AppError('Failed to submit requisition', 500));
+        next(error);
     }
 });
 
 // HOD Approval/Rejection
 // Allow HOD, Finance, MD, and Admin to approve at HOD stage
 // Finance and MD can act as HOD for pre-adjudication requisitions
-app.put('/api/requisitions/:id/hod-approve', authenticate, authorize('hod', 'finance', 'md', 'admin'), validateUpdateRequisition, async (req, res, next) => {
+app.put('/api/requisitions/:id/hod-approve', authenticate, authorize('hod', 'finance', 'md', 'admin'), validateUpdateRequisition, (req, res, next) => {
     try {
         const reqId = req.params.id;
         const { user_id, approved, comments } = req.body;
@@ -793,52 +769,55 @@ app.put('/api/requisitions/:id/hod-approve', authenticate, authorize('hod', 'fin
         if (approved) {
             updateQuery = `
                 UPDATE requisitions
-                SET status = $1,
-                    hod_approval_status = $2,
-                    hod_approved_by = $3,
+                SET status = ?,
+                    hod_approval_status = ?,
+                    hod_approved_by = ?,
                     hod_approved_at = CURRENT_TIMESTAMP,
-                    hod_comments = $4,
+                    hod_comments = ?,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = $5
+                WHERE id = ?
             `;
             updateParams = [newStatus, approvalStatus, user_id, comments, reqId];
         } else {
             updateQuery = `
                 UPDATE requisitions
-                SET status = $1,
-                    hod_approval_status = $2,
-                    rejected_by = $3,
+                SET status = ?,
+                    hod_approval_status = ?,
+                    rejected_by = ?,
                     rejected_at = CURRENT_TIMESTAMP,
-                    rejection_reason = $4,
-                    hod_comments = $5,
+                    rejection_reason = ?,
+                    hod_comments = ?,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = $6
+                WHERE id = ?
             `;
             updateParams = [newStatus, approvalStatus, user_id, comments, comments, reqId];
         }
 
-        await pool.query(updateQuery, updateParams);
+        db.run(updateQuery, updateParams, function(err) {
+            if (err) {
+                logError(err, { context: 'hod_approve', requisition_id: reqId });
+                return next(new AppError('Database error', 500));
+            }
 
-        await pool.query(`
-            INSERT INTO audit_log (requisition_id, user_id, action, details)
-            VALUES ($1, $2, $3, $4)
-        `, [reqId, user_id, 'hod_' + approvalStatus, 'HOD ' + approvalStatus + (comments ? ': ' + comments : '')]);
+            db.run(`
+                INSERT INTO audit_log (requisition_id, user_id, action, details)
+                VALUES (?, ?, ?, ?)
+            `, [reqId, user_id, 'hod_' + approvalStatus, 'HOD ' + approvalStatus + (comments ? ': ' + comments : '')]);
 
-        logSecurity(approved ? 'requisition_approved' : 'requisition_rejected', {
-            requisition_id: reqId,
-            user_id,
-            reason: comments
-        });
+            logSecurity(approved ? 'requisition_approved' : 'requisition_rejected', {
+                requisition_id: reqId,
+                user_id,
+                reason: comments
+            });
 
-        res.json({
-            success: true,
-            message: approved ? 'Requisition approved successfully' : 'Requisition rejected',
-            status: newStatus
+            res.json({
+                success: true,
+                message: approved ? 'Requisition approved successfully' : 'Requisition rejected',
+                status: newStatus
+            });
         });
     } catch (error) {
-        console.error('HOD approval error:', error);
-        logError(error, { context: 'hod_approve', requisition_id: reqId });
-        next(new AppError('Failed to process HOD approval', 500));
+        next(error);
     }
 });
 
@@ -4156,10 +4135,10 @@ const formsRouter = require('./routes/forms');
 app.use('/api/forms', formsRouter);
 
 // ============================================
-// SEARCH ROUTES (Global Search)
+// SEARCH ROUTES (Global Search) - Disabled (route file not available)
 // ============================================
-const searchRouter = require('./routes/search');
-app.use('/api', searchRouter);
+// const searchRouter = require('./routes/search');
+// app.use('/api', searchRouter);
 
 // 404 handler - must be after all routes
 app.use(notFound);

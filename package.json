@@ -1,10 +1,14 @@
 {
   "name": "purchase-requisition-system",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Purchase Requisition System",
+  "main": "backend/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "cd backend && node server.js",
+    "install:backend": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [],
   "author": "",
