@@ -32,8 +32,8 @@ const initializeDatabase = async () => {
     if (!adminExists) {
       console.log('🔧 Seeding default data...');
 
-      const adminPassword = await bcrypt.hash('admin123', 10);
-      const userPassword = await bcrypt.hash('Password123', 10);
+      const adminPassword = await bcrypt.hash('password123', 10);
+      const userPassword = await bcrypt.hash('password123', 10);
 
       // Create default users
       const defaultUsers = [

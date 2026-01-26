@@ -80,8 +80,8 @@ app.post('/api/import-users', async (req, res) => {
       await db.User.deleteMany({});
     }
 
-    const defaultPassword = await bcrypt.hash('Password123', 10);
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    const defaultPassword = await bcrypt.hash('password123', 10);
+    const adminPassword = await bcrypt.hash('password123', 10);
 
     let imported = 0;
     let failed = 0;
