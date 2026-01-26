@@ -66,6 +66,60 @@ app.get('/api/seed', async (req, res) => {
   }
 });
 
+// Import users endpoint (for bulk import)
+app.post('/api/import-users', async (req, res) => {
+  try {
+    const { users, clearExisting } = req.body;
+
+    if (!users || !Array.isArray(users)) {
+      return res.status(400).json({ error: 'Users array required' });
+    }
+
+    // Clear existing users if requested
+    if (clearExisting) {
+      await db.User.deleteMany({});
+    }
+
+    const defaultPassword = await bcrypt.hash('Password123', 10);
+    const adminPassword = await bcrypt.hash('admin123', 10);
+
+    let imported = 0;
+    let failed = 0;
+    const errors = [];
+
+    for (const user of users) {
+      try {
+        const role = (user.role || 'initiator').toLowerCase();
+        await db.User.create({
+          username: user.username.toLowerCase().trim(),
+          password: role === 'admin' ? adminPassword : defaultPassword,
+          full_name: user.full_name || user.fullName,
+          email: user.email,
+          role: role,
+          department: user.department || 'General',
+          employee_number: user.employee_number || '',
+          is_hod: role === 'hod' || role === 'md' ? 1 : 0,
+          supervisor: user.supervisor || ''
+        });
+        imported++;
+      } catch (err) {
+        failed++;
+        errors.push({ username: user.username, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      imported,
+      failed,
+      errors: errors.slice(0, 10), // Return first 10 errors only
+      message: `Imported ${imported} users, ${failed} failed`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================
 // AUTH ROUTES
 // ============================================

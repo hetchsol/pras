@@ -1,0 +1,245 @@
+[
+  {
+    "employee_number": "AAL02",
+    "full_name": "Chabala John",
+    "username": "chabala.john",
+    "email": "john.chabala@ksb.com",
+    "role": "Initiator",
+    "department": "Operations",
+    "supervisor": "Joe Munthali"
+  },
+  {
+    "employee_number": "AAL03",
+    "full_name": "Kaluya Justin",
+    "username": "kaluya.justin",
+    "email": "justin.kaluya@ksb.com",
+    "role": "Initiator",
+    "department": "Operations",
+    "supervisor": "Joe Munthali"
+  },
+  {
+    "employee_number": "AAL09",
+    "full_name": "Phiri Isaac",
+    "username": "phiri.isaac",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Operations",
+    "supervisor": "Joe Munthali"
+  },
+  {
+    "employee_number": "AAL12",
+    "full_name": "Shebele Moses",
+    "username": "moses.shebele",
+    "email": "moses.shebele@ksb.com",
+    "role": "HOD",
+    "department": "Sales",
+    "supervisor": "Moses Shebele"
+  },
+  {
+    "employee_number": "AAL24",
+    "full_name": "Simwanza Clarence",
+    "username": "clarence.simwanza",
+    "email": "clarence.simwanza@ksb.com",
+    "role": "Procurement",
+    "department": "Sales",
+    "supervisor": "Kanyembo Ndhlovu"
+  },
+  {
+    "employee_number": "AAL26",
+    "full_name": "Nanyangwe Annie",
+    "username": "annie.nanyangwe",
+    "email": "annie.nanyangwe@ksb.com",
+    "role": "Initiator",
+    "department": "Finance",
+    "supervisor": "Anne Banda"
+  },
+  {
+    "employee_number": "AAL27",
+    "full_name": "Waden Chishimba",
+    "username": "waden.chishimba",
+    "email": "waden.chishimba@ksb.com",
+    "role": "Initiator",
+    "department": "Sales",
+    "supervisor": "Moses Shebele"
+  },
+  {
+    "employee_number": "AAL28",
+    "full_name": "Mumbi Emmanuel",
+    "username": "emmanuel.mumbi",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Operations",
+    "supervisor": "Joe Munthali"
+  },
+  {
+    "employee_number": "AAL32",
+    "full_name": "Kalimba Bernard",
+    "username": "bernard.kalimba",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL33",
+    "full_name": "Phiri Moses",
+    "username": "moses.phiri",
+    "email": "moses.phiri@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL34",
+    "full_name": "Namute Mbialesi",
+    "username": "mbialesi.namute",
+    "email": "mbialesi.namute@ksb.com",
+    "role": "Initiator",
+    "department": "HR",
+    "supervisor": "Kanyembo Ndhlovu"
+  },
+  {
+    "employee_number": "AAL38",
+    "full_name": "Mubanga Abraham",
+    "username": "abraham.mubanga",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Operations",
+    "supervisor": "Joe Munthali"
+  },
+  {
+    "employee_number": "AAL42",
+    "full_name": "Ndhlovu Kanyembo",
+    "username": "kanyembo.ndhlovu",
+    "email": "kanyembo.ndhlovu@ksb.com",
+    "role": "MD",
+    "department": "Executive",
+    "supervisor": ""
+  },
+  {
+    "employee_number": "AAL43",
+    "full_name": "Banda Anne",
+    "username": "anne.banda",
+    "email": "anne.banda@ksb.com",
+    "role": "Finance Manager",
+    "department": "Finance",
+    "supervisor": "Kanyembo Ndhlovu"
+  },
+  {
+    "employee_number": "AAL46",
+    "full_name": "Zimba Lina",
+    "username": "lina.zimba",
+    "email": "lina.zimba@ksb.com",
+    "role": "Initiator",
+    "department": "Sales",
+    "supervisor": "Moses Shebele"
+  },
+  {
+    "employee_number": "AAL47",
+    "full_name": "Chaponda Hillary",
+    "username": "hillary.chaponda",
+    "email": "hillary.chaponda@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL48",
+    "full_name": "Mwambazi Larry",
+    "username": "larry.mwambazi",
+    "email": "larry.mwambazi@ksb.com",
+    "role": "HOD",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL49",
+    "full_name": "Malambo Clever",
+    "username": "clever.malambo",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL50",
+    "full_name": "Munthali Joe Chabawela ",
+    "username": "joe.munthali",
+    "email": "joe.munthali@ksb.com",
+    "role": "HOD",
+    "department": "Operations",
+    "supervisor": "Joe Munthali"
+  },
+  {
+    "employee_number": "AAL51",
+    "full_name": "Nguni Nashon",
+    "username": "nashon.nguni",
+    "email": "nashon.nguni@ksb.com",
+    "role": "Initiator",
+    "department": "Finance",
+    "supervisor": "Anne Banda"
+  },
+  {
+    "employee_number": "AAL52",
+    "full_name": "Musonda Mwaka",
+    "username": "mwaka.musonda",
+    "email": "mwaka.musonda@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL53",
+    "full_name": "Chipwalu Dickson",
+    "username": "dickson.chipwalu",
+    "email": "dickson.chipwalu@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL54",
+    "full_name": "Molobeka Nkandu",
+    "username": "nkandu.mulobeka",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  },
+  {
+    "employee_number": "AAL55",
+    "full_name": "Rabie Ashley",
+    "username": "ashley.rabie",
+    "email": "ashley.rabie@ksb.com",
+    "role": "Initiator",
+    "department": "Solwezi",
+    "supervisor": "Kanyembo Ndhlovu"
+  },
+  {
+    "employee_number": "AAL56",
+    "full_name": "Mbunda Haggai",
+    "username": "hetch.mbunda",
+    "email": "haggai.mbunda@ksb.com",
+    "role": "Admin",
+    "department": "IT",
+    "supervisor": "Kanyembo Ndhlovu"
+  },
+  {
+    "employee_number": "AAL57",
+    "full_name": "Mwansa Mwelwa",
+    "username": "mwelwa.mwansa",
+    "email": "mwelwa.mwansa@ksb.com",
+    "role": "Initiator",
+    "department": "Finance",
+    "supervisor": "Anne Banda"
+  },
+  {
+    "employee_number": "AAL58",
+    "full_name": "Nkonde Edward",
+    "username": "edward.nkonde",
+    "email": "no.address@ksb.com",
+    "role": "Initiator",
+    "department": "Lusaka",
+    "supervisor": "Larry Mwambazi"
+  }
+]
