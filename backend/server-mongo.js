@@ -56,6 +56,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Purchase Requisition API is running', database: 'MongoDB' });
 });
 
+// Manual seed endpoint (for initial setup)
+app.get('/api/seed', async (req, res) => {
+  try {
+    await db.initializeDatabase();
+    res.json({ success: true, message: 'Database seeded successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================
 // AUTH ROUTES
 // ============================================
