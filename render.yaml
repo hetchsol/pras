@@ -1,0 +1,36 @@
+services:
+  # Backend API with MongoDB
+  - type: web
+    name: pras-backend
+    runtime: node
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: "15m"
+
+  # Frontend Static Site
+  - type: web
+    name: pras-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: echo "No build needed"
+    staticPublishPath: ./
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: pras-backend
+          property: host

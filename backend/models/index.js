@@ -1,0 +1,21 @@
+const User = require('./User');
+const Requisition = require('./Requisition');
+const Approval = require('./Approval');
+const Vendor = require('./Vendor');
+const Department = require('./Department');
+const FXRate = require('./FXRate');
+const EFTRequisition = require('./EFTRequisition');
+const ExpenseClaim = require('./ExpenseClaim');
+const FormApproval = require('./FormApproval');
+
+module.exports = {
+  User,
+  Requisition,
+  Approval,
+  Vendor,
+  Department,
+  FXRate,
+  EFTRequisition,
+  ExpenseClaim,
+  FormApproval
+};

@@ -2,8 +2,8 @@ const { useState, useEffect } = React;
 // Lucide icons not used in this version - using emoji icons instead
 // const { AlertCircle, CheckCircle, Clock, XCircle, LogOut, Plus, Edit, Trash2, FileText, DollarSign, Users, Package } = lucide;
 
-// Dynamically determine API URL based on current host
-const API_URL = `${window.location.protocol}//${window.location.hostname}:3001/api`;
+// API URL from config.js or fallback to dynamic detection
+const API_URL = window.API_URL || `${window.location.protocol}//${window.location.hostname}:3001/api`;
 
 // Helper to get auth token from localStorage
 const getAuthToken = () => localStorage.getItem('authToken');

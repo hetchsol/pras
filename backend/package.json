@@ -1,9 +1,13 @@
 {
   "name": "purchase-requisition-backend",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "server-mongo.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server-mongo.js",
+    "start:sqlite": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -15,6 +19,7 @@
     "express-rate-limit": "^8.1.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.1.5",
     "multer": "^2.0.2",
     "pdfkit": "^0.17.2",
     "pg": "^8.16.3",
