@@ -3,13 +3,10 @@
 // Change this to your actual backend URL after deployment
 
 const CONFIG = {
-  // For local development
-  // API_URL: 'http://localhost:3001/api'
-
-  // For production - UPDATE THIS after deploying backend to Render
+  // Automatically uses localhost for development, Render URL for production
   API_URL: window.location.hostname === 'localhost'
     ? 'http://localhost:3001/api'
-    : 'https://pras-backend.onrender.com/api'  // UPDATE THIS with your actual Render backend URL
+    : 'https://pras-backend.onrender.com/api'
 };
 
 // Make it globally available
