@@ -235,6 +235,182 @@ app.post('/api/users', authenticate, authorize('admin'), async (req, res) => {
 });
 
 // ============================================
+// ADMIN ROUTES
+// ============================================
+
+app.get('/api/admin/stats', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const users = await db.User.countDocuments();
+    const requisitions = await db.Requisition.countDocuments();
+    const pendingRequisitions = await db.Requisition.countDocuments({ status: { $regex: /pending/i } });
+    const vendors = await db.Vendor.countDocuments();
+    const departments = await db.Department.countDocuments();
+
+    res.json({
+      users,
+      requisitions,
+      pendingRequisitions,
+      vendors,
+      departments
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/users', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const users = await db.User.find().select('-password').lean();
+    res.json(users.map(u => ({ ...u, id: u._id })));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { username, password, full_name, email, role, department, is_hod } = req.body;
+    const hashedPassword = await bcrypt.hash(password || 'password123', 10);
+
+    const user = await db.User.create({
+      username,
+      password: hashedPassword,
+      full_name,
+      email,
+      role,
+      department,
+      is_hod: is_hod || 0
+    });
+
+    res.status(201).json({ success: true, id: user._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/admin/users/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { full_name, email, role, department, is_hod } = req.body;
+    await db.User.findByIdAndUpdate(req.params.id, { full_name, email, role, department, is_hod });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/users/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await db.User.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/vendors', authenticate, async (req, res) => {
+  try {
+    const vendors = await db.Vendor.find().lean();
+    res.json(vendors.map(v => ({ ...v, id: v._id })));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/vendors', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const vendor = await db.Vendor.create(req.body);
+    res.status(201).json({ success: true, id: vendor._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/admin/vendors/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await db.Vendor.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/departments', authenticate, async (req, res) => {
+  try {
+    const departments = await db.Department.find().lean();
+    res.json(departments.map(d => ({ ...d, id: d._id })));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/budgets', authenticate, async (req, res) => {
+  try {
+    const departments = await db.Department.find().lean();
+    res.json(departments.map(d => ({ ...d, id: d._id })));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/budgets', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, budget } = req.body;
+    const dept = await db.Department.create({ name, budget, spent: 0 });
+    res.status(201).json({ success: true, id: dept._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/admin/budgets/:department', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { budget } = req.body;
+    await db.Department.findOneAndUpdate({ name: req.params.department }, { budget });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/pending-requisitions', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const requisitions = await db.Requisition.find({ status: { $regex: /pending/i } }).lean();
+    res.json(requisitions);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/reassign/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { newUserId } = req.body;
+    await db.Requisition.findOneAndUpdate({ id: req.params.id }, { initiator_id: newUserId });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/reports/summary', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const totalRequisitions = await db.Requisition.countDocuments();
+    const approved = await db.Requisition.countDocuments({ status: 'approved' });
+    const pending = await db.Requisition.countDocuments({ status: { $regex: /pending/i } });
+    const rejected = await db.Requisition.countDocuments({ status: 'rejected' });
+
+    res.json({
+      totalRequisitions,
+      approved,
+      pending,
+      rejected,
+      totalValue: 0
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================
 // REQUISITION ROUTES
 // ============================================
 
