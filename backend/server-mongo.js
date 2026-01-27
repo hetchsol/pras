@@ -171,6 +171,19 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token required' });
+    }
+    // For simplicity, just return an error - user needs to login again
+    res.status(401).json({ error: 'Session expired, please login again' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/auth/me', authenticate, async (req, res) => {
   try {
     const user = await db.getUserById(req.user.id);
@@ -610,7 +623,111 @@ app.post('/api/expense-claims', authenticate, async (req, res) => {
   }
 });
 
-// Serve frontend for all other routes
+// ============================================
+// FORMS ROUTES (aliases for expense claims and EFT)
+// ============================================
+
+app.get('/api/forms/expense-claims', authenticate, async (req, res) => {
+  try {
+    const claims = await db.ExpenseClaim.find().sort({ created_at: -1 }).lean();
+    res.json(claims);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/forms/eft-requisitions', authenticate, async (req, res) => {
+  try {
+    const efts = await db.EFTRequisition.find().sort({ created_at: -1 }).lean();
+    res.json(efts);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => {
+  try {
+    // Return empty array if no petty cash model exists
+    res.json([]);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PDF endpoints (return error for now)
+app.get('/api/forms/expense-claims/:id/pdf', authenticate, (req, res) => {
+  res.status(501).json({ error: 'PDF generation not available in this version' });
+});
+
+app.get('/api/forms/eft-requisitions/:id/pdf', authenticate, (req, res) => {
+  res.status(501).json({ error: 'PDF generation not available in this version' });
+});
+
+app.get('/api/requisitions/:id/pdf', authenticate, (req, res) => {
+  res.status(501).json({ error: 'PDF generation not available in this version' });
+});
+
+// Simple requisitions list
+app.get('/api/requisitions/simple', authenticate, async (req, res) => {
+  try {
+    const requisitions = await db.Requisition.find().select('id description status department created_at').lean();
+    res.json(requisitions);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Purchase orders (empty for now)
+app.get('/api/purchase-orders', authenticate, async (req, res) => {
+  res.json([]);
+});
+
+// Budget endpoints
+app.get('/api/budgets/all-departments', authenticate, async (req, res) => {
+  try {
+    const departments = await db.Department.find().lean();
+    res.json(departments);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/budgets/overview', authenticate, async (req, res) => {
+  try {
+    const departments = await db.Department.find().lean();
+    const totalBudget = departments.reduce((sum, d) => sum + (d.budget || 0), 0);
+    const totalSpent = departments.reduce((sum, d) => sum + (d.spent || 0), 0);
+    res.json({ totalBudget, totalSpent, departments });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/budgets/department/:department', authenticate, async (req, res) => {
+  try {
+    const dept = await db.Department.findOne({ name: req.params.department }).lean();
+    res.json(dept || { budget: 0, spent: 0 });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// FX rates additional endpoints
+app.get('/api/fx-rates/all', authenticate, async (req, res) => {
+  try {
+    const rates = await db.FXRate.find().lean();
+    res.json(rates);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Catch-all for undefined API routes - return JSON error
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ success: false, error: `Route not found: ${req.path}` });
+});
+
+// Serve frontend for all other non-API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
