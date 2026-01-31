@@ -532,6 +532,101 @@ app.get('/api/requisitions/:id/approvals', authenticate, async (req, res) => {
   }
 });
 
+// Submit requisition for approval
+app.put('/api/requisitions/:id/submit', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    const { selected_hod_id } = req.body;
+
+    await db.updateRequisitionStatus(reqId, 'pending_hod');
+
+    await db.createApproval({
+      requisition_id: reqId,
+      role: 'initiator',
+      userName: req.user.username,
+      action: 'submitted',
+      comment: 'Submitted for approval'
+    });
+
+    res.json({ success: true, message: 'Requisition submitted for approval' });
+  } catch (error) {
+    console.error('Submit error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// HOD approve/reject requisition
+app.put('/api/requisitions/:id/hod-approve', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    const { approve, comments } = req.body;
+
+    const newStatus = approve ? 'pending_finance' : 'rejected';
+    await db.updateRequisitionStatus(reqId, newStatus);
+
+    await db.createApproval({
+      requisition_id: reqId,
+      role: 'hod',
+      userName: req.user.username,
+      action: approve ? 'approved' : 'rejected',
+      comment: comments || ''
+    });
+
+    res.json({ success: true, message: approve ? 'Approved by HOD' : 'Rejected by HOD' });
+  } catch (error) {
+    console.error('HOD approve error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// Finance approve/reject requisition
+app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    const { approve, comments } = req.body;
+
+    const newStatus = approve ? 'pending_md' : 'rejected';
+    await db.updateRequisitionStatus(reqId, newStatus);
+
+    await db.createApproval({
+      requisition_id: reqId,
+      role: 'finance',
+      userName: req.user.username,
+      action: approve ? 'approved' : 'rejected',
+      comment: comments || ''
+    });
+
+    res.json({ success: true, message: approve ? 'Approved by Finance' : 'Rejected by Finance' });
+  } catch (error) {
+    console.error('Finance approve error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// MD approve/reject requisition
+app.put('/api/requisitions/:id/md-approve', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    const { approve, comments } = req.body;
+
+    const newStatus = approve ? 'approved' : 'rejected';
+    await db.updateRequisitionStatus(reqId, newStatus);
+
+    await db.createApproval({
+      requisition_id: reqId,
+      role: 'md',
+      userName: req.user.username,
+      action: approve ? 'approved' : 'rejected',
+      comment: comments || ''
+    });
+
+    res.json({ success: true, message: approve ? 'Approved by MD' : 'Rejected by MD' });
+  } catch (error) {
+    console.error('MD approve error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
 // ============================================
 // VENDOR ROUTES
 // ============================================

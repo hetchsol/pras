@@ -218,6 +218,21 @@
         </div>
 
         <form id="eftForm">
+            <!-- Initiator Information -->
+            <div class="form-section">
+                <h2>Initiator Information</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="initiator_name">Initiator Name</label>
+                        <input type="text" id="initiator_name" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="initiator_department">Department</label>
+                        <input type="text" id="initiator_department" readonly>
+                    </div>
+                </div>
+            </div>
+
             <!-- Basic Information -->
             <div class="form-section">
                 <h2>Requisition Details</h2>
@@ -249,6 +264,12 @@
             <!-- Beneficiary Information -->
             <div class="form-section">
                 <h2>Beneficiary Details</h2>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="payToMyself" style="width: 20px; height: 20px; margin-right: 10px;" onchange="togglePayToMyself()">
+                        <span style="font-size: 14px;">Pay to myself (auto-fill my details)</span>
+                    </label>
+                </div>
                 <div class="form-grid">
                     <div class="form-group full-width">
                         <label for="in_favour_of">In Favour Of (Payee Name) <span class="required">*</span></label>
@@ -297,6 +318,26 @@
     <script src="config.js"></script>
     <script>
         const API_URL = window.API_URL || 'http://localhost:3001/api';
+
+        // Initialize form with user data
+        document.addEventListener('DOMContentLoaded', function() {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            document.getElementById('initiator_name').value = userData.full_name || '';
+            document.getElementById('initiator_department').value = userData.department || '';
+        });
+
+        // Toggle pay to myself
+        function togglePayToMyself() {
+            const checkbox = document.getElementById('payToMyself');
+            const payeeField = document.getElementById('in_favour_of');
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+            if (checkbox.checked) {
+                payeeField.value = userData.full_name || '';
+            } else {
+                payeeField.value = '';
+            }
+        }
 
         // Number to words conversion
         function convertAmountToWords() {
