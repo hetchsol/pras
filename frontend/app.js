@@ -1118,7 +1118,7 @@ function App() {
     const checkAuth = async () => {
       const token = getAuthToken();
       const savedUser = getUserData();
-      
+
       if (token && savedUser) {
         try {
           // Try to fetch data to verify token is valid
@@ -1130,13 +1130,21 @@ function App() {
             setData(prevData => ({ ...prevData, requisitions }));
             setCurrentUser(savedUser);  // Restore full user data
             setView('dashboard');
-          } else {
-            // Token is invalid, clear it
+          } else if (res.status === 401 || res.status === 403) {
+            // Token is explicitly invalid/expired, clear it
+            console.log('Token expired or invalid, clearing auth');
             clearAuthToken();
+          } else {
+            // Other error (network, server error) - keep user logged in
+            console.warn('Auth check returned non-OK status, but keeping session:', res.status);
+            setCurrentUser(savedUser);
+            setView('dashboard');
           }
         } catch (error) {
-          console.error('Auth check failed:', error);
-          clearAuthToken();
+          // Network error - don't log out, keep the session
+          console.warn('Auth check failed (network error), keeping session:', error.message);
+          setCurrentUser(savedUser);
+          setView('dashboard');
         }
       }
       setInitializing(false);

@@ -346,10 +346,6 @@
                         <label for="department">Department *</label>
                         <input type="text" id="department" required readonly>
                     </div>
-                    <div class="form-group">
-                        <label for="km_rate">KM Rate (K) *</label>
-                        <input type="number" id="km_rate" step="0.01" value="5.00" required>
-                    </div>
                     <div class="form-group full-width">
                         <label for="reason_for_trip">Reason for Trip *</label>
                         <textarea id="reason_for_trip" required></textarea>
@@ -519,9 +515,12 @@
             calculateTotals();
         }
 
+        // Default KM rate constant (set to 0 - KM tracked but not reimbursed)
+        const DEFAULT_KM_RATE = 0;
+
         function calculateTotals() {
             const rows = document.getElementById('expenseTableBody').rows;
-            const kmRate = parseFloat(document.getElementById('km_rate').value) || 0;
+            const kmRate = DEFAULT_KM_RATE;
 
             let totalKM = 0;
             let totalExpenses = 0;
@@ -576,7 +575,7 @@
             }
 
             const totalKM = parseFloat(document.getElementById('totalKM').textContent);
-            const kmRate = parseFloat(document.getElementById('km_rate').value);
+            const kmRate = DEFAULT_KM_RATE;
             const subTotal = totalKM * kmRate;
             const totalTravel = parseFloat(document.getElementById('totalTravel').textContent.replace('K ', ''));
             const totalClaim = parseFloat(document.getElementById('totalClaim').textContent.replace('K ', ''));
