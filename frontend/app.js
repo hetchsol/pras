@@ -1059,7 +1059,48 @@ const api = {
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('login');
+  const [viewHistory, setViewHistory] = useState([]);
   const [selectedReq, setSelectedReq] = useState(null);
+
+  // Custom setView that tracks history
+  const navigateTo = (newView) => {
+    if (newView !== view && view !== 'login') {
+      setViewHistory(prev => [...prev.slice(-10), view]); // Keep last 10 views
+    }
+    setView(newView);
+  };
+
+  // Go back to previous view
+  const goBack = () => {
+    if (viewHistory.length > 0) {
+      const previousView = viewHistory[viewHistory.length - 1];
+      setViewHistory(prev => prev.slice(0, -1));
+      setView(previousView);
+    } else {
+      setView('dashboard');
+    }
+  };
+
+  // Handle browser back button - prevent logout on back
+  useEffect(() => {
+    const handlePopState = (e) => {
+      e.preventDefault();
+      if (currentUser && view !== 'login') {
+        // Instead of navigating away, go to previous view or dashboard
+        goBack();
+        // Push state to prevent actual navigation
+        window.history.pushState({ view: view }, '', window.location.href);
+      }
+    };
+
+    // Push initial state
+    if (currentUser && view !== 'login') {
+      window.history.pushState({ view: view }, '', window.location.href);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentUser, view, viewHistory]);
   const [data, setData] = useState({
     requisitions: [],
     users: [],
@@ -1126,13 +1167,14 @@ function App() {
       });
     } catch (error) {
       console.error('Error loading data:', error);
-      // If error is 401, clear auth and go to login
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      // Only logout on explicit 401 Unauthorized, not on other errors
+      if (error.message === '401' || error.message === 'Unauthorized' || error.message.includes('Session expired')) {
         clearAuthToken();
         setCurrentUser(null);
         setView('login');
       } else {
-        alert('Error loading data: ' + error.message);
+        // Show error but don't logout - might be a temporary network issue
+        console.warn('Data load error (not logging out):', error.message);
       }
     } finally {
       setLoading(false);
