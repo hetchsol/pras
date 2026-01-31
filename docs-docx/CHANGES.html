@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CHANGES</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Changes Summary - Version 2.0.0</h1><br><br><h2>Date: 2025-10-22</h2><br><br><h2>Overview</h2><br>Major security overhaul of the Purchase Requisition System. Fixed critical vulnerabilities, implemented authentication/authorization, and established security best practices.<br><br>---<br><br><h2>Critical Fixes</h2><br><br><h3>1. Password Security</h3><br><ul><li>❌ <strong>Before:</strong> Passwords stored in plaintext</li></ul><br><ul><li>✅ <strong>After:</strong> bcrypt hashing with 10 salt rounds</li></ul><br><ul><li><strong>Impact:</strong> Passwords now secure even if database is compromised</li></ul><br><br><h3>2. Authentication</h3><br><ul><li>❌ <strong>Before:</strong> No authentication, all endpoints public</li></ul><br><ul><li>✅ <strong>After:</strong> JWT-based authentication on all endpoints</li></ul><br><ul><li><strong>Impact:</strong> Only authenticated users can access the API</li></ul><br><br><h3>3. SQL Injection</h3><br><ul><li>❌ <strong>Before:</strong> String interpolation in SQL queries (line 510)</li></ul><br><ul><li>✅ <strong>After:</strong> Parameterized queries throughout</li></ul><br><ul><li><strong>Impact:</strong> SQL injection attacks prevented</li></ul><br><br><h3>4. Port Mismatch</h3><br><ul><li>❌ <strong>Before:</strong> Frontend expected API on port 3002, backend on 3001</li></ul><br><ul><li>✅ <strong>After:</strong> Frontend correctly points to port 3001</li></ul><br><ul><li><strong>Impact:</strong> Application now works correctly</li></ul><br><br>---<br><br><h2>New Files Created</h2><br><br><h3>Backend Middleware</h3><br><pre><code><br>backend/middleware/<br>├── auth.js              # JWT authentication & role-based authorization<br>├── validation.js        # Input validation with express-validator<br>└── errorHandler.js      # Centralized error handling<br></code></pre><br><br><h3>Backend Utilities</h3><br><pre><code><br>backend/utils/<br>└── auth.js              # Password hashing & JWT token utilities<br></code></pre><br><br><h3>Backend Scripts</h3><br><pre><code><br>backend/scripts/<br>└── hashPasswords.js     # Hash existing plaintext passwords<br></code></pre><br><br><h3>Configuration</h3><br><pre><code><br>backend/.env             # Environment variables (not in git)<br>.gitignore              # Git ignore rules<br></code></pre><br><br><h3>Documentation</h3><br><pre><code><br>README.md               # Comprehensive project documentation<br>SECURITY.md             # Security improvements & guidelines<br>CHANGES.md              # This file<br></code></pre><br><br>---<br><br><h2>Modified Files</h2><br><br><h3>Backend (backend/server.js)</h3><br><ul><li>Added security imports (bcrypt, JWT, validation)</li></ul><br><ul><li>Configured CORS with origin whitelist</li></ul><br><ul><li>Updated login endpoint to use password hashing</li></ul><br><ul><li>Added authentication middleware to all protected endpoints</li></ul><br><ul><li>Added role-based authorization</li></ul><br><ul><li>Fixed SQL injection vulnerability</li></ul><br><ul><li>Added error handling middleware</li></ul><br><ul><li>Added environment variable support</li></ul><br><br><strong>Lines Changed:</strong> ~100+ lines modified/added<br><br><h3>Frontend (frontend/app.js)</h3><br><ul><li>Fixed API URL from port 3002 to 3001</li></ul><br><ul><li>Added localStorage for JWT token</li></ul><br><ul><li>Updated all API calls to include Authorization header</li></ul><br><ul><li>Added token management functions (get, set, clear)</li></ul><br><ul><li>Updated logout to clear token</li></ul><br><br><strong>Lines Changed:</strong> ~50+ lines modified/added<br><br>---<br><br><h2>Dependencies Added</h2><br><br><pre><code>json<br>{<br>  "bcryptjs": "^2.4.3",<br>  "jsonwebtoken": "^9.0.2",<br>  "dotenv": "^17.2.3",<br>  "express-validator": "^7.0.1"<br>}<br></code></pre><br><br>---<br><br><h2>Configuration Changes</h2><br><br><h3>Environment Variables (.env)</h3><br><pre><code>env<br>NODE_ENV=development<br>PORT=3001<br>DATABASE<em>PATH=./purchase</em>requisition.db<br>JWT_SECRET=change-this-to-a-secure-random-string<br>JWT<em>EXPIRES</em>IN=24h<br>ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002<br>BCRYPT_ROUNDS=10<br></code></pre><br><br><h3>Git Ignore (.gitignore)</h3><br><ul><li>node_modules/</li></ul><br><ul><li>*.db files</li></ul><br><ul><li>.env files</li></ul><br><ul><li>IDE and OS files</li></ul><br><ul><li>Logs and temporary files</li></ul><br><br>---<br><br><h2>API Changes</h2><br><br><h3>Authentication Flow</h3><br><br><strong>Before:</strong><br><pre><code>javascript<br>POST /api/auth/login<br>{<br>  "username": "john.banda",<br>  "password": "password123"  // sent in plaintext, stored in plaintext<br>}<br><br>Response:<br>{<br>  "success": true,<br>  "user": { ... }<br>}<br></code></pre><br><br><strong>After:</strong><br><pre><code>javascript<br>POST /api/auth/login<br>{<br>  "username": "john.banda",<br>  "password": "password123"  // hashed and compared securely<br>}<br><br>Response:<br>{<br>  "success": true,<br>  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",<br>  "user": { ... }<br>}<br></code></pre><br><br><h3>Protected Endpoints</h3><br><br><strong>Before:</strong><br><pre><code>javascript<br>GET /api/requisitions<br>// No authentication required - anyone could access<br></code></pre><br><br><strong>After:</strong><br><pre><code>javascript<br>GET /api/requisitions<br>Headers:<br>  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...<br>// Returns 401 if no valid token<br></code></pre><br><br><h3>Role-Based Access</h3><br><br><strong>New Feature:</strong><br><pre><code>javascript<br>POST /api/requisitions<br>// Only accessible by 'initiator' and 'admin' roles<br><br>PUT /api/requisitions/:id/hod-approve<br>// Only accessible by 'hod' and 'admin' roles<br><br>PUT /api/requisitions/:id/procurement<br>// Only accessible by 'procurement' and 'admin' roles<br></code></pre><br><br>---<br><br><h2>Database Changes</h2><br><br><h3>Password Migration</h3><br>All existing plaintext passwords were hashed using the migration script:<br><pre><code>bash<br>node scripts/hashPasswords.js<br></code></pre><br><br><strong>Result:</strong><br><ul><li>6 users updated</li></ul><br><ul><li>Passwords now start with <code>$2b$10$...</code> (bcrypt hash format)</li></ul><br><ul><li>Old plaintext passwords no longer work</li></ul><br><br>---<br><br><h2>Security Improvements Summary</h2><br><br>| Issue | Severity | Status | Fix |<br>|-------|----------|--------|-----|<br>| Plaintext passwords | CRITICAL | ✅ Fixed | bcrypt hashing |<br>| No authentication | CRITICAL | ✅ Fixed | JWT implementation |<br>| SQL injection | HIGH | ✅ Fixed | Parameterized queries |<br>| No authorization | HIGH | ✅ Fixed | Role-based middleware |<br>| Open CORS | MEDIUM | ✅ Fixed | Origin whitelist |<br>| No input validation | MEDIUM | ✅ Fixed | express-validator |<br>| Poor error handling | MEDIUM | ✅ Fixed | Centralized handler |<br>| Hardcoded secrets | MEDIUM | ✅ Fixed | Environment variables |<br>| No .gitignore | LOW | ✅ Fixed | Comprehensive .gitignore |<br><br>---<br><br><h2>Testing Performed</h2><br><br><h3>✅ Password Hashing</h3><br><ul><li>Ran hashPasswords.js script</li></ul><br><ul><li>Verified 6 users updated successfully</li></ul><br><ul><li>Tested login with hashed passwords</li></ul><br><ul><li>Confirmed plaintext passwords no longer work</li></ul><br><br><h3>✅ Authentication</h3><br><ul><li>Tested login endpoint</li></ul><br><ul><li>Verified JWT token generation</li></ul><br><ul><li>Tested token expiration (24 hours)</li></ul><br><ul><li>Tested invalid token rejection</li></ul><br><br><h3>✅ Authorization</h3><br><ul><li>Tested role-based access control</li></ul><br><ul><li>Verified initiator can create requisitions</li></ul><br><ul><li>Verified HOD can approve at HOD stage</li></ul><br><ul><li>Verified procurement can add pricing</li></ul><br><ul><li>Verified admin has full access</li></ul><br><br><h3>✅ SQL Injection Prevention</h3><br><ul><li>Tested stats endpoint with malicious input</li></ul><br><ul><li>Verified parameterized queries work correctly</li></ul><br><ul><li>No SQL injection possible</li></ul><br><br><h3>✅ Port Fix</h3><br><ul><li>Verified frontend connects to backend</li></ul><br><ul><li>API calls work correctly</li></ul><br><ul><li>No CORS errors</li></ul><br><br>---<br><br><h2>Breaking Changes</h2><br><br><h3>⚠️ Authentication Required</h3><br><strong>Impact:</strong> All API endpoints now require authentication<br><br><strong>Migration:</strong><br><ul><li>Frontend has been updated to handle tokens</li></ul><br><ul><li>External API consumers must update to include Authorization header</li></ul><br><ul><li>Old API calls without authentication will return 401</li></ul><br><br><h3>⚠️ Password Format Changed</h3><br><strong>Impact:</strong> Old passwords no longer work<br><br><strong>Migration:</strong><br><ul><li>Existing database: Run <code>node scripts/hashPasswords.js</code></li></ul><br><ul><li>New users: Passwords automatically hashed on creation</li></ul><br><ul><li>Users cannot login with old plaintext format</li></ul><br><br><h3>⚠️ Environment Variables Required</h3><br><strong>Impact:</strong> Backend won't start without .env file<br><br><strong>Migration:</strong><br><ul><li>Copy backend/.env.example to backend/.env (if provided)</li></ul><br><ul><li>Or create backend/.env with required variables</li></ul><br><ul><li>Update JWT_SECRET before deploying to production</li></ul><br><br>---<br><br><h2>Upgrade Instructions</h2><br><br><h3>For Development</h3><br><br><ul><li><strong>Pull latest code</strong></li></ul><br>   <pre><code>bash<br>   git pull origin main<br>   </code></pre><br><br><ul><li><strong>Install new dependencies</strong></li></ul><br>   <pre><code>bash<br>   cd backend<br>   npm install<br>   </code></pre><br><br><ul><li><strong>Create .env file</strong></li></ul><br>   <pre><code>bash<br>   cp .env.example .env  # or create manually<br>   </code></pre><br><br><ul><li><strong>Hash existing passwords</strong></li></ul><br>   <pre><code>bash<br>   node scripts/hashPasswords.js<br>   </code></pre><br><br><ul><li><strong>Restart server</strong></li></ul><br>   <pre><code>bash<br>   npm start<br>   </code></pre><br><br><ul><li><strong>Test login</strong></li></ul><br>   - Open frontend<br>   - Login with default credentials<br>   - Verify token is stored in localStorage<br><br><h3>For Production</h3><br><br><ul><li><strong>Backup database</strong></li></ul><br>   <pre><code>bash<br>   cp purchase<em>requisition.db purchase</em>requisition.db.backup<br>   </code></pre><br><br><ul><li><strong>Follow development steps 1-5</strong></li></ul><br><br><ul><li><strong>Update production .env</strong></li></ul><br>   <pre><code>env<br>   NODE_ENV=production<br>   JWT_SECRET=<generate-strong-secret><br>   ALLOWED_ORIGINS=https://your-production-domain.com<br>   </code></pre><br><br><ul><li><strong>Change default passwords</strong></li></ul><br>   - Login as admin<br>   - Update all default user passwords<br><br><ul><li><strong>Enable HTTPS</strong></li></ul><br>   - Configure reverse proxy (nginx/Apache)<br>   - Install SSL certificate<br>   - Force HTTPS redirect<br><br>---<br><br><h2>Performance Impact</h2><br><br><ul><li><strong>Minimal impact:</strong> bcrypt hashing adds ~100-200ms to login</li></ul><br><ul><li><strong>No impact on other endpoints:</strong> JWT validation is fast</li></ul><br><ul><li><strong>Database queries:</strong> Unchanged performance (still parameterized)</li></ul><br><br>---<br><br><h2>Rollback Instructions</h2><br><br>If issues occur, rollback is possible but <strong>NOT RECOMMENDED</strong> due to security vulnerabilities:<br><br><ul><li><strong>Restore database backup</strong></li></ul><br>   <pre><code>bash<br>   cp purchase<em>requisition.db.backup purchase</em>requisition.db<br>   </code></pre><br><br><ul><li><strong>Checkout previous version</strong></li></ul><br>   <pre><code>bash<br>   git checkout <previous-commit-hash><br>   </code></pre><br><br><ul><li><strong>Remove new dependencies</strong></li></ul><br>   <pre><code>bash<br>   npm uninstall bcryptjs jsonwebtoken dotenv express-validator<br>   </code></pre><br><br><ul><li><strong>Restart server</strong></li></ul><br><br><strong>⚠️ WARNING:</strong> Rollback exposes system to all security vulnerabilities!<br><br>---<br><br><h2>Known Issues</h2><br><br><h3>None at this time</h3><br><br>Future improvements:<br><ul><li>[ ] Add rate limiting</li></ul><br><ul><li>[ ] Implement refresh tokens</li></ul><br><ul><li>[ ] Add password reset functionality</li></ul><br><ul><li>[ ] Add email notifications</li></ul><br><ul><li>[ ] Implement proper frontend build process</li></ul><br><br>---<br><br><h2>Credits</h2><br><br><strong>Security Audit & Fixes:</strong> Claude Code Agent<br><strong>Date:</strong> 2025-10-22<br><strong>Version:</strong> 2.0.0<br><br>---<br><br><h2>Next Steps</h2><br><br><ul><li><strong>Immediate:</strong></li></ul><br>   - Test all functionality thoroughly<br>   - Change default passwords<br>   - Update JWT_SECRET in production<br><br><ul><li><strong>Short-term (1-2 weeks):</strong></li></ul><br>   - Add rate limiting<br>   - Implement logging<br>   - Add automated tests<br><br><ul><li><strong>Medium-term (1-2 months):</strong></li></ul><br>   - Migrate frontend to proper build setup<br>   - Add refresh tokens<br>   - Implement password reset<br><br><ul><li><strong>Long-term (3-6 months):</strong></li></ul><br>   - Migrate to TypeScript<br>   - Add comprehensive test suite<br>   - Implement CI/CD pipeline<br><br>---<br><br><h2>Support</h2><br><br>For questions or issues:<br><ul><li>Check README.md for documentation</li></ul><br><ul><li>Check SECURITY.md for security guidelines</li></ul><br><ul><li>Contact: dev-team@yourcompany.com</li></ul><br><br>---<br><br><strong>Document Version:</strong> 1.0<br><strong>Last Updated:</strong> 2025-10-22<br>
+</body>
+</html>

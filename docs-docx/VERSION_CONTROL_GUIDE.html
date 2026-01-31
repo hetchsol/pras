@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>VERSION_CONTROL_GUIDE</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>📦 Version Control & Backup Guide</h1><br><br>Complete guide for managing versions and backups of the Purchase Requisition System.<br><br>---<br><br><h2>📋 Table of Contents</h2><br><br><ul><li><a href="#quick-start">Quick Start</a></li></ul><br><ul><li><a href="#version-control-setup">Version Control Setup</a></li></ul><br><ul><li><a href="#creating-versions">Creating Versions</a></li></ul><br><ul><li><a href="#backup-system">Backup System</a></li></ul><br><ul><li><a href="#restoring-versions">Restoring Versions</a></li></ul><br><ul><li><a href="#automated-backups">Automated Backups</a></li></ul><br><ul><li><a href="#best-practices">Best Practices</a></li></ul><br><br>---<br><br><h2>🚀 Quick Start</h2><br><br><h3>View Current Version</h3><br><pre><code>bash<br>git describe --tags<br></code></pre><br><br><h3>Create a New Version</h3><br><pre><code>bash<br>scripts\create-version.bat v3.0.1 "Bug fixes"<br></code></pre><br><br><h3>Backup Current Version</h3><br><pre><code>bash<br>scripts\backup-version.bat v3.0.0<br></code></pre><br><br><h3>List All Versions</h3><br><pre><code>bash<br>scripts\list-versions.bat<br></code></pre><br><br>---<br><br><h2>🔧 Version Control Setup</h2><br><br><h3>Initial Setup (Already Done)</h3><br><br>The repository has been initialized with:<br><ul><li>✅ Git repository initialized</li></ul><br><ul><li>✅ <code>.gitignore</code> configured</li></ul><br><ul><li>✅ Initial commit created (v3.0.0)</li></ul><br><ul><li>✅ Version tagging scripts ready</li></ul><br><br><h3>Verify Setup</h3><br><pre><code>bash<br>git status<br>git log --oneline<br>git tag -l<br></code></pre><br><br>---<br><br><h2>🏷️ Creating Versions</h2><br><br><h3>Using the Script (Recommended)</h3><br><br><strong>1. Create a Minor Version (bug fixes, small updates)</strong><br><pre><code>bash<br>scripts\create-version.bat v3.0.1 "Fixed HOD approval bug"<br></code></pre><br><br><strong>2. Create a Feature Version</strong><br><pre><code>bash<br>scripts\create-version.bat v3.1.0 "Added email notifications"<br></code></pre><br><br><strong>3. Create a Major Version</strong><br><pre><code>bash<br>scripts\create-version.bat v4.0.0 "Complete UI redesign"<br></code></pre><br><br><h3>Manual Git Commands</h3><br><br><strong>Commit Changes</strong><br><pre><code>bash<br>git add .<br>git commit -m "Description of changes"<br></code></pre><br><br><strong>Create Version Tag</strong><br><pre><code>bash<br>git tag -a v3.0.1 -m "Version 3.0.1 - Bug fixes"<br></code></pre><br><br><strong>View Tags</strong><br><pre><code>bash<br>git tag -l<br>git show v3.0.1<br></code></pre><br><br>---<br><br><h2>💾 Backup System</h2><br><br><h3>Three Types of Backups</h3><br><br><h4>1. Version Backup (Tagged Release)</h4><br>Backs up a specific git version:<br><pre><code>bash<br>scripts\backup-version.bat v3.0.0<br></code></pre><br><br><strong>What it includes:</strong><br><ul><li>Source code from that version</li></ul><br><ul><li>Current database files</li></ul><br><ul><li>Current uploads directory</li></ul><br><ul><li>Current .env configuration</li></ul><br><br><h4>2. Current State Backup</h4><br>Backs up everything as-is right now:<br><pre><code>bash<br>scripts\backup-version.bat<br></code></pre><br><br><strong>What it includes:</strong><br><ul><li>All current files (including uncommitted changes)</li></ul><br><ul><li>Database files</li></ul><br><ul><li>Uploads directory</li></ul><br><ul><li>Environment configuration</li></ul><br><ul><li>node_modules (full backup)</li></ul><br><br><h4>3. Automated Daily Backup</h4><br>Set up scheduled backups (see <a href="#automated-backups">Automated Backups</a>)<br><br><h3>Backup Storage</h3><br><br>Backups are stored in:<br><pre><code><br>C:\Projects\purchase-requisition-backups\<br>├── prs-v3.0.0-20250106_143022\      # Folder backup<br>├── prs-v3.0.0-20250106_143022.zip   # Compressed backup<br>├── prs-backup-20250106_150000\      # Current state backup<br>└── prs-backup-20250106_150000.zip   # Compressed<br></code></pre><br><br><h3>What Gets Backed Up</h3><br><br>✅ <strong>Included:</strong><br><ul><li>All source code</li></ul><br><ul><li>Database files (*.db)</li></ul><br><ul><li>Uploaded files</li></ul><br><ul><li>Environment configuration (.env)</li></ul><br><ul><li>Documentation</li></ul><br><ul><li>Scripts</li></ul><br><br>❌ <strong>Excluded:</strong><br><ul><li>node_modules (too large, can be reinstalled)</li></ul><br><ul><li>Log files</li></ul><br><ul><li>Temporary files</li></ul><br><br>---<br><br><h2>🔄 Restoring Versions</h2><br><br><h3>Restore from Backup</h3><br><br><strong>1. List Available Backups</strong><br><pre><code>bash<br>scripts\list-versions.bat<br></code></pre><br><br><strong>2. Restore a Backup</strong><br><pre><code>bash<br>scripts\restore-version.bat prs-v3.0.0-20250106_143022<br></code></pre><br><br><strong>⚠️ Warning:</strong> This will:<br><ul><li>Stop running servers</li></ul><br><ul><li>Create a safety backup of current state</li></ul><br><ul><li>Replace all files with the backup</li></ul><br><ul><li>Reinstall dependencies</li></ul><br><ul><li>Reinitialize database</li></ul><br><br><strong>3. After Restore</strong><br><pre><code>bash<br>cd backend<br>npm start<br><br><h1>In another terminal</h1><br>cd frontend<br>python -m http.server 3000<br></code></pre><br><br><h3>Restore from Git Tag</h3><br><br><strong>1. View Available Tags</strong><br><pre><code>bash<br>git tag -l<br></code></pre><br><br><strong>2. Checkout a Specific Version</strong><br><pre><code>bash<br>git checkout v3.0.0<br></code></pre><br><br><strong>3. Return to Latest</strong><br><pre><code>bash<br>git checkout master<br></code></pre><br><br>---<br><br><h2>⏰ Automated Backups</h2><br><br><h3>Setup Windows Task Scheduler</h3><br><br><strong>1. Open Task Scheduler</strong><br><ul><li>Press <code>Win + R</code></li></ul><br><ul><li>Type: <code>taskschd.msc</code></li></ul><br><ul><li>Press Enter</li></ul><br><br><strong>2. Create New Task</strong><br><ul><li>Click "Create Basic Task"</li></ul><br><ul><li>Name: "PRS Daily Backup"</li></ul><br><ul><li>Description: "Automated backup of Purchase Requisition System"</li></ul><br><br><strong>3. Configure Trigger</strong><br><ul><li>Select "Daily"</li></ul><br><ul><li>Set time: 2:00 AM (when system is idle)</li></ul><br><ul><li>Start date: Today</li></ul><br><br><strong>4. Configure Action</strong><br><ul><li>Action: "Start a program"</li></ul><br><ul><li>Program/script:</li></ul><br>  <pre><code><br>  C:\projects\purchase-requisition-system\scripts\automated-backup.bat<br>  </code></pre><br><br><strong>5. Additional Settings</strong><br><ul><li>Run whether user is logged on or not</li></ul><br><ul><li>Run with highest privileges</li></ul><br><ul><li>Configure for: Windows 10/11</li></ul><br><br><strong>6. Finish and Test</strong><br><ul><li>Right-click task → Run</li></ul><br><ul><li>Check backup directory:</li></ul><br>  <pre><code><br>  C:\backups\purchase-requisition-system\<br>  </code></pre><br><br><h3>Automated Backup Features</h3><br><br><ul><li><strong>Daily Backups</strong>: Every day, kept for 30 days</li></ul><br><ul><li><strong>Weekly Backups</strong>: Every Sunday, kept for 90 days</li></ul><br><ul><li><strong>Monthly Backups</strong>: 1st of each month, kept permanently</li></ul><br><ul><li><strong>Automatic Cleanup</strong>: Old backups are deleted automatically</li></ul><br><ul><li><strong>Detailed Logging</strong>: All backup operations logged</li></ul><br><br><h3>View Backup Logs</h3><br><pre><code>bash<br>type C:\backups\purchase-requisition-system\backup-log.txt<br></code></pre><br><br>---<br><br><h2>📚 Best Practices</h2><br><br><h3>Version Naming Convention</h3><br><br>Use semantic versioning: <code>vMAJOR.MINOR.PATCH</code><br><br><ul><li><strong>MAJOR</strong> (v4.0.0): Breaking changes, major redesigns</li></ul><br><ul><li><strong>MINOR</strong> (v3.1.0): New features, backwards compatible</li></ul><br><ul><li><strong>PATCH</strong> (v3.0.1): Bug fixes, small updates</li></ul><br><br><strong>Examples:</strong><br><pre><code>bash<br>v3.0.0 - Initial release<br>v3.0.1 - Fixed login bug<br>v3.0.2 - Performance improvements<br>v3.1.0 - Added email notifications<br>v3.1.1 - Fixed email bug<br>v4.0.0 - New UI redesign<br></code></pre><br><br><h3>When to Create a Version</h3><br><br>✅ <strong>Create a version when:</strong><br><ul><li>Releasing to production</li></ul><br><ul><li>Completing a major feature</li></ul><br><ul><li>Before making significant changes</li></ul><br><ul><li>After fixing critical bugs</li></ul><br><ul><li>Before training users on new features</li></ul><br><br><h3>When to Backup</h3><br><br>✅ <strong>Backup before:</strong><br><ul><li>Making major changes</li></ul><br><ul><li>Upgrading dependencies</li></ul><br><ul><li>Database schema changes</li></ul><br><ul><li>Deploying to production</li></ul><br><ul><li>Training sessions (in case rollback needed)</li></ul><br><br>✅ <strong>Regular backups:</strong><br><ul><li>Daily automated backups (recommended)</li></ul><br><ul><li>Weekly manual verification</li></ul><br><ul><li>Monthly archive backups</li></ul><br><br><h3>Commit Message Best Practices</h3><br><br><strong>Good commit messages:</strong><br><pre><code>bash<br>git commit -m "Fix: HOD approval not saving comments"<br>git commit -m "Feature: Add email notification system"<br>git commit -m "Update: Improve PDF generation performance"<br>git commit -m "Security: Fix SQL injection vulnerability"<br></code></pre><br><br><strong>Bad commit messages:</strong><br><pre><code>bash<br>git commit -m "fixed stuff"<br>git commit -m "updates"<br>git commit -m "..."<br></code></pre><br><br><h3>Recovery Strategy</h3><br><br><strong>Level 1: Undo Recent Changes</strong><br><pre><code>bash<br>git status              # Check what changed<br>git diff               # See specific changes<br>git checkout -- file   # Undo changes to a file<br>git reset HEAD~1       # Undo last commit<br></code></pre><br><br><strong>Level 2: Restore from Git</strong><br><pre><code>bash<br>git log --oneline      # Find commit to restore<br>git checkout <commit>  # Go to that commit<br>git checkout -b recovery  # Create recovery branch<br></code></pre><br><br><strong>Level 3: Restore from Backup</strong><br><pre><code>bash<br>scripts\list-versions.bat  # Find backup<br>scripts\restore-version.bat prs-v3.0.0-20250106_143022<br></code></pre><br><br>---<br><br><h2>🔍 Useful Commands Reference</h2><br><br><h3>Git Commands</h3><br><br><pre><code>bash<br><h1>View version history</h1><br>git log --oneline --graph --decorate --all<br><br><h1>View all tags</h1><br>git tag -l<br><br><h1>View tag details</h1><br>git show v3.0.0<br><br><h1>View changes</h1><br>git diff<br>git diff v3.0.0 v3.0.1<br><br><h1>View file history</h1><br>git log --follow -- backend/server.js<br><br><h1>Search commits</h1><br>git log --grep="fix"<br><br><h1>View who changed what</h1><br>git blame backend/server.js<br><br><h1>Create branch</h1><br>git checkout -b feature-branch<br><br><h1>Merge branch</h1><br>git checkout master<br>git merge feature-branch<br></code></pre><br><br><h3>Backup Commands</h3><br><br><pre><code>bash<br><h1>List all versions</h1><br>scripts\list-versions.bat<br><br><h1>Create new version</h1><br>scripts\create-version.bat v3.1.0 "New features"<br><br><h1>Backup specific version</h1><br>scripts\backup-version.bat v3.0.0<br><br><h1>Backup current state</h1><br>scripts\backup-version.bat<br><br><h1>Restore backup</h1><br>scripts\restore-version.bat prs-v3.0.0-20250106_143022<br></code></pre><br><br>---<br><br><h2>🆘 Emergency Recovery</h2><br><br><h3>If Something Goes Wrong</h3><br><br><strong>1. Don't Panic!</strong><br><ul><li>Safety backups are created automatically during restores</li></ul><br><ul><li>Git history preserves everything</li></ul><br><ul><li>Multiple backup copies exist</li></ul><br><br><strong>2. Check Current State</strong><br><pre><code>bash<br>git status<br>git log --oneline -10<br></code></pre><br><br><strong>3. Find Last Good State</strong><br><pre><code>bash<br>scripts\list-versions.bat<br></code></pre><br><br><strong>4. Restore</strong><br><pre><code>bash<br><h1>Option A: From Git</h1><br>git checkout v3.0.0<br><br><h1>Option B: From Backup</h1><br>scripts\restore-version.bat prs-v3.0.0-20250106_143022<br></code></pre><br><br><strong>5. Contact Support</strong><br><ul><li>Check TROUBLESHOOTING.md</li></ul><br><ul><li>Review backup-log.txt</li></ul><br><ul><li>Check safety backups in backup directory</li></ul><br><br>---<br><br><h2>📊 Backup Verification</h2><br><br><h3>Regular Checks (Monthly)</h3><br><br><strong>1. Test Restore Process</strong><br><pre><code>bash<br><h1>In a test directory</h1><br>scripts\restore-version.bat prs-backup-latest<br>cd backend<br>npm install<br>node scripts/hashPasswords.js<br>npm start<br></code></pre><br><br><strong>2. Verify Backup Contents</strong><br><ul><li>Check database files exist</li></ul><br><ul><li>Verify uploads directory</li></ul><br><ul><li>Confirm .env file present</li></ul><br><ul><li>Test application functionality</li></ul><br><br><strong>3. Check Backup Sizes</strong><br><pre><code>bash<br><h1>Should be 10-50 MB typically</h1><br>dir C:\backups\purchase-requisition-system\*.zip<br></code></pre><br><br><strong>4. Review Backup Logs</strong><br><pre><code>bash<br>type C:\backups\purchase-requisition-system\backup-log.txt<br></code></pre><br><br>---<br><br><h2>🎯 Quick Reference Card</h2><br><br>| Task | Command |<br>|------|---------|<br>| Create version | <code>scripts\create-version.bat v3.0.1 "Description"</code> |<br>| Backup version | <code>scripts\backup-version.bat v3.0.0</code> |<br>| Backup current | <code>scripts\backup-version.bat</code> |<br>| List versions | <code>scripts\list-versions.bat</code> |<br>| Restore backup | <code>scripts\restore-version.bat backup-name</code> |<br>| View git log | <code>git log --oneline</code> |<br>| View all tags | <code>git tag -l</code> |<br>| Check status | <code>git status</code> |<br><br>---<br><br><h2>📞 Need Help?</h2><br><br><ul><li>📖 See: TROUBLESHOOTING.md</li></ul><br><ul><li>📖 See: README.md</li></ul><br><ul><li>📧 Check backup logs for errors</li></ul><br><ul><li>🔍 Review Git documentation: https://git-scm.com/doc</li></ul><br><br>---<br><br><strong>Document Version:</strong> 1.0<br><strong>Last Updated:</strong> 2025-01-06<br><strong>System Version:</strong> v3.0.0<br>
+</body>
+</html>

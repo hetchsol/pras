@@ -10,6 +10,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { pool } = require('../database');
 
 module.exports = function setupQuotesAndAdjudications(app, db, authenticate, authorize) {
     const { AppError } = require('../middleware/errorHandler');
@@ -84,47 +85,48 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
                 const actualVendorId = vendor_id || vendor_name.toLowerCase().replace(/\s+/g, '_');
 
                 // Check how many quotes already exist for this requisition
-                db.get(`SELECT COUNT(*) as count FROM vendor_quotes WHERE requisition_id = ?`,
+                pool.query(`SELECT COUNT(*) as count FROM vendor_quotes WHERE requisition_id = $1`,
                     [reqId],
-                    (err, result) => {
+                    async (err, result) => {
                         if (err) {
                             logError(err, { context: 'check_quote_count', reqId });
                             fs.unlinkSync(req.file.path);
                             return next(new AppError('Database error', 500));
                         }
 
-                        if (result.count >= 3) {
+                        if (parseInt(result.rows[0].count) >= 3) {
                             fs.unlinkSync(req.file.path);
                             return res.status(400).json({ error: 'Maximum 3 quotes allowed per requisition' });
                         }
 
-                        // Insert quote record
-                        db.run(`
-                            INSERT INTO vendor_quotes (
-                                requisition_id, vendor_id, vendor_name, quote_number,
-                                quote_amount, currency, quote_file_path, quote_file_name,
-                                uploaded_by, notes
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        `, [
-                            reqId, actualVendorId, vendor_name, quote_number || null,
-                            quote_amount, currency || 'ZMW', req.file.path, req.file.originalname,
-                            req.user.id, notes || null
-                        ], function(insertErr) {
-                            if (insertErr) {
-                                logError(insertErr, { context: 'insert_quote', reqId });
-                                fs.unlinkSync(req.file.path);
-                                return next(new AppError('Failed to save quote', 500));
-                            }
+                        try {
+                            // Insert quote record
+                            const insertResult = await pool.query(`
+                                INSERT INTO vendor_quotes (
+                                    requisition_id, vendor_id, vendor_name, quote_number,
+                                    quote_amount, currency, quote_file_path, quote_file_name,
+                                    uploaded_by, notes
+                                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                                RETURNING id
+                            `, [
+                                reqId, actualVendorId, vendor_name, quote_number || null,
+                                quote_amount, currency || 'ZMW', req.file.path, req.file.originalname,
+                                req.user.id, notes || null
+                            ]);
 
                             // Update requisition has_quotes flag
-                            db.run(`UPDATE requisitions SET has_quotes = 1 WHERE id = ?`, [reqId]);
+                            await pool.query(`UPDATE requisitions SET has_quotes = true WHERE id = $1`, [reqId]);
 
                             res.json({
                                 success: true,
                                 message: 'Quote uploaded successfully',
-                                quote_id: this.lastID
+                                quote_id: insertResult.rows[0].id
                             });
-                        });
+                        } catch (insertErr) {
+                            logError(insertErr, { context: 'insert_quote', reqId });
+                            fs.unlinkSync(req.file.path);
+                            return next(new AppError('Failed to save quote', 500));
+                        }
                     });
             } catch (error) {
                 if (req.file) {
@@ -143,25 +145,22 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
     app.get('/api/requisitions/:id/quotes',
         authenticate,
         authorize('procurement', 'finance', 'md', 'admin'),
-        (req, res, next) => {
+        async (req, res, next) => {
             try {
                 const reqId = req.params.id;
 
-                db.all(`
+                const result = await pool.query(`
                     SELECT q.*, u.full_name as uploaded_by_name
                     FROM vendor_quotes q
                     LEFT JOIN users u ON q.uploaded_by = u.id
-                    WHERE q.requisition_id = ?
+                    WHERE q.requisition_id = $1
                     ORDER BY q.uploaded_at ASC
-                `, [reqId], (err, quotes) => {
-                    if (err) {
-                        logError(err, { context: 'get_quotes', reqId });
-                        return next(new AppError('Database error', 500));
-                    }
-                    res.json(quotes || []);
-                });
-            } catch (error) {
-                next(error);
+                `, [reqId]);
+
+                res.json(result.rows || []);
+            } catch (err) {
+                logError(err, { context: 'get_quotes', reqId: req.params.id });
+                next(new AppError('Database error', 500));
             }
         }
     );
@@ -174,28 +173,26 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
     app.get('/api/quotes/:id/download',
         authenticate,
         authorize('procurement', 'finance', 'md', 'admin'),
-        (req, res, next) => {
+        async (req, res, next) => {
             try {
                 const quoteId = req.params.id;
 
-                db.get(`SELECT * FROM vendor_quotes WHERE id = ?`, [quoteId], (err, quote) => {
-                    if (err) {
-                        logError(err, { context: 'get_quote_for_download', quoteId });
-                        return next(new AppError('Database error', 500));
-                    }
+                const result = await pool.query(`SELECT * FROM vendor_quotes WHERE id = $1`, [quoteId]);
 
-                    if (!quote) {
-                        return res.status(404).json({ error: 'Quote not found' });
-                    }
+                if (result.rows.length === 0) {
+                    return res.status(404).json({ error: 'Quote not found' });
+                }
 
-                    if (!fs.existsSync(quote.quote_file_path)) {
-                        return res.status(404).json({ error: 'Quote file not found' });
-                    }
+                const quote = result.rows[0];
 
-                    res.download(quote.quote_file_path, quote.quote_file_name);
-                });
-            } catch (error) {
-                next(error);
+                if (!fs.existsSync(quote.quote_file_path)) {
+                    return res.status(404).json({ error: 'Quote file not found' });
+                }
+
+                res.download(quote.quote_file_path, quote.quote_file_name);
+            } catch (err) {
+                logError(err, { context: 'get_quote_for_download', quoteId: req.params.id });
+                next(new AppError('Database error', 500));
             }
         }
     );
@@ -208,49 +205,41 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
     app.delete('/api/quotes/:id',
         authenticate,
         authorize('procurement', 'admin'),
-        (req, res, next) => {
+        async (req, res, next) => {
             try {
                 const quoteId = req.params.id;
 
-                db.get(`SELECT * FROM vendor_quotes WHERE id = ?`, [quoteId], (err, quote) => {
-                    if (err) {
-                        logError(err, { context: 'get_quote_for_delete', quoteId });
-                        return next(new AppError('Database error', 500));
-                    }
+                const result = await pool.query(`SELECT * FROM vendor_quotes WHERE id = $1`, [quoteId]);
 
-                    if (!quote) {
-                        return res.status(404).json({ error: 'Quote not found' });
-                    }
+                if (result.rows.length === 0) {
+                    return res.status(404).json({ error: 'Quote not found' });
+                }
 
-                    // Delete file
-                    if (fs.existsSync(quote.quote_file_path)) {
-                        fs.unlinkSync(quote.quote_file_path);
-                    }
+                const quote = result.rows[0];
 
-                    // Delete record
-                    db.run(`DELETE FROM vendor_quotes WHERE id = ?`, [quoteId], function(delErr) {
-                        if (delErr) {
-                            logError(delErr, { context: 'delete_quote', quoteId });
-                            return next(new AppError('Failed to delete quote', 500));
-                        }
+                // Delete file
+                if (fs.existsSync(quote.quote_file_path)) {
+                    fs.unlinkSync(quote.quote_file_path);
+                }
 
-                        // Check if there are any quotes left
-                        db.get(`SELECT COUNT(*) as count FROM vendor_quotes WHERE requisition_id = ?`,
-                            [quote.requisition_id],
-                            (countErr, result) => {
-                                if (!countErr && result.count === 0) {
-                                    db.run(`UPDATE requisitions SET has_quotes = 0 WHERE id = ?`, [quote.requisition_id]);
-                                }
-                            });
+                // Delete record
+                await pool.query(`DELETE FROM vendor_quotes WHERE id = $1`, [quoteId]);
 
-                        res.json({
-                            success: true,
-                            message: 'Quote deleted successfully'
-                        });
-                    });
+                // Check if there are any quotes left
+                const countResult = await pool.query(`SELECT COUNT(*) as count FROM vendor_quotes WHERE requisition_id = $1`,
+                    [quote.requisition_id]);
+
+                if (parseInt(countResult.rows[0].count) === 0) {
+                    await pool.query(`UPDATE requisitions SET has_quotes = false WHERE id = $1`, [quote.requisition_id]);
+                }
+
+                res.json({
+                    success: true,
+                    message: 'Quote deleted successfully'
                 });
-            } catch (error) {
-                next(error);
+            } catch (err) {
+                logError(err, { context: 'delete_quote', quoteId: req.params.id });
+                next(new AppError('Failed to delete quote', 500));
             }
         }
     );
@@ -267,7 +256,7 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
     app.post('/api/requisitions/:id/adjudication',
         authenticate,
         authorize('procurement', 'admin'),
-        (req, res, next) => {
+        async (req, res, next) => {
             try {
                 const reqId = req.params.id;
                 const {
@@ -292,70 +281,57 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
                 }
 
                 // Check if requisition has quotes
-                db.get(`SELECT has_quotes FROM requisitions WHERE id = ?`, [reqId], (err, req_data) => {
-                    if (err) {
-                        logError(err, { context: 'check_requisition_quotes', reqId });
-                        return next(new AppError('Database error', 500));
-                    }
+                const reqResult = await pool.query(`SELECT has_quotes FROM requisitions WHERE id = $1`, [reqId]);
 
-                    if (!req_data || !req_data.has_quotes) {
-                        return res.status(400).json({
-                            error: 'Please upload vendor quotes before creating adjudication'
-                        });
-                    }
-
-                    // Check if adjudication already exists
-                    db.get(`SELECT id FROM adjudications WHERE requisition_id = ?`, [reqId], (checkErr, existing) => {
-                        if (checkErr) {
-                            logError(checkErr, { context: 'check_adjudication_exists', reqId });
-                            return next(new AppError('Database error', 500));
-                        }
-
-                        if (existing) {
-                            return res.status(400).json({
-                                error: 'Adjudication already exists for this requisition. Please update instead.'
-                            });
-                        }
-
-                        // Insert adjudication
-                        db.run(`
-                            INSERT INTO adjudications (
-                                requisition_id, recommended_vendor_id, recommended_vendor_name,
-                                recommended_amount, currency, summary, evaluation_criteria,
-                                technical_compliance, pricing_analysis, delivery_terms,
-                                payment_terms, recommendation_rationale, created_by
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        `, [
-                            reqId, recommended_vendor_id, recommended_vendor_name,
-                            recommended_amount, currency || 'ZMW', summary, evaluation_criteria || null,
-                            technical_compliance || null, pricing_analysis || null, delivery_terms || null,
-                            payment_terms || null, recommendation_rationale, req.user.id
-                        ], function(insertErr) {
-                            if (insertErr) {
-                                logError(insertErr, { context: 'create_adjudication', reqId });
-                                return next(new AppError('Failed to create adjudication', 500));
-                            }
-
-                            // Update requisition flag and status
-                            db.run(`
-                                UPDATE requisitions
-                                SET has_adjudication = 1,
-                                    status = 'pending_finance',
-                                    procurement_status = 'completed',
-                                    procurement_completed_at = CURRENT_TIMESTAMP
-                                WHERE id = ?
-                            `, [reqId]);
-
-                            res.json({
-                                success: true,
-                                message: 'Adjudication created successfully and sent to Finance for review',
-                                adjudication_id: this.lastID
-                            });
-                        });
+                if (reqResult.rows.length === 0 || !reqResult.rows[0].has_quotes) {
+                    return res.status(400).json({
+                        error: 'Please upload vendor quotes before creating adjudication'
                     });
+                }
+
+                // Check if adjudication already exists
+                const existingResult = await pool.query(`SELECT id FROM adjudications WHERE requisition_id = $1`, [reqId]);
+
+                if (existingResult.rows.length > 0) {
+                    return res.status(400).json({
+                        error: 'Adjudication already exists for this requisition. Please update instead.'
+                    });
+                }
+
+                // Insert adjudication
+                const insertResult = await pool.query(`
+                    INSERT INTO adjudications (
+                        requisition_id, recommended_vendor_id, recommended_vendor_name,
+                        recommended_amount, currency, summary, evaluation_criteria,
+                        technical_compliance, pricing_analysis, delivery_terms,
+                        payment_terms, recommendation_rationale, created_by
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    RETURNING id
+                `, [
+                    reqId, recommended_vendor_id, recommended_vendor_name,
+                    recommended_amount, currency || 'ZMW', summary, evaluation_criteria || null,
+                    technical_compliance || null, pricing_analysis || null, delivery_terms || null,
+                    payment_terms || null, recommendation_rationale, req.user.id
+                ]);
+
+                // Update requisition flag and status
+                await pool.query(`
+                    UPDATE requisitions
+                    SET has_adjudication = true,
+                        status = 'pending_finance',
+                        procurement_status = 'completed',
+                        procurement_completed_at = CURRENT_TIMESTAMP
+                    WHERE id = $1
+                `, [reqId]);
+
+                res.json({
+                    success: true,
+                    message: 'Adjudication created successfully and sent to Finance for review',
+                    adjudication_id: insertResult.rows[0].id
                 });
-            } catch (error) {
-                next(error);
+            } catch (err) {
+                logError(err, { context: 'create_adjudication', reqId: req.params.id });
+                next(new AppError('Failed to create adjudication', 500));
             }
         }
     );
@@ -368,11 +344,11 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
     app.get('/api/requisitions/:id/adjudication',
         authenticate,
         authorize('procurement', 'finance', 'md', 'admin'),
-        (req, res, next) => {
+        async (req, res, next) => {
             try {
                 const reqId = req.params.id;
 
-                db.get(`
+                const result = await pool.query(`
                     SELECT a.*,
                            u1.full_name as created_by_name,
                            u2.full_name as reviewed_by_finance_name,
@@ -381,16 +357,13 @@ module.exports = function setupQuotesAndAdjudications(app, db, authenticate, aut
                     LEFT JOIN users u1 ON a.created_by = u1.id
                     LEFT JOIN users u2 ON a.reviewed_by_finance = u2.id
                     LEFT JOIN users u3 ON a.reviewed_by_md = u3.id
-                    WHERE a.requisition_id = ?
-                `, [reqId], (err, adjudication) => {
-                    if (err) {
-                        logError(err, { context: 'get_adjudication', reqId });
-                        return next(new AppError('Database error', 500));
-                    }
-                    res.json(adjudication || null);
-                });
-            } catch (error) {
-                next(error);
+                    WHERE a.requisition_id = $1
+                `, [reqId]);
+
+                res.json(result.rows[0] || null);
+            } catch (err) {
+                logError(err, { context: 'get_adjudication', reqId: req.params.id });
+                next(new AppError('Database error', 500));
             }
         }
     );

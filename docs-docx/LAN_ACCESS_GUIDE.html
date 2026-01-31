@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>LAN_ACCESS_GUIDE</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🌐 LAN Access Guide - Purchase Requisition System</h1><br><br><h2>Quick Start - Make Application Accessible on LAN</h2><br><br>Your application is now configured to be accessible across your Local Area Network (LAN) using the computer name <strong>ZMKTCMW002</strong>.<br><br>---<br><br><h2>🚀 Access Methods</h2><br><br><h3>From Other Computers on the Same Network</h3><br><br>Users can access the application using <strong>any</strong> of these URLs:<br><br><h4>Option 1: Using Computer Name (Recommended)</h4><br><pre><code><br>http://ZMKTCMW002:3001<br></code></pre><br><strong>Advantages:</strong><br><ul><li>Easy to remember</li></ul><br><ul><li>Doesn't change if IP address changes</li></ul><br><ul><li>Works across network restarts</li></ul><br><br><h4>Option 2: Using IP Address</h4><br><pre><code><br>http://YOUR-IP-ADDRESS:3001<br></code></pre><br>The server will display the IP address when it starts.<br><br><strong>Note:</strong> IP addresses may change after router restarts or DHCP lease renewals.<br><br>---<br><br><h2>📋 Setup Instructions</h2><br><br><h3>1. Check Current Configuration ✅</h3><br><br>The following has already been configured:<br><br><strong><code>.env</code> file updated:</strong><br><pre><code>env<br>ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://ZMKTCMW002:3001,http://zmktcmw002:3001<br></code></pre><br><br><strong>Server configured to listen on all network interfaces:</strong><br><ul><li>Server listens on <code>0.0.0.0:3001</code></li></ul><br><ul><li>Accessible from any network interface</li></ul><br><br><h3>2. Configure Windows Firewall</h3><br><br>You need to allow incoming connections on port 3001:<br><br><h4>Option A: Using Windows Firewall GUI (Easy)</h4><br><br><ul><li>Press <code>Windows + R</code>, type <code>wf.msc</code>, press Enter</li></ul><br><ul><li>Click "Inbound Rules" in the left panel</li></ul><br><ul><li>Click "New Rule..." in the right panel</li></ul><br><ul><li>Select "Port" → Next</li></ul><br><ul><li>Select "TCP" and enter port <code>3001</code> → Next</li></ul><br><ul><li>Select "Allow the connection" → Next</li></ul><br><ul><li>Check all profiles (Domain, Private, Public) → Next</li></ul><br><ul><li>Name: <code>Purchase Requisition System</code> → Finish</li></ul><br><br><h4>Option B: Using PowerShell (Quick)</h4><br><br>Run PowerShell as Administrator and execute:<br><br><pre><code>powershell<br>New-NetFirewallRule -DisplayName "Purchase Requisition System" -Direction Inbound -LocalPort 3001 -Protocol TCP -Action Allow<br></code></pre><br><br><h4>Option C: Using Command Prompt (Alternative)</h4><br><br>Run Command Prompt as Administrator:<br><br><pre><code>cmd<br>netsh advfirewall firewall add rule name="Purchase Requisition System" dir=in action=allow protocol=TCP localport=3001<br></code></pre><br><br><h3>3. Restart the Backend Server</h3><br><br>Stop and restart the server to apply changes:<br><br><pre><code>bash<br><h1>Stop current server (Ctrl+C in the terminal)</h1><br><h1>OR find and kill the process:</h1><br>netstat -ano | findstr :3001<br>taskkill /PID <PID> /F<br><br><h1>Restart server</h1><br>cd backend<br>npm start<br></code></pre><br><br>The server will now display all available access URLs:<br><br><pre><code><br>🚀 Server running successfully!<br><br>📍 Access the application:<br>   Local:           http://localhost:3001<br>   Network (Name):  http://ZMKTCMW002:3001<br>   Network (IP):    http://192.168.1.100:3001<br></code></pre><br><br>---<br><br><h2>🖥️ Accessing from Other Computers</h2><br><br><h3>From Windows PC</h3><br><br><ul><li>Open any web browser (Chrome, Edge, Firefox)</li></ul><br><ul><li>Type one of these URLs:</li></ul><br>   - <code>http://ZMKTCMW002:3001</code><br>   - <code>http://192.168.1.x:3001</code> (use actual IP)<br><ul><li>Bookmark for easy access</li></ul><br><br><h3>From Mac</h3><br><br><ul><li>Open Safari or Chrome</li></ul><br><ul><li>Type: <code>http://ZMKTCMW002:3001</code></li></ul><br><ul><li>Add to favorites</li></ul><br><br><h3>From Mobile Device (Phone/Tablet)</h3><br><br><ul><li>Connect to same WiFi network</li></ul><br><ul><li>Open browser</li></ul><br><ul><li>Type: <code>http://ZMKTCMW002:3001</code> or IP address</li></ul><br><ul><li>Add to home screen for quick access</li></ul><br><br>---<br><br><h2>🔍 Troubleshooting</h2><br><br><h3>Issue 1: "This site can't be reached"</h3><br><br><strong>Possible causes:</strong><br><ul><li>Firewall blocking port 3001</li></ul><br><ul><li>Server not running</li></ul><br><ul><li>Wrong computer name or IP</li></ul><br><br><strong>Solutions:</strong><br><pre><code>bash<br><h1>1. Check if server is running</h1><br>netstat -ano | findstr :3001<br><br><h1>2. Verify firewall rule exists</h1><br>netsh advfirewall firewall show rule name="Purchase Requisition System"<br><br><h1>3. Test from server computer first</h1><br><h1>Open browser and go to: http://localhost:3001</h1><br><h1>Then try: http://ZMKTCMW002:3001</h1><br></code></pre><br><br><h3>Issue 2: CORS Error</h3><br><br><strong>Error message:</strong> "Access blocked by CORS policy"<br><br><strong>Solution:</strong> Ensure the origin is in <code>.env</code> file:<br><pre><code>env<br>ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://ZMKTCMW002:3001,http://zmktcmw002:3001<br></code></pre><br><br>If using IP address, add it too:<br><pre><code>env<br>ALLOWED_ORIGINS=http://localhost:3001,http://ZMKTCMW002:3001,http://192.168.1.100:3001<br></code></pre><br><br>Restart server after changing <code>.env</code>.<br><br><h3>Issue 3: Computer Name Not Resolving</h3><br><br><strong>Symptoms:</strong> Computer name doesn't work, but IP does<br><br><strong>Solutions:</strong><br><br><ul><li><strong>Try lowercase:</strong> <code>http://zmktcmw002:3001</code></li></ul><br><ul><li><strong>Try FQDN:</strong> <code>http://ZMKTCMW002.local:3001</code></li></ul><br><ul><li><strong>Use IP address instead</strong></li></ul><br><ul><li><strong>Check network discovery:</strong></li></ul><br>   - Open Control Panel → Network and Sharing Center<br>   - Change advanced sharing settings<br>   - Turn on network discovery<br>   - Turn on file and printer sharing<br><br><h3>Issue 4: Connection Times Out</h3><br><br><strong>Check network connectivity:</strong><br><pre><code>bash<br><h1>From client computer, ping the server:</h1><br>ping ZMKTCMW002<br><br><h1>Check if port is reachable (from client):</h1><br>telnet ZMKTCMW002 3001<br><h1>OR using PowerShell:</h1><br>Test-NetConnection -ComputerName ZMKTCMW002 -Port 3001<br></code></pre><br><br><h3>Issue 5: Different Subnets</h3><br><br>If computers are on different subnets, you may need:<br><ul><li>Network routing configured</li></ul><br><ul><li>VPN connection</li></ul><br><ul><li>Same VLAN access</li></ul><br><br>---<br><br><h2>🔒 Security Considerations</h2><br><br><h3>For Office/Internal Network (Current Setup)</h3><br><br>✅ <strong>Good for:</strong><br><ul><li>Small office networks</li></ul><br><ul><li>Trusted users only</li></ul><br><ul><li>Same physical location</li></ul><br><ul><li>Behind company firewall</li></ul><br><br><h3>Additional Security for Production</h3><br><br>If exposing to larger networks, consider:<br><br><ul><li><strong>HTTPS/SSL:</strong></li></ul><br>   <pre><code>bash<br>   # Use reverse proxy (Nginx) with SSL certificate<br>   # See DEPLOYMENT.md for details<br>   </code></pre><br><br><ul><li><strong>VPN Access:</strong></li></ul><br>   - Require VPN connection to access application<br>   - Adds encryption layer<br><br><ul><li><strong>Network Isolation:</strong></li></ul><br>   - Place on separate VLAN<br>   - Restrict access by IP range<br><br><ul><li><strong>Strong Passwords:</strong></li></ul><br>   - Enforce password policies<br>   - Change default credentials immediately<br><br>---<br><br><h2>📱 Create Desktop Shortcuts</h2><br><br><h3>For Windows Users</h3><br><br>Create a shortcut on desktop:<br><br><ul><li>Right-click Desktop → New → Shortcut</li></ul><br><ul><li>Location: <code>http://ZMKTCMW002:3001</code></li></ul><br><ul><li>Name: <code>Purchase Requisition System</code></li></ul><br><ul><li>Click Finish</li></ul><br><br><h3>For Browser Bookmarks</h3><br><br><strong>Chrome/Edge:</strong><br><ul><li>Visit <code>http://ZMKTCMW002:3001</code></li></ul><br><ul><li>Click star icon in address bar</li></ul><br><ul><li>Save to bookmarks bar</li></ul><br><br>---<br><br><h2>🌐 Static IP Configuration (Optional)</h2><br><br>To prevent IP address changes:<br><br><h3>On Windows Server Computer</h3><br><br><ul><li>Open Network Connections</li></ul><br><ul><li>Right-click network adapter → Properties</li></ul><br><ul><li>Select "Internet Protocol Version 4 (TCP/IPv4)"</li></ul><br><ul><li>Click Properties</li></ul><br><ul><li>Select "Use the following IP address"</li></ul><br><ul><li>Enter:</li></ul><br>   - IP address: <code>192.168.1.100</code> (or available IP)<br>   - Subnet mask: <code>255.255.255.0</code><br>   - Default gateway: <code>192.168.1.1</code> (your router)<br>   - DNS: <code>8.8.8.8</code> or your network DNS<br><br><ul><li>Click OK</li></ul><br><br><h3>Or Configure DHCP Reservation on Router</h3><br><br><ul><li>Log into your router (usually <code>192.168.1.1</code>)</li></ul><br><ul><li>Find DHCP settings</li></ul><br><ul><li>Add reservation for MAC address of server</li></ul><br><ul><li>Assign static IP (e.g., <code>192.168.1.100</code>)</li></ul><br><br>---<br><br><h2>📊 Monitoring Access</h2><br><br><h3>View Connected Clients</h3><br><br>Check server logs for connections:<br><pre><code>bash<br><h1>In backend directory</h1><br><h1>Logs show incoming requests with IP addresses</h1><br></code></pre><br><br><h3>Network Activity</h3><br><br><pre><code>bash<br><h1>Windows: View active connections</h1><br>netstat -an | findstr :3001<br><br><h1>See who's connected</h1><br>netstat -an | findstr :3001 | findstr ESTABLISHED<br></code></pre><br><br>---<br><br><h2>🎯 Quick Reference</h2><br><br>| Access Method | URL | When to Use |<br>|---------------|-----|-------------|<br>| Local (Same PC) | <code>http://localhost:3001</code> | Testing on server |<br>| Computer Name | <code>http://ZMKTCMW002:3001</code> | Other PCs on LAN |<br>| IP Address | <code>http://192.168.1.x:3001</code> | Backup method |<br><br><h3>Port Information</h3><br><ul><li><strong>Application Port:</strong> 3001</li></ul><br><ul><li><strong>Protocol:</strong> HTTP</li></ul><br><ul><li><strong>Firewall:</strong> Must allow TCP 3001 inbound</li></ul><br><br>---<br><br><h2>📝 Checklist for LAN Access</h2><br><br><ul><li>[ ] <code>.env</code> file updated with computer name</li></ul><br><ul><li>[ ] Windows Firewall rule created for port 3001</li></ul><br><ul><li>[ ] Server restarted</li></ul><br><ul><li>[ ] Tested from server: <code>http://localhost:3001</code> ✓</li></ul><br><ul><li>[ ] Tested from server: <code>http://ZMKTCMW002:3001</code></li></ul><br><ul><li>[ ] Tested from another PC on network</li></ul><br><ul><li>[ ] Bookmarks created for users</li></ul><br><ul><li>[ ] Default passwords changed</li></ul><br><br>---<br><br><h2>🔄 When Server Computer Restarts</h2><br><br>The application will not start automatically. You need to:<br><br><h3>Option 1: Manual Start</h3><br><pre><code>bash<br>cd C:\Projects\purchase-requisition-system\backend<br>npm start<br></code></pre><br><br><h3>Option 2: Auto-Start (Windows Task Scheduler)</h3><br><br><ul><li>Open Task Scheduler</li></ul><br><ul><li>Create Basic Task</li></ul><br><ul><li>Name: "Start Purchase Requisition System"</li></ul><br><ul><li>Trigger: "When the computer starts"</li></ul><br><ul><li>Action: "Start a program"</li></ul><br><ul><li>Program: <code>node</code></li></ul><br><ul><li>Arguments: <code>C:\Projects\purchase-requisition-system\backend\server.js</code></li></ul><br><ul><li>Start in: <code>C:\Projects\purchase-requisition-system\backend</code></li></ul><br><br><h3>Option 3: Windows Service</h3><br><br>See DEPLOYMENT.md for instructions on setting up as a Windows service.<br><br>---<br><br><h2>💡 Tips</h2><br><br><ul><li><strong>Bookmark the URL</strong> on all client computers</li></ul><br><ul><li><strong>Print access instructions</strong> for users</li></ul><br><ul><li><strong>Use computer name</strong> instead of IP (more stable)</li></ul><br><ul><li><strong>Test before</strong> sharing with users</li></ul><br><ul><li><strong>Keep server computer</strong> powered on and connected</li></ul><br><br>---<br><br><h2>📞 Support</h2><br><br>If you encounter issues:<br><br><ul><li><strong>Check server is running:</strong></li></ul><br>   <pre><code>bash<br>   netstat -ano | findstr :3001<br>   </code></pre><br><br><ul><li><strong>Verify firewall:</strong></li></ul><br>   <pre><code>bash<br>   netsh advfirewall firewall show rule name="Purchase Requisition System"<br>   </code></pre><br><br><ul><li><strong>Test locally first:</strong></li></ul><br>   - Visit <code>http://localhost:3001</code><br>   - Then try <code>http://ZMKTCMW002:3001</code><br><br><ul><li><strong>Check network connectivity:</strong></li></ul><br>   <pre><code>bash<br>   ping ZMKTCMW002<br>   </code></pre><br><br>---<br><br><strong>Your application is now accessible on the LAN!</strong> 🎉<br><br>Users can access it at: <strong><code>http://ZMKTCMW002:3001</code></strong><br><br>---<br><br><strong>Last Updated:</strong> October 31, 2025<br><strong>Server:</strong> ZMKTCMW002<br><strong>Port:</strong> 3001<br>
+</body>
+</html>

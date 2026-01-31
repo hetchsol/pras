@@ -448,38 +448,55 @@ app.get('/api/requisitions/:id', authenticate, async (req, res) => {
   }
 });
 
-app.post('/api/requisitions', authenticate, async (req, res) => {
+// Create requisition (handles both simple and full format)
+const createRequisitionHandler = async (req, res) => {
   try {
-    const { description, quantity, estimatedCost, amount, justification, department, urgency } = req.body;
+    const { description, quantity, estimatedCost, amount, justification, urgency, items, delivery_location, required_date } = req.body;
+    const user = await db.getUserById(req.user.id);
+    const department = req.body.department || user?.department || 'General';
 
     // Generate requisition ID
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
     const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, '');
-    const deptCode = department.substring(0, 3).toUpperCase();
+    const deptCode = (department || 'GEN').substring(0, 3).toUpperCase();
     const userInitials = req.user.username.substring(0, 2).toUpperCase();
     const reqId = `KSB-${deptCode}-${userInitials}-${dateStr}${timeStr}`;
 
+    // Calculate totals from items if provided
+    let totalAmount = amount || estimatedCost || 0;
+    let totalQuantity = quantity || 1;
+    let desc = description || '';
+
+    if (items && items.length > 0) {
+      totalAmount = items.reduce((sum, item) => sum + (item.total_price || 0), 0);
+      totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      desc = items.map(i => i.item_name).join(', ');
+    }
+
     await db.createRequisition({
       id: reqId,
-      description,
-      quantity,
-      estimatedCost,
-      amount,
-      justification,
+      description: desc,
+      quantity: totalQuantity,
+      estimatedCost: totalAmount,
+      amount: totalAmount,
+      justification: justification || '',
       department,
-      urgency,
+      urgency: urgency || 'standard',
       initiatorId: req.user.id,
-      initiatorName: req.user.username,
+      initiatorName: user?.full_name || req.user.username,
       status: 'pending_hod'
     });
 
-    res.status(201).json({ success: true, id: reqId, message: 'Requisition created' });
+    res.status(201).json({ success: true, id: reqId, req_number: reqId, message: 'Requisition created' });
   } catch (error) {
     console.error('Create requisition error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message || 'Server error' });
   }
-});
+};
+
+app.post('/api/requisitions', authenticate, createRequisitionHandler);
+app.post('/api/requisitions/simple', authenticate, createRequisitionHandler);
 
 app.put('/api/requisitions/:id/approve', authenticate, async (req, res) => {
   try {
@@ -651,6 +668,74 @@ app.get('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => 
     res.json([]);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST forms - create expense claims
+app.post('/api/forms/expense-claims', authenticate, async (req, res) => {
+  try {
+    const user = await db.getUserById(req.user.id);
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, '');
+    const claimId = `KSB-EXP-${dateStr}${timeStr}`;
+
+    const claim = await db.ExpenseClaim.create({
+      id: claimId,
+      employee_name: req.body.employee_name || user?.full_name,
+      employee_number: req.body.employee_number || user?.employee_number || '',
+      department: req.body.department || user?.department || 'General',
+      reason_for_trip: req.body.reason_for_trip || req.body.purpose || '',
+      total_kilometers: req.body.total_kilometers || 0,
+      km_rate: req.body.km_rate || 0,
+      sub_total: req.body.sub_total || 0,
+      total_travel: req.body.total_travel || 0,
+      total_claim: req.body.total_claim || req.body.amount || 0,
+      amount_advanced: req.body.amount_advanced || 0,
+      amount_due: req.body.amount_due || 0,
+      initiator_id: req.user.id,
+      initiator_name: user?.full_name || req.user.username,
+      status: 'pending_hod',
+      items: req.body.items || []
+    });
+
+    res.status(201).json({ success: true, id: claimId, claim_number: claimId });
+  } catch (error) {
+    console.error('Create expense claim error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// POST forms - create EFT requisitions
+app.post('/api/forms/eft-requisitions', authenticate, async (req, res) => {
+  try {
+    const user = await db.getUserById(req.user.id);
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, '');
+    const eftId = `KSB-EFT-${dateStr}${timeStr}`;
+
+    const eft = await db.EFTRequisition.create({
+      id: eftId,
+      eft_chq_number: req.body.eft_chq_number || null,
+      amount: req.body.amount || 0,
+      amount_in_words: req.body.amount_in_words || '',
+      in_favour_of: req.body.in_favour_of || req.body.payee || '',
+      bank_account_number: req.body.bank_account_number || '',
+      bank_name: req.body.bank_name || '',
+      branch: req.body.branch || '',
+      purpose: req.body.purpose || req.body.description || '',
+      account_code: req.body.account_code || '',
+      description: req.body.description || '',
+      initiator_id: req.user.id,
+      initiator_name: user?.full_name || req.user.username,
+      status: 'pending_hod'
+    });
+
+    res.status(201).json({ success: true, id: eftId, eft_number: eftId });
+  } catch (error) {
+    console.error('Create EFT requisition error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 });
 

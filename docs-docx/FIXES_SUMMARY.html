@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FIXES_SUMMARY</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Bug Fixes Summary - October 30, 2025</h1><br><br><h2>Issues Fixed</h2><br><br><h3>1. Procurement to Finance Flow Not Working ✅</h3><br><br><strong>Problem:</strong><br><ul><li>Procurement officers were unable to submit requisitions to Finance Manager</li></ul><br><ul><li>The <code>/procurement-update</code> endpoint was trying to update columns that didn't exist in the database</li></ul><br><br><strong>Root Cause:</strong><br>The requisitions table was missing procurement-specific columns:<br><ul><li><code>selected_vendor</code></li></ul><br><ul><li><code>vendor_currency</code></li></ul><br><ul><li><code>unit_price</code></li></ul><br><ul><li><code>total_cost</code></li></ul><br><ul><li><code>justification</code></li></ul><br><ul><li><code>quantity</code></li></ul><br><ul><li><code>procurement_status</code></li></ul><br><ul><li><code>procurement<em>assigned</em>to</code></li></ul><br><ul><li><code>procurement<em>completed</em>at</code></li></ul><br><ul><li><code>procurement_comments</code></li></ul><br><br><strong>Solution:</strong><br><ul><li>Created script <code>backend/scripts/addProcurementColumns.js</code> to add missing columns</li></ul><br><ul><li>Added rejection tracking columns:</li></ul><br>   - <code>rejected_by</code><br>   - <code>rejected_at</code><br>   - <code>rejection_reason</code><br><br><strong>Files Modified:</strong><br><ul><li>✅ <code>backend/scripts/addProcurementColumns.js</code> (NEW)</li></ul><br><ul><li>✅ Database schema updated</li></ul><br><br><strong>Testing:</strong><br><pre><code>bash<br><h1>Run the schema update</h1><br>cd backend && node scripts/addProcurementColumns.js<br></code></pre><br><br><strong>Result:</strong><br><ul><li>Procurement officers can now successfully add vendor information and pricing</li></ul><br><ul><li>Status correctly transitions from <code>pending<em>procurement</code> to <code>pending</em>finance</code></li></ul><br><ul><li>All procurement data is properly stored in the database</li></ul><br><br>---<br><br><h3>2. Draft Requisitions Not Editable ✅</h3><br><br><strong>Problem:</strong><br><ul><li>Initiators couldn't edit draft requisitions after creation</li></ul><br><ul><li>Only option was to view draft but not modify it</li></ul><br><ul><li>No "Update Draft" or "Submit" buttons for drafts</li></ul><br><br><strong>Solution:</strong><br><br><h4>Backend Changes:</h4><br><strong>Added new endpoint:</strong> <code>PUT /api/requisitions/:id/update-draft</code><br><br>Features:<br><ul><li>Validates that requisition is in <code>draft</code> status before allowing edits</li></ul><br><ul><li>Updates requisition fields: description, quantity, required_date, urgency</li></ul><br><ul><li>Updates the associated item in <code>requisition_items</code> table</li></ul><br><ul><li>Logs the update action in audit log</li></ul><br><ul><li>Returns error if requisition is not a draft</li></ul><br><br><strong>File:</strong> <code>backend/server.js</code> (Lines 616-673)<br><br><h4>Frontend Changes:</h4><br><strong>Enhanced <code>ApproveRequisition</code> component</strong> to support draft editing<br><br>New Features:<br><ul><li><strong>Draft Detection:</strong></li></ul><br>   <pre><code>javascript<br>   const isDraftEditable = user.role === 'initiator' &&<br>                          req.status === 'draft' &&<br>                          req.created_by === user.id;<br>   </code></pre><br><br><ul><li><strong>Editable Fields for Drafts:</strong></li></ul><br>   - Item Description (text input)<br>   - Quantity (number input)<br>   - Urgency (dropdown: Standard/Urgent/Critical)<br>   - Justification (textarea)<br><br><ul><li><strong>New Buttons for Drafts:</strong></li></ul><br>   - <strong>Submit for Approval</strong> (green button) - Submits draft to HOD<br>   - <strong>Update Draft</strong> (blue button) - Saves changes without submitting<br><br><ul><li><strong>Read-Only View for Non-Drafts:</strong></li></ul><br>   - Shows fields as text when requisition is not editable<br>   - Maintains existing approval flow for other statuses<br><br><strong>File:</strong> <code>frontend/app.js</code> (Lines 1678-1822, 1975-1987)<br><br><strong>User Experience:</strong><br><ul><li>Initiator creates a draft requisition</li></ul><br><ul><li>Can view the draft and see editable fields highlighted in blue box</li></ul><br><ul><li>Can modify description, quantity, urgency, and justification</li></ul><br><ul><li>Can either:</li></ul><br>   - Click "Update Draft" to save changes and keep as draft<br>   - Click "Submit for Approval" to send to HOD<br><ul><li>Once submitted, requisition is no longer editable</li></ul><br><br>---<br><br><h2>Complete Workflow Now Working</h2><br><br><h3>Full Approval Chain:</h3><br><pre><code><br><ul><li>Initiator: Create Draft → Edit Draft → Submit</li></ul><br><ul><li>HOD: Review → Approve/Reject</li></ul><br><ul><li>Procurement: Add Vendors & Pricing → Submit ✅ FIXED</li></ul><br><ul><li>Finance Manager: Review → Approve/Reject</li></ul><br><ul><li>MD: Final Approval → Auto-generate PO</li></ul><br></code></pre><br><br><h3>Status Transitions:</h3><br><pre><code><br>draft (editable) ✅<br>  ↓ (initiator submits)<br>pending_hod<br>  ↓ (HOD approves)<br>pending_procurement<br>  ↓ (procurement completes) ✅ FIXED<br>pending_finance<br>  ↓ (finance approves)<br>pending_md<br>  ↓ (MD approves + PO generated)<br>completed<br></code></pre><br><br>---<br><br><h2>API Endpoints Summary</h2><br><br><h3>New Endpoints Added:</h3><br><br>| Method | Endpoint | Purpose | Status |<br>|--------|----------|---------|--------|<br>| PUT | <code>/api/requisitions/:id/update-draft</code> | Update draft requisition | ✅ NEW |<br>| GET | <code>/api/purchase-orders/:id</code> | Get PO by ID | ✅ (from previous update) |<br>| GET | <code>/api/requisitions/:id/purchase-order</code> | Get PO by req ID | ✅ (from previous update) |<br><br><h3>Fixed Endpoints:</h3><br><br>| Method | Endpoint | Issue | Fix |<br>|--------|----------|-------|-----|<br>| PUT | <code>/api/requisitions/:id/procurement-update</code> | Missing DB columns | Added procurement columns to schema |<br><br>---<br><br><h2>Database Schema Changes</h2><br><br><h3>New Columns Added to <code>requisitions</code> table:</h3><br><br><strong>Procurement Columns:</strong><br><pre><code>sql<br>selected_vendor INTEGER<br>vendor_currency TEXT DEFAULT 'ZMW'<br>unit_price REAL DEFAULT 0<br>total_cost REAL DEFAULT 0<br>justification TEXT<br>quantity INTEGER<br>procurement_status TEXT DEFAULT 'pending'<br>procurement<em>assigned</em>to INTEGER<br>procurement<em>completed</em>at DATETIME<br>procurement_comments TEXT<br></code></pre><br><br><strong>Rejection Tracking:</strong><br><pre><code>sql<br>rejected_by INTEGER<br>rejected_at DATETIME<br>rejection_reason TEXT<br></code></pre><br><br><strong>Approval Tracking (from previous update):</strong><br><pre><code>sql<br>finance<em>approval</em>status TEXT DEFAULT 'pending'<br>finance<em>approved</em>by INTEGER<br>finance<em>approved</em>at DATETIME<br>finance_comments TEXT<br>md<em>approval</em>status TEXT DEFAULT 'pending'<br>md<em>approved</em>by INTEGER<br>md<em>approved</em>at DATETIME<br>md_comments TEXT<br></code></pre><br><br><strong>Purchase Order Tracking (from previous update):</strong><br><pre><code>sql<br>po_number TEXT<br>po<em>generated</em>at DATETIME<br>po<em>generated</em>by INTEGER<br></code></pre><br><br>---<br><br><h2>Testing Instructions</h2><br><br><h3>Test 1: Draft Editing</h3><br><br><ul><li><strong>Login as Initiator:</strong></li></ul><br>   <pre><code><br>   Username: john.banda<br>   Password: password123<br>   </code></pre><br><br><ul><li><strong>Create Draft:</strong></li></ul><br>   - Click "Create Requisition"<br>   - Fill in details<br>   - Click "Save as Draft"<br><br><ul><li><strong>Edit Draft:</strong></li></ul><br>   - Go to Dashboard<br>   - Click "View" on the draft requisition<br>   - You should see editable fields with blue background<br>   - Modify any field<br>   - Click "Update Draft"<br>   - Verify changes are saved<br><br><ul><li><strong>Submit Draft:</strong></li></ul><br>   - View the draft again<br>   - Click "Submit for Approval"<br>   - Verify status changes to <code>pending_hod</code><br>   - Verify requisition is no longer editable<br><br><h3>Test 2: Complete Workflow</h3><br><br><ul><li><strong>Initiator Creates and Submits:</strong></li></ul><br>   <pre><code><br>   User: john.banda / password123<br>   Actions: Create → Save → View → Submit<br>   Expected: Status = pending_hod<br>   </code></pre><br><br><ul><li><strong>HOD Approves:</strong></li></ul><br>   <pre><code><br>   User: mary.mwanza / password123<br>   Actions: Review → Approve with comment<br>   Expected: Status = pending_procurement<br>   </code></pre><br><br><ul><li><strong>Procurement Processes:</strong></li></ul><br>   <pre><code><br>   User: james.phiri / password123<br>   Actions: Add vendor, pricing → Submit<br>   Expected: Status = pending_finance ✅<br>   </code></pre><br><br><ul><li><strong>Finance Approves:</strong></li></ul><br>   <pre><code><br>   User: sarah.banda / password123<br>   Actions: Review → Approve with comment<br>   Expected: Status = pending_md<br>   </code></pre><br><br><ul><li><strong>MD Final Approval:</strong></li></ul><br>   <pre><code><br>   User: david.mulenga / password123<br>   Actions: Review → Approve<br>   Expected: Status = completed, PO generated<br>   </code></pre><br><br>---<br><br><h2>Files Modified</h2><br><br><h3>Backend:</h3><br><ul><li><code>backend/server.js</code></li></ul><br>   - Added <code>/api/requisitions/:id/update-draft</code> endpoint (Lines 616-673)<br>   - Modified procurement complete logic (already done previously)<br><br><ul><li><code>backend/scripts/addProcurementColumns.js</code> (NEW)</li></ul><br>   - Script to add missing database columns<br>   - Run once to update schema<br><br><ul><li><code>backend/scripts/checkSchema.js</code> (NEW)</li></ul><br>   - Utility to verify database schema<br>   - Helpful for debugging<br><br><h3>Frontend:</h3><br><ul><li><code>frontend/app.js</code></li></ul><br>   - Enhanced <code>ApproveRequisition</code> component:<br>     - Added <code>isDraftEditable</code> flag (Line 1679)<br>     - Added <code>handleUpdateDraft</code> function (Lines 1681-1716)<br>     - Added <code>handleSubmitDraft</code> function (Lines 1718-1746)<br>     - Added conditional editable fields (Lines 1777-1831)<br>     - Updated button rendering (Lines 1975-1987)<br><br><h3>Database:</h3><br><ul><li><code>backend/purchase_requisition.db</code></li></ul><br>   - Schema updated with new columns<br>   - All existing data preserved<br><br>---<br><br><h2>Known Limitations</h2><br><br><ul><li><strong>Single Item Support:</strong></li></ul><br>   - The simplified requisition workflow currently supports one item per requisition<br>   - Multiple items are stored in <code>requisition_items</code> but the UI edits only the first one<br><br><ul><li><strong>Required Date:</strong></li></ul><br>   - Currently not editable in draft edit view (uses original value)<br>   - Can be enhanced in future<br><br><ul><li><strong>Account Code:</strong></li></ul><br>   - Set to null in simple requisition flow<br>   - Can be added if needed<br><br>---<br><br><h2>Future Enhancements</h2><br><br><ul><li><strong>Multiple Items Editing:</strong></li></ul><br>   - Allow adding/removing items in draft edit view<br>   - Show list of items with individual edit buttons<br><br><ul><li><strong>Attachments:</strong></li></ul><br>   - Allow uploading documents to drafts<br>   - Support for quotes, specifications, etc.<br><br><ul><li><strong>Auto-Save:</strong></li></ul><br>   - Automatically save draft changes every few seconds<br>   - Prevent data loss<br><br><ul><li><strong>Draft Templates:</strong></li></ul><br>   - Save frequently used requisition patterns<br>   - Quick-start new requisitions<br><br><ul><li><strong>Collaborative Editing:</strong></li></ul><br>   - Multiple users can comment on drafts<br>   - Request clarifications before submission<br><br>---<br><br><h2>Deployment Checklist</h2><br><br><ul><li>[x] Run schema update script on database</li></ul><br><ul><li>[x] Restart backend server</li></ul><br><ul><li>[x] Clear browser cache</li></ul><br><ul><li>[x] Test with each user role</li></ul><br><ul><li>[x] Verify complete workflow end-to-end</li></ul><br><ul><li>[x] Check audit logs are being created</li></ul><br><ul><li>[x] Verify PO generation still works</li></ul><br><br>---<br><br><h2>Rollback Plan</h2><br><br>If issues occur:<br><br><ul><li><strong>Database Rollback:</strong></li></ul><br>   <pre><code>sql<br>   -- Revert added columns (if needed)<br>   ALTER TABLE requisitions DROP COLUMN selected_vendor;<br>   ALTER TABLE requisitions DROP COLUMN vendor_currency;<br>   -- ... (drop other new columns)<br>   </code></pre><br><br><ul><li><strong>Code Rollback:</strong></li></ul><br>   - Restore previous version of <code>server.js</code><br>   - Restore previous version of <code>app.js</code><br><br><ul><li><strong>Quick Fix:</strong></li></ul><br>   - Most changes are additive<br>   - Old functionality still works<br>   - Can disable new endpoints if needed<br><br>---<br><br><h2>Support Information</h2><br><br><strong>Issue Tracking:</strong><br><ul><li>Log issues in project documentation</li></ul><br><ul><li>Note any database errors in <code>backend/logs/</code></li></ul><br><br><strong>Common Issues:</strong><br><br><ul><li><strong>"Only draft requisitions can be edited" error:</strong></li></ul><br>   - Requisition status is not 'draft'<br>   - User is not the creator<br>   - Check requisition status in database<br><br><ul><li><strong>Missing vendor dropdown:</strong></li></ul><br>   - Procurement columns not added to database<br>   - Run <code>addProcurementColumns.js</code> script<br><br><ul><li><strong>Status not changing:</strong></li></ul><br>   - Check audit log for errors<br>   - Verify endpoint is being called<br>   - Check browser console for errors<br><br>---<br><br><h2>Summary</h2><br><br>✅ <strong>Both Issues Resolved!</strong><br><br><ul><li><strong>Procurement → Finance flow:</strong> Fixed by adding missing database columns</li></ul><br><ul><li><strong>Draft editing:</strong> Implemented with new endpoint and enhanced UI</li></ul><br><br>The system now provides a complete, production-ready workflow from requisition creation through PO generation, with full support for draft editing and the complete approval chain.<br><br><strong>Date:</strong> October 30, 2025<br><strong>Status:</strong> ✅ Complete and Tested<br><strong>Version:</strong> 3.1<br>
+</body>
+</html>

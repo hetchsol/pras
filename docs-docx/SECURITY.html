@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SECURITY</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Security Policy</h1><br><br><h2>Security Improvements Summary</h2><br><br>This document outlines the security improvements made to the Purchase Requisition System.<br><br><h2>Critical Vulnerabilities Fixed</h2><br><br><h3>1. ✅ Plaintext Password Storage</h3><br><strong>Severity:</strong> CRITICAL - CVE-like: CWE-256<br><br><strong>Issue:</strong><br><ul><li>Passwords were stored in plaintext in the database</li></ul><br><ul><li>Authentication compared passwords directly without hashing</li></ul><br><br><strong>Fix:</strong><br><ul><li>Implemented bcrypt password hashing with 10 salt rounds</li></ul><br><ul><li>Created password hashing utility (<code>backend/utils/auth.js</code>)</li></ul><br><ul><li>Added script to hash existing passwords (<code>backend/scripts/hashPasswords.js</code>)</li></ul><br><ul><li>Updated login endpoint to use <code>comparePassword()</code></li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/server.js</code> (lines 189-230)</li></ul><br><ul><li><code>backend/utils/auth.js</code> (new file)</li></ul><br><ul><li><code>backend/scripts/hashPasswords.js</code> (new file)</li></ul><br><br>---<br><br><h3>2. ✅ No Authentication/Authorization</h3><br><strong>Severity:</strong> CRITICAL - CVE-like: CWE-306<br><br><strong>Issue:</strong><br><ul><li>All API endpoints were publicly accessible</li></ul><br><ul><li>No token-based authentication</li></ul><br><ul><li>No role-based access control</li></ul><br><br><strong>Fix:</strong><br><ul><li>Implemented JWT (JSON Web Token) authentication</li></ul><br><ul><li>Created authentication middleware (<code>backend/middleware/auth.js</code>)</li></ul><br><ul><li>Created authorization middleware with role checking</li></ul><br><ul><li>Protected all API endpoints with <code>authenticate</code> middleware</li></ul><br><ul><li>Added role-based restrictions using <code>authorize</code> middleware</li></ul><br><br><strong>Protected Endpoints:</strong><br><ul><li>All <code>/api/requisitions/*</code> endpoints now require authentication</li></ul><br><ul><li>Role-specific endpoints restricted (e.g., only HOD can approve at HOD stage)</li></ul><br><ul><li>Admin role can access all endpoints</li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/middleware/auth.js</code> (new file)</li></ul><br><ul><li><code>backend/server.js</code> (all endpoint definitions)</li></ul><br><ul><li><code>frontend/app.js</code> (API client updated)</li></ul><br><br>---<br><br><h3>3. ✅ SQL Injection Vulnerability</h3><br><strong>Severity:</strong> HIGH - CVE-like: CWE-89<br><br><strong>Issue:</strong><br><ul><li>String interpolation used in SQL queries (line 510 in original server.js)</li></ul><br><ul><li>User input directly concatenated into SQL</li></ul><br><br><pre><code>javascript<br>// VULNERABLE CODE (REMOVED)<br>queries[key] += <code> ${key === 'total' ? 'WHERE' : 'AND'} created<em>by = ${user</em>id}</code>;<br></code></pre><br><br><strong>Fix:</strong><br><ul><li>Converted to parameterized queries</li></ul><br><ul><li>All user inputs now passed as query parameters</li></ul><br><ul><li>SQL injection no longer possible</li></ul><br><br><pre><code>javascript<br>// SECURE CODE (NEW)<br>queries.total.sql += " WHERE created_by = ?";<br>queries.total.params.push(user_id);<br></code></pre><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/server.js</code> (lines 546-605)</li></ul><br><br>---<br><br><h3>4. ✅ CORS Misconfiguration</h3><br><strong>Severity:</strong> MEDIUM - CVE-like: CWE-942<br><br><strong>Issue:</strong><br><ul><li>CORS configured to allow all origins (<code>*</code>)</li></ul><br><ul><li>Allowed requests from any domain</li></ul><br><br><strong>Fix:</strong><br><ul><li>Implemented whitelist-based CORS</li></ul><br><ul><li>Only allowed origins from environment variable</li></ul><br><ul><li>Default safe origins for development</li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/server.js</code> (lines 19-36)</li></ul><br><ul><li><code>backend/.env</code> (ALLOWED_ORIGINS variable)</li></ul><br><br>---<br><br><h3>5. ✅ No Input Validation</h3><br><strong>Severity:</strong> MEDIUM - CVE-like: CWE-20<br><br><strong>Issue:</strong><br><ul><li>No server-side validation of user inputs</li></ul><br><ul><li>Malformed data could crash the server</li></ul><br><ul><li>No email/format validation</li></ul><br><br><strong>Fix:</strong><br><ul><li>Implemented express-validator middleware</li></ul><br><ul><li>Created comprehensive validation rules</li></ul><br><ul><li>Validation for login, requisition creation, user creation, etc.</li></ul><br><ul><li>Email format validation</li></ul><br><ul><li>Password strength requirements</li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/middleware/validation.js</code> (new file)</li></ul><br><ul><li><code>backend/server.js</code> (added validation to endpoints)</li></ul><br><br>---<br><br><h3>6. ✅ Poor Error Handling</h3><br><strong>Severity:</strong> MEDIUM - CVE-like: CWE-209<br><br><strong>Issue:</strong><br><ul><li>Generic error messages exposing internal details</li></ul><br><ul><li>Database errors returned directly to client</li></ul><br><ul><li>No centralized error handling</li></ul><br><br><strong>Fix:</strong><br><ul><li>Created centralized error handler middleware</li></ul><br><ul><li>Custom AppError class</li></ul><br><ul><li>Stack traces hidden in production</li></ul><br><ul><li>Consistent error response format</li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/middleware/errorHandler.js</code> (new file)</li></ul><br><ul><li><code>backend/server.js</code> (added error handlers)</li></ul><br><br>---<br><br><h3>7. ✅ Hardcoded Secrets</h3><br><strong>Severity:</strong> MEDIUM - CVE-like: CWE-798<br><br><strong>Issue:</strong><br><ul><li>No environment configuration</li></ul><br><ul><li>Hardcoded ports and database paths</li></ul><br><ul><li>No separation of dev/prod configs</li></ul><br><br><strong>Fix:</strong><br><ul><li>Created .env file for configuration</li></ul><br><ul><li>Implemented dotenv for environment variables</li></ul><br><ul><li>JWT_SECRET configurable</li></ul><br><ul><li>ALLOWED_ORIGINS configurable</li></ul><br><ul><li>Database path configurable</li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>backend/.env</code> (new file)</li></ul><br><ul><li><code>backend/server.js</code> (uses process.env)</li></ul><br><br>---<br><br><h3>8. ✅ Sensitive Files in Git</h3><br><strong>Severity:</strong> MEDIUM - CVE-like: CWE-540<br><br><strong>Issue:</strong><br><ul><li>No .gitignore file</li></ul><br><ul><li>Database files would be committed</li></ul><br><ul><li>.env file would be exposed</li></ul><br><ul><li>node_modules would be committed</li></ul><br><br><strong>Fix:</strong><br><ul><li>Created comprehensive .gitignore</li></ul><br><ul><li>Excludes .env, *.db, node_modules</li></ul><br><ul><li>Excludes IDE and OS files</li></ul><br><br><strong>Files Modified:</strong><br><ul><li><code>.gitignore</code> (new file)</li></ul><br><br>---<br><br><h2>Security Features Added</h2><br><br><h3>Authentication System</h3><br><ul><li>JWT-based authentication</li></ul><br><ul><li>Token expiration (24 hours, configurable)</li></ul><br><ul><li>Bearer token in Authorization header</li></ul><br><ul><li>LocalStorage for token persistence</li></ul><br><ul><li>Token cleared on logout</li></ul><br><br><h3>Authorization System</h3><br><ul><li>Role-based access control (RBAC)</li></ul><br><ul><li>6 roles: initiator, hod, procurement, finance, md, admin</li></ul><br><ul><li>Middleware-based permission checking</li></ul><br><ul><li>Admin has full access</li></ul><br><br><h3>Password Security</h3><br><ul><li>Bcrypt hashing (10 rounds, configurable)</li></ul><br><ul><li>Minimum password length: 8 characters</li></ul><br><ul><li>Password strength requirements (uppercase, lowercase, number)</li></ul><br><ul><li>Secure password comparison</li></ul><br><br><h3>Input Validation</h3><br><ul><li>Username: 3-50 characters, alphanumeric + special chars</li></ul><br><ul><li>Email: Valid email format, normalized</li></ul><br><ul><li>Phone: Valid phone number format</li></ul><br><ul><li>Quantity: Positive integers</li></ul><br><ul><li>Amounts: Positive numbers</li></ul><br><br>---<br><br><h2>Security Configuration</h2><br><br><h3>Environment Variables</h3><br><br><pre><code>env<br><h1>Required</h1><br>JWT_SECRET=your-secure-random-secret-key<br>ALLOWED_ORIGINS=http://localhost:3002<br><br><h1>Optional (with defaults)</h1><br>NODE_ENV=development<br>PORT=3001<br>JWT<em>EXPIRES</em>IN=24h<br>BCRYPT_ROUNDS=10<br></code></pre><br><br><h3>Generating Secure JWT Secret</h3><br><br><pre><code>bash<br>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"<br></code></pre><br><br>---<br><br><h2>Testing Security</h2><br><br><h3>Password Hashing Test</h3><br><pre><code>bash<br>cd backend<br>node scripts/hashPasswords.js<br></code></pre><br><br><h3>Authentication Test</h3><br><pre><code>bash<br><h1>Login</h1><br>curl -X POST http://localhost:3001/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{"username":"john.banda","password":"password123"}'<br><br><h1>Use token from response</h1><br>curl http://localhost:3001/api/requisitions \<br>  -H "Authorization: Bearer YOUR<em>TOKEN</em>HERE"<br></code></pre><br><br><h3>SQL Injection Test (Should fail safely)</h3><br><pre><code>bash<br>curl "http://localhost:3001/api/stats?user_id=1%20OR%201=1" \<br>  -H "Authorization: Bearer YOUR_TOKEN"<br></code></pre><br><br>---<br><br><h2>Remaining Security Recommendations</h2><br><br><h3>High Priority</h3><br><br><ul><li><strong>Rate Limiting</strong></li></ul><br>   - Add express-rate-limit<br>   - Limit login attempts<br>   - Prevent brute force attacks<br><br><ul><li><strong>HTTPS</strong></li></ul><br>   - Use HTTPS in production<br>   - Force HTTPS redirect<br>   - Secure cookies<br><br><ul><li><strong>Database Migration</strong></li></ul><br>   - Move from SQLite to PostgreSQL/MySQL<br>   - Enable SSL for database connections<br>   - Use connection pooling<br><br><ul><li><strong>Logging & Monitoring</strong></li></ul><br>   - Implement Winston/Pino logging<br>   - Log authentication attempts<br>   - Monitor suspicious activity<br>   - Set up alerts<br><br><ul><li><strong>Session Management</strong></li></ul><br>   - Implement refresh tokens<br>   - Add token revocation<br>   - Track active sessions<br><br><h3>Medium Priority</h3><br><br><ul><li><strong>CSRF Protection</strong></li></ul><br>   - Add CSRF tokens for state-changing operations<br>   - Use csurf middleware<br><br><ul><li><strong>XSS Prevention</strong></li></ul><br>   - Add helmet.js middleware<br>   - Content Security Policy headers<br>   - Sanitize user inputs<br><br><ul><li><strong>File Upload Security</strong> (if implemented)</li></ul><br>   - Validate file types<br>   - Limit file sizes<br>   - Scan for malware<br>   - Store outside web root<br><br><ul><li><strong>API Versioning</strong></li></ul><br>   - Version API endpoints (/api/v1/)<br>   - Maintain backward compatibility<br>   - Deprecation notices<br><br><ul><li><strong>Dependency Scanning</strong></li></ul><br>    - Run <code>npm audit</code> regularly<br>    - Update dependencies<br>    - Use Snyk or similar tools<br><br><h3>Low Priority</h3><br><br><ul><li><strong>2FA/MFA</strong></li></ul><br>    - Two-factor authentication<br>    - TOTP support<br>    - Backup codes<br><br><ul><li><strong>Account Security</strong></li></ul><br>    - Password reset functionality<br>    - Account lockout after failed attempts<br>    - Email verification<br>    - Security questions<br><br><ul><li><strong>Audit Improvements</strong></li></ul><br>    - More detailed audit logs<br>    - IP address tracking<br>    - User agent logging<br>    - Export audit reports<br><br>---<br><br><h2>Security Checklist for Deployment</h2><br><br><ul><li>[ ] Change all default passwords</li></ul><br><ul><li>[ ] Generate strong JWT_SECRET</li></ul><br><ul><li>[ ] Set NODE_ENV=production</li></ul><br><ul><li>[ ] Update ALLOWED_ORIGINS to production domain</li></ul><br><ul><li>[ ] Enable HTTPS</li></ul><br><ul><li>[ ] Use production database (PostgreSQL/MySQL)</li></ul><br><ul><li>[ ] Set up database backups</li></ul><br><ul><li>[ ] Implement rate limiting</li></ul><br><ul><li>[ ] Add logging and monitoring</li></ul><br><ul><li>[ ] Run security audit (<code>npm audit</code>)</li></ul><br><ul><li>[ ] Update all dependencies</li></ul><br><ul><li>[ ] Review and test error handling</li></ul><br><ul><li>[ ] Set up SSL/TLS certificates</li></ul><br><ul><li>[ ] Configure firewall rules</li></ul><br><ul><li>[ ] Set up intrusion detection</li></ul><br><ul><li>[ ] Document security procedures</li></ul><br><br>---<br><br><h2>Reporting Security Issues</h2><br><br>If you discover a security vulnerability, please:<br><br><ul><li><strong>DO NOT</strong> open a public issue</li></ul><br><ul><li>Email: security@yourcompany.com</li></ul><br><ul><li>Include:</li></ul><br>   - Description of the vulnerability<br>   - Steps to reproduce<br>   - Potential impact<br>   - Suggested fix (if any)<br><br>We will acknowledge receipt within 48 hours and provide a timeline for fix.<br><br>---<br><br><h2>Security Update History</h2><br><br>| Date | Version | Changes |<br>|------|---------|---------|<br>| 2025-10-22 | 2.0.0 | Major security overhaul - password hashing, JWT auth, SQL injection fixes, input validation, CORS config, error handling |<br>| Initial | 1.0.0 | Initial insecure version |<br><br>---<br><br><h2>Compliance</h2><br><br>This system is designed to meet the following security standards:<br><br><ul><li>✅ OWASP Top 10 (2021) - Most issues addressed</li></ul><br><ul><li>⚠️ PCI DSS - Partial (not storing payment data)</li></ul><br><ul><li>⚠️ GDPR - Partial (data protection basics in place)</li></ul><br><ul><li>⚠️ SOC 2 - Partial (audit logging implemented)</li></ul><br><br><strong>Note:</strong> Full compliance requires additional controls and documentation.<br><br>---<br><br><strong>Security Contact:</strong> security@yourcompany.com<br><strong>Last Security Audit:</strong> 2025-10-22<br><strong>Next Audit Due:</strong> 2025-11-22<br>
+</body>
+</html>

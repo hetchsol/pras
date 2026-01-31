@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>QUICK_REFERENCE_V3.0</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Quick Reference Guide - Version 3.0</h1><br><br><h2>🚀 Quick Start</h2><br><br><h3>Start the Server</h3><br><pre><code>bash<br>cd backend<br>npm start<br></code></pre><br>Server runs on: <code>http://localhost:3001</code><br><br>---<br><br><h2>👤 Default Users</h2><br><br>| Username | Password | Role | Access |<br>|----------|----------|------|--------|<br>| sarah.banda | password123 | Finance Manager | Budget & FX management |<br>| david.mulenga | password123 | MD | Budget oversight & reports |<br>| james.phiri | password123 | Procurement | Multi-currency items |<br>| admin | admin123 | Admin | Full access |<br><br>---<br><br><h2>💱 FX Rates Quick Reference</h2><br><br><h3>View Active Rates</h3><br><pre><code>bash<br>GET /api/fx-rates<br></code></pre><br><br><h3>Update USD Rate</h3><br><pre><code>bash<br>POST /api/fx-rates<br>{<br>  "currency_code": "USD",<br>  "currency_name": "US Dollar",<br>  "rate<em>to</em>zmw": 28.00,<br>  "effective_from": "2025-11-01",<br>  "change_reason": "Monthly update"<br>}<br></code></pre><br><br><h3>Default Rates</h3><br><ul><li><strong>ZMW:</strong> 1.00 (base currency)</li></ul><br><ul><li><strong>USD:</strong> 27.50</li></ul><br><ul><li><strong>EUR:</strong> 29.80</li></ul><br><br>---<br><br><h2>💰 Budget Management Quick Reference</h2><br><br><h3>View All Budgets</h3><br><pre><code>bash<br>GET /api/budgets/overview?fiscal_year=2025<br></code></pre><br><br><h3>Check Department Budget</h3><br><pre><code>bash<br>GET /api/budgets/department/IT?fiscal_year=2025<br></code></pre><br><br><h3>Approve Budget for Requisition</h3><br><pre><code>bash<br>POST /api/requisitions/:id/budget-check<br>{<br>  "approved": true,<br>  "comments": "Budget approved"<br>}<br></code></pre><br><br><h3>Default Budgets (2025)</h3><br><ul><li><strong>IT:</strong> K500,000</li></ul><br><ul><li><strong>Finance:</strong> K400,000</li></ul><br><ul><li><strong>HR:</strong> K300,000</li></ul><br><ul><li><strong>Operations:</strong> K600,000</li></ul><br><br>---<br><br><h2>🛒 Multi-Currency Items</h2><br><br><h3>Add Item in USD</h3><br><pre><code>bash<br>POST /api/requisitions/:id/items<br>{<br>  "item_name": "Laptop",<br>  "quantity": 5,<br>  "unit_price": 1500,<br>  "currency": "USD",<br>  "vendor_id": 1<br>}<br></code></pre><br><br><h3>Add Item in EUR</h3><br><pre><code>bash<br>POST /api/requisitions/:id/items<br>{<br>  "item_name": "Printer",<br>  "quantity": 3,<br>  "unit_price": 800,<br>  "currency": "EUR",<br>  "vendor_id": 2<br>}<br></code></pre><br><br><h3>Add Item in ZMW</h3><br><pre><code>bash<br>POST /api/requisitions/:id/items<br>{<br>  "item_name": "Office Chair",<br>  "quantity": 10,<br>  "unit_price": 1200,<br>  "currency": "ZMW",<br>  "vendor_id": 3<br>}<br></code></pre><br><br><strong>Supported Currencies:</strong> USD, EUR, ZMW<br><br>---<br><br><h2>📊 Reports Quick Reference</h2><br><br><h3>Excel Reports</h3><br><pre><code>bash<br><h1>Requisitions</h1><br>GET /api/reports/requisitions/excel?dateFrom=2025-01-01&dateTo=2025-12-31<br><br><h1>Budgets</h1><br>GET /api/reports/budgets/excel?fiscal_year=2025<br><br><h1>FX Rates</h1><br>GET /api/reports/fx-rates/excel<br></code></pre><br><br><h3>PDF Reports</h3><br><pre><code>bash<br><h1>Requisitions</h1><br>GET /api/reports/requisitions/pdf?dateFrom=2025-01-01<br><br><h1>Budgets</h1><br>GET /api/reports/budgets/pdf?fiscal_year=2025<br><br><h1>Department Spending</h1><br>GET /api/reports/department/IT/pdf?fiscal_year=2025<br></code></pre><br><br>---<br><br><h2>🔐 Role Access Matrix</h2><br><br>| Feature | Finance | MD | Procurement | Admin |<br>|---------|---------|-----|-------------|-------|<br>| Manage FX Rates | ✅ | ❌ | ✅ | ✅ |<br>| Manage Budgets | ✅ | ✅ | ❌ | ✅ |<br>| Approve Budget | ✅ | ❌ | ❌ | ✅ |<br>| Select Currency | ❌ | ❌ | ✅ | ✅ |<br>| Generate Reports | ✅ | ✅ | ❌ | ✅ |<br><br>---<br><br><h2>🔄 Complete Workflow</h2><br><br><pre><code><br><ul><li>Initiator creates requisition</li></ul><br><ul><li>HOD approves/rejects</li></ul><br><ul><li>Finance Manager checks budget → Commits funds</li></ul><br><ul><li>Procurement adds items (multi-currency)</li></ul><br><ul><li>System auto-converts to ZMW</li></ul><br><ul><li>Procurement completes purchase</li></ul><br><ul><li>Generate PDF/Excel reports</li></ul><br></code></pre><br><br>---<br><br><h2>📝 Common Tasks</h2><br><br><h3>Check Budget Before Creating Requisition</h3><br><pre><code>bash<br>GET /api/budgets/department/IT?fiscal_year=2025<br></code></pre><br><br><h3>Create Multi-Currency Requisition</h3><br><ul><li>Create requisition: <code>POST /api/requisitions</code></li></ul><br><ul><li>Add USD items: <code>POST /api/requisitions/:id/items</code> (currency: "USD")</li></ul><br><ul><li>Add EUR items: <code>POST /api/requisitions/:id/items</code> (currency: "EUR")</li></ul><br><ul><li>Add ZMW items: <code>POST /api/requisitions/:id/items</code> (currency: "ZMW")</li></ul><br><ul><li>Submit: <code>PUT /api/requisitions/:id/submit</code></li></ul><br><br><h3>Monthly FX Rate Update</h3><br><ul><li>Login as Finance Manager</li></ul><br><ul><li>Update USD: <code>POST /api/fx-rates</code> (currency_code: "USD")</li></ul><br><ul><li>Update EUR: <code>POST /api/fx-rates</code> (currency_code: "EUR")</li></ul><br><ul><li>Verify: <code>GET /api/fx-rates</code></li></ul><br><br><h3>Generate Monthly Reports</h3><br><pre><code>bash<br><h1>Requisitions for the month</h1><br>GET /api/reports/requisitions/excel?dateFrom=2025-10-01&dateTo=2025-10-31<br><br><h1>Budget status</h1><br>GET /api/reports/budgets/pdf?fiscal_year=2025<br><br><h1>All departments</h1><br>GET /api/reports/department/IT/pdf<br>GET /api/reports/department/Finance/pdf<br>GET /api/reports/department/HR/pdf<br></code></pre><br><br>---<br><br><h2>🆘 Troubleshooting</h2><br><br><h3>Problem: FX Rate Not Found</h3><br><strong>Solution:</strong> Run migration: <code>node scripts/addCurrencyAndFXSupport.js</code><br><br><h3>Problem: Budget Table Missing</h3><br><strong>Solution:</strong> Run migration: <code>node scripts/addBudgetsTable.js</code><br><br><h3>Problem: Currency Not Accepted</h3><br><strong>Solution:</strong> Use only USD, EUR, or ZMW (case-sensitive)<br><br><h3>Problem: Budget Rejection</h3><br><strong>Solution:</strong> Check available budget with <code>GET /api/budgets/department/:dept</code><br><br>---<br><br><h2>📚 Documentation Files</h2><br><br><ul><li><strong>BUDGET<em>FX</em>AND<em>REPORTING</em>GUIDE.md</strong> - Complete guide (40+ pages)</li></ul><br><ul><li><strong>IMPLEMENTATION<em>SUMMARY</em>V3.0.md</strong> - Implementation details</li></ul><br><ul><li><strong>QUICK<em>REFERENCE</em>V3.0.md</strong> - This file</li></ul><br><ul><li><strong>WORKFLOW_GUIDE.md</strong> - Workflow documentation</li></ul><br><ul><li><strong>API_TESTING.md</strong> - API testing examples</li></ul><br><br>---<br><br><h2>🎯 Key Points</h2><br><br><ul><li><strong>All amounts stored in ZMW</strong> - Original currency preserved</li></ul><br><ul><li><strong>FX rate tracked per item</strong> - Audit trail maintained</li></ul><br><ul><li><strong>Budget auto-commits</strong> - When Finance Manager approves</li></ul><br><ul><li><strong>3 currencies supported</strong> - USD, EUR, ZMW</li></ul><br><ul><li><strong>2 report formats</strong> - PDF (presentation) & Excel (analysis)</li></ul><br><br>---<br><br><strong>Version:</strong> 3.0.0 | <strong>Status:</strong> ✅ Production Ready<br>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>README</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>📋 Purchase Requisition System</h1><br><br>> A comprehensive web-based system for managing purchase requisitions with multi-level approval workflows, vendor management, analytics, and PDF generation.<br><br>!<a href="https://img.shields.io/badge/version-3.0-blue.svg">Version</a><br>!<a href="https://img.shields.io/badge/node-%3E%3D14.0.0-green.svg">Node</a><br>!<a href="https://img.shields.io/badge/license-MIT-orange.svg">License</a><br><br>---<br><br><h2>🚀 Quick Start (5 Minutes)</h2><br><br><h3>1. Clone the Repository</h3><br><pre><code>bash<br>git clone https://github.com/YOUR-USERNAME/purchase-requisition-system.git<br>cd purchase-requisition-system<br></code></pre><br><br><h3>2. Install Dependencies</h3><br><pre><code>bash<br>cd backend<br>npm install<br></code></pre><br><br><h3>3. Configure Environment</h3><br><pre><code>bash<br>cp .env.example .env<br><h1>Edit .env and change JWT_SECRET to a secure random string</h1><br></code></pre><br><br><h3>4. Initialize Database</h3><br><pre><code>bash<br>node scripts/hashPasswords.js<br></code></pre><br><br><h3>5. Start the Application</h3><br><pre><code>bash<br>npm start<br></code></pre><br><br><h3>6. Access the System</h3><br>Open your browser and navigate to: <strong>http://localhost:3001</strong><br><br><strong>Default Login Credentials:</strong><br><ul><li><strong>Admin</strong>: admin / admin123</li></ul><br><ul><li><strong>MD</strong>: david.mulenga / password123</li></ul><br><ul><li><strong>Finance</strong>: sarah.banda / password123</li></ul><br><ul><li><strong>Procurement</strong>: james.phiri / password123</li></ul><br><ul><li><strong>HOD</strong>: mary.mwanza / password123</li></ul><br><ul><li><strong>Initiator</strong>: john.banda / password123</li></ul><br><br>⚠️ <strong>Change these passwords immediately after first login!</strong><br><br>---<br><br><h2>📖 Overview</h2><br><br>A full-stack web application for managing purchase requisitions with a complete multi-tier approval workflow designed for KSB Zambia.<br><br><h3>Complete Workflow</h3><br><br><pre><code><br><ul><li>CREATE REQUISITION</li></ul><br>   └─> Employee creates purchase request<br><br><ul><li>HOD APPROVAL</li></ul><br>   └─> Department Head reviews and approves/rejects<br><br><ul><li>PROCUREMENT PROCESSING</li></ul><br>   └─> Procurement team adds vendor quotes and pricing<br><br><ul><li>HOD PRICING REVIEW</li></ul><br>   └─> HOD reviews and confirms pricing<br><br><ul><li>FINANCE APPROVAL</li></ul><br>   └─> Finance Manager reviews budget and approves<br><br><ul><li>MD APPROVAL</li></ul><br>   └─> Managing Director gives final approval<br><br><ul><li>PO GENERATION</li></ul><br>   └─> System generates Purchase Order PDF<br><br><ul><li>AUDIT TRAIL</li></ul><br>   └─> All actions tracked with timestamps<br></code></pre><br><br>---<br><br><h2>✨ Key Features</h2><br><br><h3>📝 Requisition Management</h3><br><ul><li>Create requisitions with detailed specifications</li></ul><br><ul><li>Auto-generated requisition numbers (KSB-DEPT-INITIALS-TIMESTAMP)</li></ul><br><ul><li>Multi-item support with quantities and descriptions</li></ul><br><ul><li>Urgency levels (Standard, High, Emergency)</li></ul><br><ul><li>Department categorization</li></ul><br><ul><li>Account code assignment</li></ul><br><br><h3>👥 User Roles & Permissions</h3><br><ul><li><strong>Initiator</strong>: Create and track own requisitions</li></ul><br><ul><li><strong>HOD</strong>: Approve/reject department requisitions</li></ul><br><ul><li><strong>Procurement</strong>: Add vendor quotes and pricing</li></ul><br><ul><li><strong>Finance Manager</strong>: Review budget and approve spending</li></ul><br><ul><li><strong>Managing Director (MD)</strong>: Final approval authority</li></ul><br><ul><li><strong>Admin</strong>: Full system access and user management</li></ul><br><br><h3>💰 Financial Management</h3><br><ul><li>Multi-currency support (ZMW, USD, EUR, GBP, ZAR)</li></ul><br><ul><li>Real-time exchange rate management</li></ul><br><ul><li>Budget tracking and reporting</li></ul><br><ul><li>VAT calculation (16%)</li></ul><br><ul><li>Department-wise spending analytics</li></ul><br><br><h3>📄 PDF Generation</h3><br><ul><li><strong>Purchase Orders</strong>: Professional PDFs with company branding</li></ul><br><ul><li><strong>Requisitions</strong>: Downloadable requisition documents</li></ul><br><ul><li>Company logo support</li></ul><br><ul><li>Role-based access control for downloads</li></ul><br><ul><li>Automatic calculations (subtotal, VAT, grand total)</li></ul><br><br><h3>📊 Analytics & Reporting</h3><br><ul><li>Executive overview dashboard</li></ul><br><ul><li>Spending trends (daily/weekly/monthly)</li></ul><br><ul><li>Department-wise breakdown</li></ul><br><ul><li>Approval flow analytics</li></ul><br><ul><li>Processing duration metrics</li></ul><br><ul><li>Top vendors report</li></ul><br><ul><li>Interactive charts (Chart.js)</li></ul><br><ul><li>Export to CSV/Excel</li></ul><br><br><h3>🔐 Security Features</h3><br><ul><li>JWT-based authentication with refresh tokens</li></ul><br><ul><li>Password hashing (bcrypt)</li></ul><br><ul><li>Role-based access control (RBAC)</li></ul><br><ul><li>SQL injection prevention</li></ul><br><ul><li>Input validation</li></ul><br><ul><li>CORS protection</li></ul><br><ul><li>Rate limiting</li></ul><br><ul><li>Comprehensive audit logging</li></ul><br><br><h3>🎨 User Experience</h3><br><ul><li>Light/Dark theme toggle</li></ul><br><ul><li>Responsive design (mobile-friendly)</li></ul><br><ul><li>Real-time notifications</li></ul><br><ul><li>Intuitive navigation</li></ul><br><ul><li>Status-based color coding</li></ul><br><ul><li>Search and filtering</li></ul><br><br>---<br><br><h2>🛠 Technology Stack</h2><br><br><h3>Backend</h3><br><ul><li><strong>Runtime</strong>: Node.js (v14+)</li></ul><br><ul><li><strong>Framework</strong>: Express.js 5.1.0</li></ul><br><ul><li><strong>Database</strong>: SQLite3 5.1.6</li></ul><br><ul><li><strong>Authentication</strong>: JWT (jsonwebtoken)</li></ul><br><ul><li><strong>PDF Generation</strong>: PDFKit</li></ul><br><ul><li><strong>Security</strong>: bcryptjs, express-validator</li></ul><br><ul><li><strong>Environment</strong>: dotenv</li></ul><br><br><h3>Frontend</h3><br><ul><li><strong>Framework</strong>: React 18 (CDN-based, no build step required)</li></ul><br><ul><li><strong>Styling</strong>: Tailwind CSS (CDN)</li></ul><br><ul><li><strong>Charts</strong>: Chart.js 4.4.0</li></ul><br><ul><li><strong>Icons</strong>: SVG-based</li></ul><br><ul><li><strong>State Management</strong>: React Hooks</li></ul><br><br><h3>Infrastructure</h3><br><ul><li>SQLite database (file-based, no separate DB server needed)</li></ul><br><ul><li>Single server deployment</li></ul><br><ul><li>Static file serving</li></ul><br><ul><li>PM2 or systemd for process management</li></ul><br><br>---<br><br><h2>📁 Project Structure</h2><br><br><pre><code><br>purchase-requisition-system/<br>├── backend/<br>│   ├── middleware/<br>│   │   ├── auth.js              # JWT authentication & RBAC<br>│   │   ├── validation.js        # Input validation<br>│   │   ├── errorHandler.js      # Error handling<br>│   │   ├── rateLimiter.js       # Rate limiting<br>│   │   └── requestLogger.js     # Request logging<br>│   ├── utils/<br>│   │   ├── auth.js              # Password hashing & tokens<br>│   │   ├── logger.js            # Winston logger<br>│   │   └── pdfGenerator.js      # PDF utilities<br>│   ├── scripts/<br>│   │   └── hashPasswords.js     # Password hashing utility<br>│   ├── assets/<br>│   │   ├── logo.png             # Company logo (optional)<br>│   │   └── README.md            # Asset instructions<br>│   ├── server.js                # Main Express application<br>│   ├── database.js              # Database initialization<br>│   ├── .env.example             # Environment template<br>│   └── package.json             # Dependencies<br>├── frontend/<br>│   ├── index.html               # HTML entry point<br>│   └── app.js                   # React application<br>├── .gitignore                   # Git exclusions<br>├── README.md                    # This file<br>└── DEPLOYMENT.md                # Deployment guide<br></code></pre><br><br>---<br><br><h2>🔧 Configuration</h2><br><br><h3>Environment Variables</h3><br><br>Create a <code>.env</code> file in the <code>backend/</code> directory:<br><br><pre><code>env<br><h1>Server Configuration</h1><br>NODE_ENV=production<br>PORT=3001<br><br><h1>Database</h1><br>DATABASE<em>PATH=./purchase</em>requisition.db<br><br><h1>JWT Configuration</h1><br>JWT_SECRET=your-super-secret-random-string-change-this<br>JWT<em>EXPIRES</em>IN=15m<br>REFRESH<em>TOKEN</em>DAYS=7<br><br><h1>CORS</h1><br>ALLOWED_ORIGINS=https://your-domain.com<br><br><h1>Security</h1><br>BCRYPT_ROUNDS=10<br><br><h1>Rate Limiting</h1><br>RATE<em>LIMIT</em>WINDOW_MS=900000<br>RATE<em>LIMIT</em>MAX_REQUESTS=100<br></code></pre><br><br><h3>Company Logo</h3><br><br>To add your company logo to PDFs:<br><br><ul><li>Prepare a PNG/JPG image (400x100px recommended, 4:1 aspect ratio)</li></ul><br><ul><li>Copy to <code>backend/assets/logo.png</code></li></ul><br><ul><li>Restart the server</li></ul><br><br>---<br><br><h2>📦 Installation Guide</h2><br><br><h3>Prerequisites</h3><br><ul><li>Node.js v14 or higher (<a href="https://nodejs.org/">Download</a>)</li></ul><br><ul><li>Git (<a href="https://git-scm.com/">Download</a>)</li></ul><br><br><h3>Development Setup</h3><br><pre><code>bash<br><h1>Clone repository</h1><br>git clone https://github.com/YOUR-USERNAME/purchase-requisition-system.git<br>cd purchase-requisition-system<br><br><h1>Install backend dependencies</h1><br>cd backend<br>npm install<br><br><h1>Configure environment</h1><br>cp .env.example .env<br>nano .env  # Edit with your settings<br><br><h1>Initialize database and hash passwords</h1><br>node scripts/hashPasswords.js<br><br><h1>Start development server</h1><br>npm start<br></code></pre><br><br>The application will be available at:<br><ul><li><strong>Frontend</strong>: http://localhost:3001</li></ul><br><ul><li><strong>API</strong>: http://localhost:3001/api</li></ul><br><br><h3>Production Deployment</h3><br><br>See <a href="DEPLOYMENT.md">DEPLOYMENT.md</a> for detailed production deployment instructions including:<br><ul><li>Server setup (VPS, cloud)</li></ul><br><ul><li>PM2 process management</li></ul><br><ul><li>Nginx reverse proxy</li></ul><br><ul><li>SSL/HTTPS configuration</li></ul><br><ul><li>Docker deployment</li></ul><br><ul><li>Database backups</li></ul><br><ul><li>Monitoring</li></ul><br><br>---<br><br><h2>📚 API Documentation</h2><br><br><h3>Authentication Endpoints</h3><br><br>| Method | Endpoint | Description |<br>|--------|----------|-------------|<br>| POST | <code>/api/auth/login</code> | User login |<br>| POST | <code>/api/auth/refresh</code> | Refresh access token |<br>| POST | <code>/api/auth/logout</code> | User logout |<br><br><h3>Requisition Endpoints</h3><br><br>| Method | Endpoint | Description | Access |<br>|--------|----------|-------------|--------|<br>| GET | <code>/api/requisitions</code> | Get all requisitions | All |<br>| GET | <code>/api/requisitions/:id</code> | Get single requisition | All |<br>| POST | <code>/api/requisitions</code> | Create requisition | Initiator+ |<br>| PUT | <code>/api/requisitions/:id</code> | Update requisition | Various |<br>| GET | <code>/api/requisitions/:id/pdf</code> | Download requisition PDF | Role-based |<br><br><h3>Purchase Order Endpoints</h3><br><br>| Method | Endpoint | Description | Access |<br>|--------|----------|-------------|--------|<br>| GET | <code>/api/purchase-orders</code> | Get all POs | All |<br>| GET | <code>/api/purchase-orders/:id</code> | Get single PO | All |<br>| GET | <code>/api/purchase-orders/:id/pdf</code> | Download PO PDF | All |<br><br><h3>Analytics Endpoints</h3><br><br>| Method | Endpoint | Description | Access |<br>|--------|----------|-------------|--------|<br>| GET | <code>/api/analytics/overview</code> | Executive overview | Finance, MD, Admin |<br>| GET | <code>/api/analytics/spending-trend</code> | Spending trends | Finance, MD, Admin |<br>| GET | <code>/api/analytics/department-breakdown</code> | Dept analysis | Finance, MD, Admin |<br>| GET | <code>/api/analytics/approval-flow</code> | Approval funnel | Finance, MD, Admin |<br>| GET | <code>/api/analytics/duration</code> | Processing times | Finance, MD, Admin |<br>| GET | <code>/api/analytics/top-vendors</code> | Vendor metrics | Finance, MD, Admin, Procurement |<br><br><h3>User Management Endpoints</h3><br><br>| Method | Endpoint | Description | Access |<br>|--------|----------|-------------|--------|<br>| GET | <code>/api/users</code> | Get all users | Admin |<br>| POST | <code>/api/users</code> | Create user | Admin |<br>| PUT | <code>/api/users/:id</code> | Update user | Admin |<br>| DELETE | <code>/api/users/:id</code> | Delete user | Admin |<br><br>---<br><br><h2>🔒 Security</h2><br><br><h3>Implemented Security Measures</h3><br><br>✅ <strong>Authentication & Authorization</strong><br><ul><li>JWT-based authentication with 15-minute access tokens</li></ul><br><ul><li>Refresh tokens with 7-day expiration</li></ul><br><ul><li>Role-based access control (RBAC)</li></ul><br><ul><li>Password hashing with bcrypt (10 rounds)</li></ul><br><br>✅ <strong>API Security</strong><br><ul><li>Rate limiting (100 requests per 15 minutes)</li></ul><br><ul><li>Input validation on all endpoints</li></ul><br><ul><li>SQL injection prevention (parameterized queries)</li></ul><br><ul><li>CORS protection</li></ul><br><ul><li>Request logging</li></ul><br><br>✅ <strong>Data Protection</strong><br><ul><li>No sensitive data in error messages</li></ul><br><ul><li>Environment variables for secrets</li></ul><br><ul><li>Audit logging for all actions</li></ul><br><ul><li>Session management</li></ul><br><br>✅ <strong>Best Practices</strong><br><ul><li>HTTPS recommended for production</li></ul><br><ul><li>.env file not committed to Git</li></ul><br><ul><li>Stack traces hidden in production</li></ul><br><ul><li>Regular security audits</li></ul><br><br><h3>Security Checklist Before Production</h3><br><br><ul><li>[ ] Change all default passwords</li></ul><br><ul><li>[ ] Update <code>JWT_SECRET</code> to a strong random string</li></ul><br><ul><li>[ ] Configure <code>ALLOWED_ORIGINS</code> with your domain</li></ul><br><ul><li>[ ] Enable HTTPS/SSL</li></ul><br><ul><li>[ ] Set <code>NODE_ENV=production</code></li></ul><br><ul><li>[ ] Configure firewall</li></ul><br><ul><li>[ ] Enable database backups</li></ul><br><ul><li>[ ] Review user permissions</li></ul><br><br>---<br><br><h2>🧪 Testing</h2><br><br><h3>Manual Testing Workflow</h3><br><br><ul><li><strong>Create Requisition</strong> (as john.banda)</li></ul><br><ul><li><strong>HOD Approval</strong> (as mary.mwanza)</li></ul><br><ul><li><strong>Procurement Processing</strong> (as james.phiri)</li></ul><br><ul><li><strong>HOD Pricing Review</strong> (as mary.mwanza)</li></ul><br><ul><li><strong>Finance Approval</strong> (as sarah.banda)</li></ul><br><ul><li><strong>MD Approval</strong> (as david.mulenga)</li></ul><br><ul><li><strong>Download PO</strong> (any user)</li></ul><br><br><h3>Test User Accounts</h3><br><br>All test accounts use password: <code>password123</code> (except admin: <code>admin123</code>)<br><br>| Username | Role | Department |<br>|----------|------|------------|<br>| admin | Admin | IT |<br>| david.mulenga | MD | Management |<br>| sarah.banda | Finance Manager | Finance |<br>| james.phiri | Procurement | Procurement |<br>| mary.mwanza | HOD | Operations |<br>| john.banda | Initiator | Operations |<br><br>---<br><br><h2>📊 Database Schema</h2><br><br><h3>Main Tables</h3><br><br><ul><li><strong>users</strong>: User accounts and roles</li></ul><br><ul><li><strong>requisitions</strong>: Purchase requisitions</li></ul><br><ul><li><strong>purchase_orders</strong>: Generated POs</li></ul><br><ul><li><strong>vendors</strong>: Vendor information</li></ul><br><ul><li><strong>departments</strong>: Department list</li></ul><br><ul><li><strong>fx_rates</strong>: Exchange rates</li></ul><br><ul><li><strong>budgets</strong>: Budget allocations</li></ul><br><ul><li><strong>audit_log</strong>: Action history</li></ul><br><br><h3>Key Relationships</h3><br><br><pre><code><br>users (1) ─── (N) requisitions<br>requisitions (1) ─── (1) purchase_orders<br>vendors (1) ─── (N) requisitions<br>departments (1) ─── (N) users<br></code></pre><br><br>---<br><br><h2>🐛 Troubleshooting</h2><br><br><h3>Common Issues</h3><br><br><strong>Issue</strong>: Can't login<br><pre><code>bash<br><h1>Solution: Reset passwords</h1><br>cd backend<br>node scripts/hashPasswords.js<br></code></pre><br><br><strong>Issue</strong>: Port 3001 already in use<br><pre><code>bash<br><h1>Solution: Find and kill the process</h1><br>netstat -ano | findstr :3001<br><h1>Kill the PID shown</h1><br>taskkill /PID <PID> /F<br></code></pre><br><br><strong>Issue</strong>: Database locked<br><pre><code>bash<br><h1>Solution: Ensure only one instance is running</h1><br>pm2 stop all<br><h1>OR check for zombie processes</h1><br>ps aux | grep node<br></code></pre><br><br><strong>Issue</strong>: CORS errors<br><pre><code>bash<br><h1>Solution: Update .env ALLOWED_ORIGINS</h1><br>ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com<br></code></pre><br><br>---<br><br><h2>📝 License</h2><br><br>MIT License - See LICENSE file for details<br><br>---<br><br><h2>🤝 Contributing</h2><br><br><ul><li>Fork the repository</li></ul><br><ul><li>Create a feature branch (<code>git checkout -b feature/amazing-feature</code>)</li></ul><br><ul><li>Commit your changes (<code>git commit -m 'Add amazing feature'</code>)</li></ul><br><ul><li>Push to the branch (<code>git push origin feature/amazing-feature</code>)</li></ul><br><ul><li>Open a Pull Request</li></ul><br><br>---<br><br><h2>📞 Support</h2><br><br>For questions or issues:<br><ul><li>Check <a href="DEPLOYMENT.md">DEPLOYMENT.md</a> for deployment help</li></ul><br><ul><li>Review this README</li></ul><br><ul><li>Check application logs</li></ul><br><ul><li>Open a GitHub issue</li></ul><br><br>---<br><br><h2>📅 Version History</h2><br><br><h3>v3.0 (October 2025)</h3><br><ul><li>✅ Requisition PDF download with role-based access</li></ul><br><ul><li>✅ Company logo support for PDFs</li></ul><br><ul><li>✅ Compact single-page PO layout</li></ul><br><ul><li>✅ VAT calculations (16%)</li></ul><br><ul><li>✅ Updated KSB Zambia branding</li></ul><br><br><h3>v2.1 (October 2025)</h3><br><ul><li>✅ Analytics dashboard with Chart.js</li></ul><br><ul><li>✅ Export functionality (CSV, Excel)</li></ul><br><ul><li>✅ Interactive drill-down charts</li></ul><br><ul><li>✅ Date range presets</li></ul><br><ul><li>✅ Multi-currency support</li></ul><br><br><h3>v2.0 (October 2025)</h3><br><ul><li>✅ Complete approval workflow</li></ul><br><ul><li>✅ Purchase Order generation</li></ul><br><ul><li>✅ Vendor management</li></ul><br><ul><li>✅ Budget tracking</li></ul><br><ul><li>✅ Admin console</li></ul><br><br><h3>v1.0 (October 2025)</h3><br><ul><li>✅ Initial release</li></ul><br><ul><li>✅ Basic requisition management</li></ul><br><ul><li>✅ User authentication</li></ul><br><ul><li>✅ Role-based access</li></ul><br><br>---<br><br><strong>Built with ❤️ for KSB Zambia</strong><br><br><strong>Last Updated:</strong> October 31, 2025 | <strong>Version:</strong> 3.0<br>
+</body>
+</html>

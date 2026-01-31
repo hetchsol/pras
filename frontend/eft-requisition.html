@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFT Requisition Form - Purchase Requisition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: #f8f9ff;
+        }
+
+        .form-section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        label .required {
+            color: #dc3545;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .amount-display {
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #28a745;
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .amount-words-display {
+            background: #fff;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            min-height: 50px;
+            font-style: italic;
+            color: #555;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 14px 35px;
+            border: none;
+            border-radius: 5px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 EFT / Cheque Requisition Form</h1>
+
+        <div id="alert" class="alert"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <form id="eftForm">
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h2>Requisition Details</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="eft_chq_number">EFT / Cheque Number</label>
+                        <input type="number" id="eft_chq_number" placeholder="Enter number">
+                        <div class="help-text">Leave blank if not yet assigned</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="account_code">Account Code</label>
+                        <input type="text" id="account_code" placeholder="e.g., 5000-100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amount Section -->
+            <div class="form-section">
+                <h2>Amount Information</h2>
+                <div class="form-group">
+                    <label for="amount">Amount (K) <span class="required">*</span></label>
+                    <input type="number" id="amount" step="0.01" required
+                           placeholder="Enter amount" onchange="convertAmountToWords()">
+                </div>
+                <div class="amount-display" id="amountDisplay">K 0.00</div>
+                <div class="amount-words-display" id="amountWords">Amount in words will appear here</div>
+            </div>
+
+            <!-- Beneficiary Information -->
+            <div class="form-section">
+                <h2>Beneficiary Details</h2>
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="in_favour_of">In Favour Of (Payee Name) <span class="required">*</span></label>
+                        <input type="text" id="in_favour_of" required
+                               placeholder="Enter beneficiary name">
+                    </div>
+                    <div class="form-group">
+                        <label for="bank_name">Bank Name</label>
+                        <input type="text" id="bank_name" placeholder="e.g., Zanaco Bank">
+                    </div>
+                    <div class="form-group">
+                        <label for="branch">Branch</label>
+                        <input type="text" id="branch" placeholder="e.g., Cairo Road">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="bank_account_number">Bank Account Number</label>
+                        <input type="text" id="bank_account_number"
+                               placeholder="Enter account number">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purpose Section -->
+            <div class="form-section">
+                <h2>Purpose & Description</h2>
+                <div class="form-group">
+                    <label for="purpose">Purpose <span class="required">*</span></label>
+                    <textarea id="purpose" required
+                              placeholder="Briefly describe the purpose of this payment"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="description">Additional Description</label>
+                    <textarea id="description"
+                              placeholder="Any additional details or notes"></textarea>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit Requisition</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const API_URL = window.API_URL || 'http://localhost:3001/api';
+
+        // Number to words conversion
+        function convertAmountToWords() {
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            document.getElementById('amountDisplay').textContent = 'K ' + amount.toFixed(2);
+
+            if (amount === 0) {
+                document.getElementById('amountWords').textContent = 'Amount in words will appear here';
+                return;
+            }
+
+            const words = numberToWords(amount);
+            document.getElementById('amountWords').textContent = words + ' Kwacha Only';
+        }
+
+        function numberToWords(num) {
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            if (num === 0) return 'Zero';
+
+            // Split into kwacha and ngwee
+            const kwacha = Math.floor(num);
+            const ngwee = Math.round((num - kwacha) * 100);
+
+            let result = '';
+
+            // Convert kwacha
+            if (kwacha >= 1000000) {
+                result += numberToWordsHelper(Math.floor(kwacha / 1000000)) + ' Million ';
+                const remainder = kwacha % 1000000;
+                if (remainder > 0) {
+                    result += numberToWordsHelper(remainder);
+                }
+            } else {
+                result = numberToWordsHelper(kwacha);
+            }
+
+            // Add ngwee if present
+            if (ngwee > 0) {
+                result += ' and ' + numberToWordsHelper(ngwee) + ' Ngwee';
+            }
+
+            return result.trim();
+        }
+
+        function numberToWordsHelper(num) {
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            if (num === 0) return '';
+            if (num < 10) return ones[num];
+            if (num < 20) return teens[num - 10];
+            if (num < 100) {
+                return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
+            }
+            if (num < 1000) {
+                return ones[Math.floor(num / 100)] + ' Hundred' +
+                       (num % 100 !== 0 ? ' and ' + numberToWordsHelper(num % 100) : '');
+            }
+            if (num < 1000000) {
+                return numberToWordsHelper(Math.floor(num / 1000)) + ' Thousand' +
+                       (num % 1000 !== 0 ? ' ' + numberToWordsHelper(num % 1000) : '');
+            }
+
+            return num.toString();
+        }
+
+        // Form submission
+        document.getElementById('eftForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const amount = parseFloat(document.getElementById('amount').value);
+            if (!amount || amount <= 0) {
+                showAlert('Please enter a valid amount', 'error');
+                return;
+            }
+
+            const amountInWords = document.getElementById('amountWords').textContent;
+
+            const eftData = {
+                eft_chq_number: document.getElementById('eft_chq_number').value || null,
+                amount: amount,
+                amount_in_words: amountInWords,
+                in_favour_of: document.getElementById('in_favour_of').value,
+                bank_account_number: document.getElementById('bank_account_number').value || null,
+                bank_name: document.getElementById('bank_name').value || null,
+                branch: document.getElementById('branch').value || null,
+                purpose: document.getElementById('purpose').value,
+                account_code: document.getElementById('account_code').value || null,
+                description: document.getElementById('description').value || null
+            };
+
+            try {
+                showLoading(true);
+                const token = localStorage.getItem('token');
+
+                const response = await fetch(`${API_URL}/forms/eft-requisitions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(eftData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('EFT requisition submitted successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    showAlert(data.error || 'Failed to submit EFT requisition', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('An error occurred while submitting the requisition', 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

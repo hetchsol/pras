@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FRONTEND_SETUP</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Frontend Setup Guide</h1><br><br><h2>Issue: Chrome Not Loading the Application</h2><br><br>The frontend uses React with Babel transpilation, which can be blocked by Chrome's security policies when opening HTML files directly (<code>file://</code> protocol).<br><br>---<br><br><h2>✅ Solution: Run a Local Web Server</h2><br><br>You have <strong>3 options</strong> to run the frontend properly:<br><br><h3><strong>Option 1: Python HTTP Server (Recommended)</strong></h3><br><br>If you have Python installed:<br><br><pre><code>bash<br>cd frontend<br>python -m http.server 3000<br></code></pre><br><br>Then open: <code>http://localhost:3000</code><br><br>---<br><br><h3><strong>Option 2: Node.js HTTP Server</strong></h3><br><br>If you have Node.js installed:<br><br><pre><code>bash<br>cd frontend<br>npx http-server -p 3000<br></code></pre><br><br>Then open: <code>http://localhost:3000</code><br><br>---<br><br><h3><strong>Option 3: PHP Built-in Server</strong></h3><br><br>If you have PHP installed:<br><br><pre><code>bash<br>cd frontend<br>php -S localhost:3000<br></code></pre><br><br>Then open: <code>http://localhost:3000</code><br><br>---<br><br><h2>Alternative: Use Microsoft Edge</h2><br><br>The application works directly in Microsoft Edge when opening the HTML file:<br><ul><li>Right-click <code>frontend/index.html</code></li></ul><br><ul><li>Open with Microsoft Edge</li></ul><br><ul><li>It should work without a server</li></ul><br><br>---<br><br><h2>Fixed Issues</h2><br><br><h3>✅ Issue 1: Missing Submit Button</h3><br><strong>FIXED!</strong> The form now has TWO buttons:<br><ul><li><strong>"Save as Draft"</strong> - Saves without submitting</li></ul><br><ul><li><strong>"Submit for Approval"</strong> - Creates and submits immediately</li></ul><br><br><h3>✅ Issue 2: Chrome Compatibility</h3><br><strong>FIXED!</strong> Added:<br><ul><li>Content Security Policy meta tag</li></ul><br><ul><li>Updated React/Babel CDN links</li></ul><br><ul><li>Proper CORS headers</li></ul><br><br>---<br><br><h2>Quick Start (Complete Setup)</h2><br><br><h3>Step 1: Start Backend</h3><br><pre><code>bash<br>cd backend<br>npm start<br></code></pre><br>Backend runs on: <code>http://localhost:3001</code><br><br><h3>Step 2: Start Frontend</h3><br><pre><code>bash<br>cd frontend<br>python -m http.server 3000<br></code></pre><br>Frontend runs on: <code>http://localhost:3000</code><br><br><h3>Step 3: Open Browser</h3><br><ul><li>Open <strong>Chrome</strong> or any browser</li></ul><br><ul><li>Go to: <code>http://localhost:3000</code></li></ul><br><ul><li>Login with: <code>john.banda</code> / <code>password123</code></li></ul><br><br>---<br><br><h2>Testing the Submit Button</h2><br><br><ul><li>Login as initiator (<code>john.banda</code> / <code>password123</code>)</li></ul><br><ul><li>Click <strong>"Create New"</strong> in sidebar</li></ul><br><ul><li>Fill in the form:</li></ul><br>   - Delivery Location: Select one<br>   - Urgency: Select one<br>   - Required Date: Pick a date<br>   - Add at least one item<br><ul><li>You should now see <strong>TWO buttons</strong>:</li></ul><br>   - <strong>"Save as Draft"</strong> (Blue button)<br>   - <strong>"Submit for Approval"</strong> (Green button)<br><ul><li>Click <strong>"Submit for Approval"</strong></li></ul><br><ul><li>Requisition will be created AND submitted in one step!</li></ul><br><br>---<br><br><h2>Browser Compatibility</h2><br><br>| Browser | Direct File (<code>file://</code>) | With Server (<code>http://</code>) |<br>|---------|------------------------|------------------------|<br>| <strong>Chrome</strong> | ❌ May not work | ✅ Works |<br>| <strong>Firefox</strong> | ⚠️ May not work | ✅ Works |<br>| <strong>Edge</strong> | ✅ Works | ✅ Works |<br>| <strong>Safari</strong> | ⚠️ May not work | ✅ Works |<br><br><strong>Recommendation:</strong> Always use a local web server for best compatibility!<br><br>---<br><br><h2>Troubleshooting</h2><br><br><h3>Problem: "Cannot connect to server"</h3><br><strong>Solution:</strong> Make sure backend is running on port 3001<br><pre><code>bash<br>cd backend<br>npm start<br></code></pre><br><br><h3>Problem: Blank page in Chrome</h3><br><strong>Solution:</strong> Open browser console (F12) and check for errors<br><ul><li>If you see CSP errors, use a local web server</li></ul><br><ul><li>If you see CORS errors, check backend is running</li></ul><br><br><h3>Problem: Submit button not visible</h3><br><strong>Solution:</strong> Make sure you refreshed the page after the update<br><ul><li>Press <code>Ctrl + Shift + R</code> (hard refresh)</li></ul><br><ul><li>Clear browser cache</li></ul><br><ul><li>Close and reopen browser</li></ul><br><br>---<br><br><h2>What Changed</h2><br><br><h3>Before:</h3><br><pre><code>html<br><button type="submit">Save as Draft</button><br><!-- No submit button! --><br></code></pre><br><br><h3>After:</h3><br><pre><code>html<br><button type="submit">Save as Draft</button><br><button type="button" onClick={submitHandler}><br>  Submit for Approval<br></button><br></code></pre><br><br>Now you have BOTH options! 🎉<br><br>---<br><br><h2>Production Deployment</h2><br><br>For production, you should:<br><ul><li>Build the React app properly (not use Babel standalone)</li></ul><br><ul><li>Use a proper web server (Nginx, Apache)</li></ul><br><ul><li>Enable HTTPS</li></ul><br><ul><li>Remove development React libraries</li></ul><br><br>For now, the current setup works for <strong>development and testing</strong>!<br><br>---<br><br><strong>Status:</strong> ✅ Both issues fixed!<br><strong>Last Updated:</strong> October 23, 2025<br>
+</body>
+</html>

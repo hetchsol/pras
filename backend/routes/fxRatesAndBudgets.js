@@ -13,6 +13,8 @@
 // const setupFXAndBudgetRoutes = require('./routes/fxRatesAndBudgets');
 // setupFXAndBudgetRoutes(app, db, authenticate, authorize);
 
+const { pool } = require('../database');
+
 module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authorize) {
     const { generateRequisitionSummaryExcel, generateBudgetReportExcel, generateFXRatesExcel } = require('../utils/excelReportGenerator');
     const { generateRequisitionSummaryPDF, generateBudgetReportPDF, generateDepartmentalSpendingPDF } = require('../utils/reportPDFGenerator');
@@ -28,23 +30,19 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Get all active FX rates
      * Access: All authenticated users
      */
-    app.get('/api/fx-rates', authenticate, (req, res, next) => {
+    app.get('/api/fx-rates', authenticate, async (req, res, next) => {
         try {
-            db.all(`
+            const result = await pool.query(`
                 SELECT fr.*, u.full_name as updated_by_name
                 FROM fx_rates fr
                 LEFT JOIN users u ON fr.updated_by = u.id
-                WHERE fr.is_active = 1
+                WHERE fr.is_active = true
                 ORDER BY fr.currency_code
-            `, [], (err, rates) => {
-                if (err) {
-                    logError(err, { context: 'get_fx_rates' });
-                    return next(new AppError('Database error', 500));
-                }
-                res.json(rates || []);
-            });
-        } catch (error) {
-            next(error);
+            `);
+            res.json(result.rows || []);
+        } catch (err) {
+            logError(err, { context: 'get_fx_rates' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -53,22 +51,18 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Get all FX rates including inactive
      * Access: Finance Manager, MD, Admin
      */
-    app.get('/api/fx-rates/all', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.get('/api/fx-rates/all', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
-            db.all(`
+            const result = await pool.query(`
                 SELECT fr.*, u.full_name as updated_by_name
                 FROM fx_rates fr
                 LEFT JOIN users u ON fr.updated_by = u.id
                 ORDER BY fr.currency_code, fr.created_at DESC
-            `, [], (err, rates) => {
-                if (err) {
-                    logError(err, { context: 'get_all_fx_rates' });
-                    return next(new AppError('Database error', 500));
-                }
-                res.json(rates || []);
-            });
-        } catch (error) {
-            next(error);
+            `);
+            res.json(result.rows || []);
+        } catch (err) {
+            logError(err, { context: 'get_all_fx_rates' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -77,7 +71,7 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Create or update FX rate
      * Access: Finance Manager, MD, Procurement, Admin
      */
-    app.post('/api/fx-rates', authenticate, authorize('finance', 'md', 'procurement', 'admin'), (req, res, next) => {
+    app.post('/api/fx-rates', authenticate, authorize('finance', 'md', 'procurement', 'admin'), async (req, res, next) => {
         try {
             const { currency_code, currency_name, rate_to_zmw, effective_from, change_reason } = req.body;
 
@@ -92,70 +86,57 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
             }
 
             // Check if currency already exists
-            db.get(`SELECT id, rate_to_zmw FROM fx_rates WHERE currency_code = ? AND is_active = 1`,
-                [currency_code],
-                (err, existing) => {
-                    if (err) {
-                        logError(err, { context: 'check_fx_rate_exists' });
-                        return next(new AppError('Database error', 500));
-                    }
+            const existingResult = await pool.query(
+                `SELECT id, rate_to_zmw FROM fx_rates WHERE currency_code = $1 AND is_active = true`,
+                [currency_code]
+            );
 
-                    if (existing) {
-                        // Log the change in history
-                        db.run(`
-                            INSERT INTO fx_rate_history (fx_rate_id, old_rate, new_rate, changed_by, change_reason)
-                            VALUES (?, ?, ?, ?, ?)
-                        `, [existing.id, existing.rate_to_zmw, rate_to_zmw, req.user.id, change_reason || 'Rate update'],
-                        (histErr) => {
-                            if (histErr) {
-                                logError(histErr, { context: 'log_fx_rate_history' });
-                            }
-                        });
+            if (existingResult.rows.length > 0) {
+                const existing = existingResult.rows[0];
 
-                        // Update existing rate
-                        db.run(`
-                            UPDATE fx_rates
-                            SET rate_to_zmw = ?,
-                                currency_name = ?,
-                                updated_by = ?,
-                                effective_from = ?,
-                                updated_at = CURRENT_TIMESTAMP
-                            WHERE id = ?
-                        `, [rate_to_zmw, currency_name, req.user.id, effective_from, existing.id],
-                        function(updateErr) {
-                            if (updateErr) {
-                                logError(updateErr, { context: 'update_fx_rate' });
-                                return next(new AppError('Failed to update FX rate', 500));
-                            }
+                // Log the change in history
+                try {
+                    await pool.query(`
+                        INSERT INTO fx_rate_history (fx_rate_id, old_rate, new_rate, changed_by, change_reason)
+                        VALUES ($1, $2, $3, $4, $5)
+                    `, [existing.id, existing.rate_to_zmw, rate_to_zmw, req.user.id, change_reason || 'Rate update']);
+                } catch (histErr) {
+                    logError(histErr, { context: 'log_fx_rate_history' });
+                }
 
-                            res.json({
-                                success: true,
-                                message: 'FX rate updated successfully',
-                                id: existing.id
-                            });
-                        });
-                    } else {
-                        // Insert new rate
-                        db.run(`
-                            INSERT INTO fx_rates (currency_code, currency_name, rate_to_zmw, updated_by, effective_from)
-                            VALUES (?, ?, ?, ?, ?)
-                        `, [currency_code, currency_name, rate_to_zmw, req.user.id, effective_from],
-                        function(insertErr) {
-                            if (insertErr) {
-                                logError(insertErr, { context: 'create_fx_rate' });
-                                return next(new AppError('Failed to create FX rate', 500));
-                            }
+                // Update existing rate
+                await pool.query(`
+                    UPDATE fx_rates
+                    SET rate_to_zmw = $1,
+                        currency_name = $2,
+                        updated_by = $3,
+                        effective_from = $4,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $5
+                `, [rate_to_zmw, currency_name, req.user.id, effective_from, existing.id]);
 
-                            res.json({
-                                success: true,
-                                message: 'FX rate created successfully',
-                                id: this.lastID
-                            });
-                        });
-                    }
+                res.json({
+                    success: true,
+                    message: 'FX rate updated successfully',
+                    id: existing.id
                 });
-        } catch (error) {
-            next(error);
+            } else {
+                // Insert new rate
+                const insertResult = await pool.query(`
+                    INSERT INTO fx_rates (currency_code, currency_name, rate_to_zmw, updated_by, effective_from)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING id
+                `, [currency_code, currency_name, rate_to_zmw, req.user.id, effective_from]);
+
+                res.json({
+                    success: true,
+                    message: 'FX rate created successfully',
+                    id: insertResult.rows[0].id
+                });
+            }
+        } catch (err) {
+            logError(err, { context: 'create_or_update_fx_rate' });
+            next(new AppError('Failed to save FX rate', 500));
         }
     });
 
@@ -164,27 +145,23 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Deactivate FX rate (soft delete)
      * Access: Finance Manager, MD, Admin
      */
-    app.delete('/api/fx-rates/:id', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.delete('/api/fx-rates/:id', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const rateId = req.params.id;
 
-            db.run(`UPDATE fx_rates SET is_active = 0 WHERE id = ?`, [rateId], function(err) {
-                if (err) {
-                    logError(err, { context: 'deactivate_fx_rate', rateId });
-                    return next(new AppError('Failed to deactivate FX rate', 500));
-                }
+            const result = await pool.query(`UPDATE fx_rates SET is_active = false WHERE id = $1`, [rateId]);
 
-                if (this.changes === 0) {
-                    return res.status(404).json({ error: 'FX rate not found' });
-                }
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'FX rate not found' });
+            }
 
-                res.json({
-                    success: true,
-                    message: 'FX rate deactivated successfully'
-                });
+            res.json({
+                success: true,
+                message: 'FX rate deactivated successfully'
             });
-        } catch (error) {
-            next(error);
+        } catch (err) {
+            logError(err, { context: 'deactivate_fx_rate', rateId: req.params.id });
+            next(new AppError('Failed to deactivate FX rate', 500));
         }
     });
 
@@ -193,26 +170,23 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Get FX rate change history
      * Access: Finance Manager, MD, Admin
      */
-    app.get('/api/fx-rates/:code/history', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.get('/api/fx-rates/:code/history', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const currencyCode = req.params.code;
 
-            db.all(`
+            const result = await pool.query(`
                 SELECT frh.*, u.full_name as changed_by_name, fr.currency_name
                 FROM fx_rate_history frh
                 JOIN fx_rates fr ON frh.fx_rate_id = fr.id
                 LEFT JOIN users u ON frh.changed_by = u.id
-                WHERE fr.currency_code = ?
+                WHERE fr.currency_code = $1
                 ORDER BY frh.created_at DESC
-            `, [currencyCode], (err, history) => {
-                if (err) {
-                    logError(err, { context: 'get_fx_rate_history', currencyCode });
-                    return next(new AppError('Database error', 500));
-                }
-                res.json(history || []);
-            });
-        } catch (error) {
-            next(error);
+            `, [currencyCode]);
+
+            res.json(result.rows || []);
+        } catch (err) {
+            logError(err, { context: 'get_fx_rate_history', currencyCode: req.params.code });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -225,11 +199,11 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Get budget overview with spending details
      * Access: Finance Manager, MD, Admin
      */
-    app.get('/api/budgets/overview', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.get('/api/budgets/overview', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const fiscalYear = req.query.fiscal_year || new Date().getFullYear().toString();
 
-            db.all(`
+            const result = await pool.query(`
                 SELECT
                     b.*,
                     (b.allocated_amount - b.committed_amount - b.spent_amount) as available_amount,
@@ -239,17 +213,14 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
                         ELSE 0
                     END as utilization_percentage
                 FROM budgets b
-                WHERE b.fiscal_year = ?
+                WHERE b.fiscal_year = $1
                 ORDER BY b.department
-            `, [fiscalYear], (err, budgets) => {
-                if (err) {
-                    logError(err, { context: 'get_budget_overview' });
-                    return next(new AppError('Database error', 500));
-                }
-                res.json(budgets || []);
-            });
-        } catch (error) {
-            next(error);
+            `, [fiscalYear]);
+
+            res.json(result.rows || []);
+        } catch (err) {
+            logError(err, { context: 'get_budget_overview' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -258,46 +229,39 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Get detailed budget for specific department
      * Access: Finance Manager, MD, Admin
      */
-    app.get('/api/budgets/department/:department', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.get('/api/budgets/department/:department', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const department = req.params.department;
             const fiscalYear = req.query.fiscal_year || new Date().getFullYear().toString();
 
-            db.get(`
+            const budgetResult = await pool.query(`
                 SELECT * FROM budgets
-                WHERE department = ? AND fiscal_year = ?
-            `, [department, fiscalYear], (err, budget) => {
-                if (err) {
-                    logError(err, { context: 'get_department_budget', department });
-                    return next(new AppError('Database error', 500));
-                }
+                WHERE department = $1 AND fiscal_year = $2
+            `, [department, fiscalYear]);
 
-                if (!budget) {
-                    return res.status(404).json({ error: 'Budget not found' });
-                }
+            if (budgetResult.rows.length === 0) {
+                return res.status(404).json({ error: 'Budget not found' });
+            }
 
-                // Get expense details
-                db.all(`
-                    SELECT be.*, r.req_number, r.title, u.full_name as recorded_by_name
-                    FROM budget_expenses be
-                    JOIN requisitions r ON be.requisition_id = r.id
-                    LEFT JOIN users u ON be.recorded_by = u.id
-                    WHERE be.budget_id = ?
-                    ORDER BY be.created_at DESC
-                `, [budget.id], (expErr, expenses) => {
-                    if (expErr) {
-                        logError(expErr, { context: 'get_budget_expenses', budgetId: budget.id });
-                        return next(new AppError('Database error', 500));
-                    }
+            const budget = budgetResult.rows[0];
 
-                    res.json({
-                        budget,
-                        expenses: expenses || []
-                    });
-                });
+            // Get expense details
+            const expensesResult = await pool.query(`
+                SELECT be.*, r.req_number, r.title, u.full_name as recorded_by_name
+                FROM budget_expenses be
+                JOIN requisitions r ON be.requisition_id = r.id
+                LEFT JOIN users u ON be.recorded_by = u.id
+                WHERE be.budget_id = $1
+                ORDER BY be.created_at DESC
+            `, [budget.id]);
+
+            res.json({
+                budget,
+                expenses: expensesResult.rows || []
             });
-        } catch (error) {
-            next(error);
+        } catch (err) {
+            logError(err, { context: 'get_department_budget', department: req.params.department });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -306,7 +270,7 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Update budget allocation
      * Access: Finance Manager, MD, Admin
      */
-    app.put('/api/budgets/:id/allocate', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.put('/api/budgets/:id/allocate', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const budgetId = req.params.id;
             const { allocated_amount } = req.body;
@@ -315,29 +279,25 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
                 return res.status(400).json({ error: 'Valid allocated amount is required' });
             }
 
-            db.run(`
+            const result = await pool.query(`
                 UPDATE budgets
-                SET allocated_amount = ?,
+                SET allocated_amount = $1,
                     available_amount = allocated_amount - committed_amount - spent_amount,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            `, [allocated_amount, budgetId], function(err) {
-                if (err) {
-                    logError(err, { context: 'update_budget_allocation', budgetId });
-                    return next(new AppError('Failed to update budget allocation', 500));
-                }
+                WHERE id = $2
+            `, [allocated_amount, budgetId]);
 
-                if (this.changes === 0) {
-                    return res.status(404).json({ error: 'Budget not found' });
-                }
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Budget not found' });
+            }
 
-                res.json({
-                    success: true,
-                    message: 'Budget allocation updated successfully'
-                });
+            res.json({
+                success: true,
+                message: 'Budget allocation updated successfully'
             });
-        } catch (error) {
-            next(error);
+        } catch (err) {
+            logError(err, { context: 'update_budget_allocation', budgetId: req.params.id });
+            next(new AppError('Failed to update budget allocation', 500));
         }
     });
 
@@ -346,139 +306,112 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Check budget availability and commit funds
      * Access: Finance Manager, Admin
      */
-    app.post('/api/requisitions/:id/budget-check', authenticate, authorize('finance', 'admin'), (req, res, next) => {
+    app.post('/api/requisitions/:id/budget-check', authenticate, authorize('finance', 'admin'), async (req, res, next) => {
         try {
             const reqId = req.params.id;
             const { approved, comments } = req.body;
 
             // Get requisition details
-            db.get(`
+            const reqResult = await pool.query(`
                 SELECT r.*, u.department
                 FROM requisitions r
                 JOIN users u ON r.created_by = u.id
-                WHERE r.id = ?
-            `, [reqId], (err, requisition) => {
-                if (err) {
-                    logError(err, { context: 'get_requisition_for_budget_check', reqId });
-                    return next(new AppError('Database error', 500));
-                }
+                WHERE r.id = $1
+            `, [reqId]);
 
-                if (!requisition) {
-                    return res.status(404).json({ error: 'Requisition not found' });
-                }
+            if (reqResult.rows.length === 0) {
+                return res.status(404).json({ error: 'Requisition not found' });
+            }
 
-                // Calculate total amount in ZMW
-                db.all(`
-                    SELECT * FROM requisition_items WHERE requisition_id = ?
-                `, [reqId], (itemsErr, items) => {
-                    if (itemsErr) {
-                        logError(itemsErr, { context: 'get_items_for_budget_check', reqId });
-                        return next(new AppError('Database error', 500));
-                    }
+            const requisition = reqResult.rows[0];
 
-                    const totalAmount = items.reduce((sum, item) => {
-                        return sum + (item.amount_in_zmw || item.total_price || 0);
-                    }, 0);
+            // Calculate total amount in ZMW
+            const itemsResult = await pool.query(`
+                SELECT * FROM requisition_items WHERE requisition_id = $1
+            `, [reqId]);
 
-                    // Get department budget
-                    const fiscalYear = new Date().getFullYear().toString();
-                    db.get(`
-                        SELECT * FROM budgets
-                        WHERE department = ? AND fiscal_year = ?
-                    `, [requisition.department, fiscalYear], (budgetErr, budget) => {
-                        if (budgetErr) {
-                            logError(budgetErr, { context: 'get_budget_for_check' });
-                            return next(new AppError('Database error', 500));
-                        }
+            const totalAmount = itemsResult.rows.reduce((sum, item) => {
+                return sum + (item.amount_in_zmw || item.total_price || 0);
+            }, 0);
 
-                        if (!budget) {
-                            return res.status(404).json({ error: 'Budget not found for department' });
-                        }
+            // Get department budget
+            const fiscalYear = new Date().getFullYear().toString();
+            const budgetResult = await pool.query(`
+                SELECT * FROM budgets
+                WHERE department = $1 AND fiscal_year = $2
+            `, [requisition.department, fiscalYear]);
 
-                        const available = budget.allocated_amount - budget.committed_amount - budget.spent_amount;
+            if (budgetResult.rows.length === 0) {
+                return res.status(404).json({ error: 'Budget not found for department' });
+            }
 
-                        if (approved) {
-                            if (totalAmount > available) {
-                                return res.status(400).json({
-                                    error: 'Insufficient budget',
-                                    available,
-                                    required: totalAmount
-                                });
-                            }
+            const budget = budgetResult.rows[0];
+            const available = budget.allocated_amount - budget.committed_amount - budget.spent_amount;
 
-                            // Commit funds
-                            db.run(`
-                                UPDATE budgets
-                                SET committed_amount = committed_amount + ?,
-                                    available_amount = allocated_amount - committed_amount - spent_amount,
-                                    updated_at = CURRENT_TIMESTAMP
-                                WHERE id = ?
-                            `, [totalAmount, budget.id], (updateErr) => {
-                                if (updateErr) {
-                                    logError(updateErr, { context: 'commit_budget' });
-                                    return next(new AppError('Failed to commit budget', 500));
-                                }
-
-                                // Record expense
-                                db.run(`
-                                    INSERT INTO budget_expenses (budget_id, requisition_id, department, amount, fiscal_year, expense_type, recorded_by)
-                                    VALUES (?, ?, ?, ?, ?, 'committed', ?)
-                                `, [budget.id, reqId, requisition.department, totalAmount, fiscalYear, req.user.id],
-                                (expenseErr) => {
-                                    if (expenseErr) {
-                                        logError(expenseErr, { context: 'record_budget_expense' });
-                                    }
-                                });
-
-                                // Update requisition
-                                db.run(`
-                                    UPDATE requisitions
-                                    SET budget_checked = 1,
-                                        budget_approved_by = ?,
-                                        budget_approved_at = CURRENT_TIMESTAMP,
-                                        budget_comments = ?
-                                    WHERE id = ?
-                                `, [req.user.id, comments, reqId], (reqUpdateErr) => {
-                                    if (reqUpdateErr) {
-                                        logError(reqUpdateErr, { context: 'update_requisition_budget_check' });
-                                        return next(new AppError('Failed to update requisition', 500));
-                                    }
-
-                                    res.json({
-                                        success: true,
-                                        message: 'Budget approved and funds committed',
-                                        committed: totalAmount,
-                                        remaining: available - totalAmount
-                                    });
-                                });
-                            });
-                        } else {
-                            // Budget rejected
-                            db.run(`
-                                UPDATE requisitions
-                                SET budget_checked = 1,
-                                    budget_approved_by = ?,
-                                    budget_approved_at = CURRENT_TIMESTAMP,
-                                    budget_comments = ?,
-                                    status = 'budget_rejected'
-                                WHERE id = ?
-                            `, [req.user.id, comments || 'Budget not approved', reqId], (reqUpdateErr) => {
-                                if (reqUpdateErr) {
-                                    logError(reqUpdateErr, { context: 'reject_budget' });
-                                    return next(new AppError('Failed to update requisition', 500));
-                                }
-
-                                res.json({
-                                    success: true,
-                                    message: 'Budget check rejected'
-                                });
-                            });
-                        }
+            if (approved) {
+                if (totalAmount > available) {
+                    return res.status(400).json({
+                        error: 'Insufficient budget',
+                        available,
+                        required: totalAmount
                     });
+                }
+
+                // Commit funds
+                await pool.query(`
+                    UPDATE budgets
+                    SET committed_amount = committed_amount + $1,
+                        available_amount = allocated_amount - committed_amount - spent_amount,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $2
+                `, [totalAmount, budget.id]);
+
+                // Record expense
+                try {
+                    await pool.query(`
+                        INSERT INTO budget_expenses (budget_id, requisition_id, department, amount, fiscal_year, expense_type, recorded_by)
+                        VALUES ($1, $2, $3, $4, $5, 'committed', $6)
+                    `, [budget.id, reqId, requisition.department, totalAmount, fiscalYear, req.user.id]);
+                } catch (expenseErr) {
+                    logError(expenseErr, { context: 'record_budget_expense' });
+                }
+
+                // Update requisition
+                await pool.query(`
+                    UPDATE requisitions
+                    SET budget_checked = true,
+                        budget_approved_by = $1,
+                        budget_approved_at = CURRENT_TIMESTAMP,
+                        budget_comments = $2
+                    WHERE id = $3
+                `, [req.user.id, comments, reqId]);
+
+                res.json({
+                    success: true,
+                    message: 'Budget approved and funds committed',
+                    committed: totalAmount,
+                    remaining: available - totalAmount
                 });
-            });
-        } catch (error) {
-            next(error);
+            } else {
+                // Budget rejected
+                await pool.query(`
+                    UPDATE requisitions
+                    SET budget_checked = true,
+                        budget_approved_by = $1,
+                        budget_approved_at = CURRENT_TIMESTAMP,
+                        budget_comments = $2,
+                        status = 'budget_rejected'
+                    WHERE id = $3
+                `, [req.user.id, comments || 'Budget not approved', reqId]);
+
+                res.json({
+                    success: true,
+                    message: 'Budget check rejected'
+                });
+            }
+        } catch (err) {
+            logError(err, { context: 'budget_check', reqId: req.params.id });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -502,60 +435,55 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
                 WHERE 1=1
             `;
             const params = [];
+            let paramIndex = 1;
 
             if (dateFrom) {
-                query += ' AND DATE(r.created_at) >= DATE(?)';
+                query += ` AND DATE(r.created_at) >= DATE($${paramIndex++})`;
                 params.push(dateFrom);
             }
 
             if (dateTo) {
-                query += ' AND DATE(r.created_at) <= DATE(?)';
+                query += ` AND DATE(r.created_at) <= DATE($${paramIndex++})`;
                 params.push(dateTo);
             }
 
             if (status) {
-                query += ' AND r.status = ?';
+                query += ` AND r.status = $${paramIndex++}`;
                 params.push(status);
             }
 
             if (department) {
-                query += ' AND u.department = ?';
+                query += ` AND u.department = $${paramIndex++}`;
                 params.push(department);
             }
 
             query += ' ORDER BY r.created_at DESC';
 
-            db.all(query, params, async (err, requisitions) => {
-                if (err) {
-                    logError(err, { context: 'get_requisitions_for_excel' });
-                    return next(new AppError('Database error', 500));
-                }
+            const reqResult = await pool.query(query, params);
+            const requisitions = reqResult.rows;
 
-                // Get items for each requisition
-                const reqPromises = requisitions.map(req => {
-                    return new Promise((resolve) => {
-                        db.all(`
-                            SELECT ri.*, v.name as vendor_name
-                            FROM requisition_items ri
-                            LEFT JOIN vendors v ON ri.vendor_id = v.id
-                            WHERE ri.requisition_id = ?
-                        `, [req.id], (itemsErr, items) => {
-                            req.items = items || [];
-                            resolve(req);
-                        });
-                    });
-                });
-
-                const requisitionsWithItems = await Promise.all(reqPromises);
-
-                const excelBuffer = await generateRequisitionSummaryExcel(requisitionsWithItems, { dateFrom, dateTo, status, department });
-
-                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                res.setHeader('Content-Disposition', `attachment; filename=requisitions_report_${Date.now()}.xlsx`);
-                res.send(excelBuffer);
+            // Get items for each requisition
+            const reqPromises = requisitions.map(async req => {
+                const itemsResult = await pool.query(`
+                    SELECT ri.*, v.name as vendor_name
+                    FROM requisition_items ri
+                    LEFT JOIN vendors v ON ri.vendor_id = v.id
+                    WHERE ri.requisition_id = $1
+                `, [req.id]);
+                req.items = itemsResult.rows || [];
+                return req;
             });
-        } catch (error) {
-            next(error);
+
+            const requisitionsWithItems = await Promise.all(reqPromises);
+
+            const excelBuffer = await generateRequisitionSummaryExcel(requisitionsWithItems, { dateFrom, dateTo, status, department });
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=requisitions_report_${Date.now()}.xlsx`);
+            res.send(excelBuffer);
+        } catch (err) {
+            logError(err, { context: 'get_requisitions_for_excel' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -568,24 +496,20 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
         try {
             const fiscalYear = req.query.fiscal_year || new Date().getFullYear().toString();
 
-            db.all(`
+            const result = await pool.query(`
                 SELECT * FROM budgets
-                WHERE fiscal_year = ?
+                WHERE fiscal_year = $1
                 ORDER BY department
-            `, [fiscalYear], async (err, budgets) => {
-                if (err) {
-                    logError(err, { context: 'get_budgets_for_excel' });
-                    return next(new AppError('Database error', 500));
-                }
+            `, [fiscalYear]);
 
-                const excelBuffer = await generateBudgetReportExcel(budgets, fiscalYear);
+            const excelBuffer = await generateBudgetReportExcel(result.rows, fiscalYear);
 
-                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                res.setHeader('Content-Disposition', `attachment; filename=budget_report_${fiscalYear}_${Date.now()}.xlsx`);
-                res.send(excelBuffer);
-            });
-        } catch (error) {
-            next(error);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=budget_report_${fiscalYear}_${Date.now()}.xlsx`);
+            res.send(excelBuffer);
+        } catch (err) {
+            logError(err, { context: 'get_budgets_for_excel' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -596,25 +520,21 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      */
     app.get('/api/reports/fx-rates/excel', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
-            db.all(`
+            const result = await pool.query(`
                 SELECT fr.*, u.full_name as updated_by_name
                 FROM fx_rates fr
                 LEFT JOIN users u ON fr.updated_by = u.id
                 ORDER BY fr.currency_code, fr.created_at DESC
-            `, [], async (err, rates) => {
-                if (err) {
-                    logError(err, { context: 'get_fx_rates_for_excel' });
-                    return next(new AppError('Database error', 500));
-                }
+            `);
 
-                const excelBuffer = await generateFXRatesExcel(rates);
+            const excelBuffer = await generateFXRatesExcel(result.rows);
 
-                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                res.setHeader('Content-Disposition', `attachment; filename=fx_rates_report_${Date.now()}.xlsx`);
-                res.send(excelBuffer);
-            });
-        } catch (error) {
-            next(error);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=fx_rates_report_${Date.now()}.xlsx`);
+            res.send(excelBuffer);
+        } catch (err) {
+            logError(err, { context: 'get_fx_rates_for_excel' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -627,7 +547,7 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Generate PDF report of requisitions
      * Access: Finance Manager, MD, Admin
      */
-    app.get('/api/reports/requisitions/pdf', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.get('/api/reports/requisitions/pdf', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const { dateFrom, dateTo, status, department } = req.query;
 
@@ -638,71 +558,68 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
                 WHERE 1=1
             `;
             const params = [];
+            let paramIndex = 1;
 
             if (dateFrom) {
-                query += ' AND DATE(r.created_at) >= DATE(?)';
+                query += ` AND DATE(r.created_at) >= DATE($${paramIndex++})`;
                 params.push(dateFrom);
             }
 
             if (dateTo) {
-                query += ' AND DATE(r.created_at) <= DATE(?)';
+                query += ` AND DATE(r.created_at) <= DATE($${paramIndex++})`;
                 params.push(dateTo);
             }
 
             if (status) {
-                query += ' AND r.status = ?';
+                query += ` AND r.status = $${paramIndex++}`;
                 params.push(status);
             }
 
             if (department) {
-                query += ' AND u.department = ?';
+                query += ` AND u.department = $${paramIndex++}`;
                 params.push(department);
             }
 
             query += ' ORDER BY r.created_at DESC';
 
-            db.all(query, params, (err, requisitions) => {
-                if (err) {
-                    logError(err, { context: 'get_requisitions_for_pdf' });
-                    return next(new AppError('Database error', 500));
-                }
+            const reqResult = await pool.query(query, params);
+            const requisitions = reqResult.rows;
 
-                // Get items for each requisition
-                let completed = 0;
-                requisitions.forEach(req => {
-                    db.all(`
-                        SELECT ri.*, v.name as vendor_name
-                        FROM requisition_items ri
-                        LEFT JOIN vendors v ON ri.vendor_id = v.id
-                        WHERE ri.requisition_id = ?
-                    `, [req.id], (itemsErr, items) => {
-                        req.items = items || [];
-                        completed++;
+            if (requisitions.length === 0) {
+                const doc = generateRequisitionSummaryPDF([], { dateFrom, dateTo, status, department });
 
-                        if (completed === requisitions.length) {
-                            const doc = generateRequisitionSummaryPDF(requisitions, { dateFrom, dateTo, status, department });
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename=requisitions_report_${Date.now()}.pdf`);
 
-                            res.setHeader('Content-Type', 'application/pdf');
-                            res.setHeader('Content-Disposition', `attachment; filename=requisitions_report_${Date.now()}.pdf`);
+                doc.pipe(res);
+                doc.end();
+                return;
+            }
 
-                            doc.pipe(res);
-                            doc.end();
-                        }
-                    });
-                });
-
-                if (requisitions.length === 0) {
-                    const doc = generateRequisitionSummaryPDF([], { dateFrom, dateTo, status, department });
-
-                    res.setHeader('Content-Type', 'application/pdf');
-                    res.setHeader('Content-Disposition', `attachment; filename=requisitions_report_${Date.now()}.pdf`);
-
-                    doc.pipe(res);
-                    doc.end();
-                }
+            // Get items for each requisition
+            const reqPromises = requisitions.map(async req => {
+                const itemsResult = await pool.query(`
+                    SELECT ri.*, v.name as vendor_name
+                    FROM requisition_items ri
+                    LEFT JOIN vendors v ON ri.vendor_id = v.id
+                    WHERE ri.requisition_id = $1
+                `, [req.id]);
+                req.items = itemsResult.rows || [];
+                return req;
             });
-        } catch (error) {
-            next(error);
+
+            await Promise.all(reqPromises);
+
+            const doc = generateRequisitionSummaryPDF(requisitions, { dateFrom, dateTo, status, department });
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=requisitions_report_${Date.now()}.pdf`);
+
+            doc.pipe(res);
+            doc.end();
+        } catch (err) {
+            logError(err, { context: 'get_requisitions_for_pdf' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -711,30 +628,26 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Generate PDF report of budgets
      * Access: Finance Manager, MD, Admin
      */
-    app.get('/api/reports/budgets/pdf', authenticate, authorize('finance', 'md', 'admin'), (req, res, next) => {
+    app.get('/api/reports/budgets/pdf', authenticate, authorize('finance', 'md', 'admin'), async (req, res, next) => {
         try {
             const fiscalYear = req.query.fiscal_year || new Date().getFullYear().toString();
 
-            db.all(`
+            const result = await pool.query(`
                 SELECT * FROM budgets
-                WHERE fiscal_year = ?
+                WHERE fiscal_year = $1
                 ORDER BY department
-            `, [fiscalYear], (err, budgets) => {
-                if (err) {
-                    logError(err, { context: 'get_budgets_for_pdf' });
-                    return next(new AppError('Database error', 500));
-                }
+            `, [fiscalYear]);
 
-                const doc = generateBudgetReportPDF(budgets, fiscalYear);
+            const doc = generateBudgetReportPDF(result.rows, fiscalYear);
 
-                res.setHeader('Content-Type', 'application/pdf');
-                res.setHeader('Content-Disposition', `attachment; filename=budget_report_${fiscalYear}_${Date.now()}.pdf`);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=budget_report_${fiscalYear}_${Date.now()}.pdf`);
 
-                doc.pipe(res);
-                doc.end();
-            });
-        } catch (error) {
-            next(error);
+            doc.pipe(res);
+            doc.end();
+        } catch (err) {
+            logError(err, { context: 'get_budgets_for_pdf' });
+            next(new AppError('Database error', 500));
         }
     });
 
@@ -743,7 +656,7 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
      * Generate departmental spending PDF report
      * Access: Finance Manager, MD, Admin, HOD (own department)
      */
-    app.get('/api/reports/department/:department/pdf', authenticate, authorize('finance', 'md', 'admin', 'hod'), (req, res, next) => {
+    app.get('/api/reports/department/:department/pdf', authenticate, authorize('finance', 'md', 'admin', 'hod'), async (req, res, next) => {
         try {
             const department = req.params.department;
 
@@ -755,63 +668,55 @@ module.exports = function setupFXAndBudgetRoutes(app, db, authenticate, authoriz
             const fiscalYear = req.query.fiscal_year || new Date().getFullYear().toString();
 
             // Get budget info
-            db.get(`
+            const budgetResult = await pool.query(`
                 SELECT * FROM budgets
-                WHERE department = ? AND fiscal_year = ?
-            `, [department, fiscalYear], (budgetErr, budget) => {
-                if (budgetErr) {
-                    logError(budgetErr, { context: 'get_dept_budget_for_report', department });
-                    return next(new AppError('Database error', 500));
-                }
+                WHERE department = $1 AND fiscal_year = $2
+            `, [department, fiscalYear]);
 
-                // Get requisitions
-                db.all(`
-                    SELECT r.*, u.full_name as creator_name
-                    FROM requisitions r
-                    JOIN users u ON r.created_by = u.id
-                    WHERE u.department = ?
-                    ORDER BY r.created_at DESC
-                `, [department], (reqErr, requisitions) => {
-                    if (reqErr) {
-                        logError(reqErr, { context: 'get_dept_requisitions', department });
-                        return next(new AppError('Database error', 500));
-                    }
+            const budget = budgetResult.rows[0];
 
-                    // Get items for requisitions
-                    let completed = 0;
-                    if (requisitions.length === 0) {
-                        const doc = generateDepartmentalSpendingPDF(department, [], budget);
+            // Get requisitions
+            const reqResult = await pool.query(`
+                SELECT r.*, u.full_name as creator_name
+                FROM requisitions r
+                JOIN users u ON r.created_by = u.id
+                WHERE u.department = $1
+                ORDER BY r.created_at DESC
+            `, [department]);
 
-                        res.setHeader('Content-Type', 'application/pdf');
-                        res.setHeader('Content-Disposition', `attachment; filename=dept_${department}_report_${Date.now()}.pdf`);
+            const requisitions = reqResult.rows;
 
-                        doc.pipe(res);
-                        doc.end();
-                        return;
-                    }
+            if (requisitions.length === 0) {
+                const doc = generateDepartmentalSpendingPDF(department, [], budget);
 
-                    requisitions.forEach(req => {
-                        db.all(`SELECT * FROM requisition_items WHERE requisition_id = ?`,
-                            [req.id],
-                            (itemsErr, items) => {
-                                req.items = items || [];
-                                completed++;
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename=dept_${department}_report_${Date.now()}.pdf`);
 
-                                if (completed === requisitions.length) {
-                                    const doc = generateDepartmentalSpendingPDF(department, requisitions, budget);
+                doc.pipe(res);
+                doc.end();
+                return;
+            }
 
-                                    res.setHeader('Content-Type', 'application/pdf');
-                                    res.setHeader('Content-Disposition', `attachment; filename=dept_${department}_report_${Date.now()}.pdf`);
-
-                                    doc.pipe(res);
-                                    doc.end();
-                                }
-                            });
-                    });
-                });
+            // Get items for requisitions
+            const reqPromises = requisitions.map(async req => {
+                const itemsResult = await pool.query(`SELECT * FROM requisition_items WHERE requisition_id = $1`,
+                    [req.id]);
+                req.items = itemsResult.rows || [];
+                return req;
             });
-        } catch (error) {
-            next(error);
+
+            await Promise.all(reqPromises);
+
+            const doc = generateDepartmentalSpendingPDF(department, requisitions, budget);
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=dept_${department}_report_${Date.now()}.pdf`);
+
+            doc.pipe(res);
+            doc.end();
+        } catch (err) {
+            logError(err, { context: 'get_dept_report', department: req.params.department });
+            next(new AppError('Database error', 500));
         }
     });
 

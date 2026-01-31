@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>USER_MANAGEMENT_GUIDE</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>User Management Guide - Frontend Interface</h1><br><br><h2>Overview</h2><br><br>The Purchase Requisition System includes a fully functional user management interface accessible through the <strong>Admin Panel</strong>. This allows administrators to create, edit, and delete users without needing to run backend scripts.<br><br>---<br><br><h2>How to Access User Management</h2><br><br><h3>Step 1: Login as Admin</h3><br><br><ul><li>Open the frontend application in your browser</li></ul><br><ul><li>Login with admin credentials:</li></ul><br>   <pre><code><br>   Username: admin<br>   Password: admin123<br>   </code></pre><br><br><h3>Step 2: Navigate to Admin Panel</h3><br><br><ul><li>After logging in, click on the <strong>"Admin"</strong> tab in the top navigation bar</li></ul><br><ul><li>You should see tabs for: Users, Vendors, Departments, Department Codes, Reroute</li></ul><br><ul><li>The <strong>"Users"</strong> tab should be active by default</li></ul><br><br>---<br><br><h2>Creating a New User</h2><br><br><h3>Step-by-Step Process:</h3><br><br><h4>1. Click "+ Add User" Button</h4><br>   - Located in the top-right of the User Management section<br>   - This opens the user creation form<br><br><h4>2. Fill in User Details</h4><br><br><strong>Required Fields:</strong><br><ul><li><strong>Username:</strong> Unique login username (e.g., <code>sarah.banda</code>)</li></ul><br><ul><li><strong>Password:</strong> User's initial password (min 6 characters)</li></ul><br><ul><li><strong>Full Name:</strong> User's display name (e.g., <code>Sarah Banda</code>)</li></ul><br><ul><li><strong>Email:</strong> User's email address (e.g., <code>sarah@company.zm</code>)</li></ul><br><ul><li><strong>Role:</strong> Select from dropdown:</li></ul><br>  - <code>initiator</code> - Creates requisitions<br>  - <code>hod</code> - Approves requisitions (Head of Department)<br>  - <code>procurement</code> - Adds vendor information and pricing<br>  - <code>finance</code> - Finance Manager approval<br>  - <code>md</code> - Managing Director final approval<br>  - <code>admin</code> - Full system access<br><ul><li><strong>Department:</strong> Select from dropdown:</li></ul><br>  - IT<br>  - HR<br>  - Finance<br>  - Operations<br>  - Procurement<br>  - Executive<br><br><strong>Optional Fields:</strong><br><ul><li><strong>Is HOD:</strong> Check if this user is a Head of Department</li></ul><br><br><h4>3. Click "Save User"</h4><br>   - User will be created immediately<br>   - Success message will appear<br>   - User will appear in the users table below<br><br><h4>4. Click "Cancel" to Close Form</h4><br>   - Or click "Save User" to create another user<br><br>---<br><br><h2>Creating the Finance Manager User</h2><br><br><h3>Quick Guide:</h3><br><br><ul><li>Login as admin: <code>admin / admin123</code></li></ul><br><ul><li>Go to Admin Panel → Users tab</li></ul><br><ul><li>Click "+ Add User"</li></ul><br><ul><li>Fill in:</li></ul><br>   <pre><code><br>   Username:      sarah.banda<br>   Password:      password123<br>   Full Name:     Sarah Banda<br>   Email:         sarah@company.zm<br>   Role:          Finance<br>   Department:    Finance<br>   Is HOD:        ✓ (checked)<br>   </code></pre><br><ul><li>Click "Save User"</li></ul><br><ul><li>Done! Finance manager can now login</li></ul><br><br><h3>Test Login:</h3><br><pre><code><br>Username: sarah.banda<br>Password: password123<br></code></pre><br><br>---<br><br><h2>Creating Users for All Roles</h2><br><br><h3>Recommended Users for Complete Workflow:</h3><br><br><h4>1. Initiator</h4><br><pre><code><br>Username:      john.banda<br>Password:      password123<br>Full Name:     John Banda<br>Email:         john@company.zm<br>Role:          Initiator<br>Department:    IT<br>Is HOD:        ☐ (unchecked)<br></code></pre><br><br><h4>2. HOD (Head of Department)</h4><br><pre><code><br>Username:      mary.mwanza<br>Password:      password123<br>Full Name:     Mary Mwanza<br>Email:         mary@company.zm<br>Role:          HOD<br>Department:    IT<br>Is HOD:        ✓ (checked)<br></code></pre><br><br><h4>3. Procurement Officer</h4><br><pre><code><br>Username:      james.phiri<br>Password:      password123<br>Full Name:     James Phiri<br>Email:         james@company.zm<br>Role:          Procurement<br>Department:    Procurement<br>Is HOD:        ☐ (unchecked)<br></code></pre><br><br><h4>4. Finance Manager</h4><br><pre><code><br>Username:      sarah.banda<br>Password:      password123<br>Full Name:     Sarah Banda<br>Email:         sarah@company.zm<br>Role:          Finance<br>Department:    Finance<br>Is HOD:        ✓ (checked)<br></code></pre><br><br><h4>5. Managing Director</h4><br><pre><code><br>Username:      david.mulenga<br>Password:      password123<br>Full Name:     David Mulenga<br>Email:         david@company.zm<br>Role:          MD<br>Department:    Executive<br>Is HOD:        ☐ (unchecked)<br></code></pre><br><br>---<br><br><h2>Editing Existing Users</h2><br><br><h3>To Edit a User:</h3><br><br><ul><li>Find the user in the users table</li></ul><br><ul><li>Click the <strong>"Edit"</strong> button (yellow background)</li></ul><br><ul><li>User form will open with current details pre-filled</li></ul><br><ul><li>Modify any fields except username</li></ul><br><ul><li>Click "Save User" to update</li></ul><br><ul><li>Click "Cancel" to discard changes</li></ul><br><br><strong>Note:</strong> You cannot change a user's username after creation. If you need a different username, delete the user and create a new one.<br><br>---<br><br><h2>Resetting User Passwords</h2><br><br><h3>To Reset a Password:</h3><br><br><ul><li>Find the user in the users table</li></ul><br><ul><li>Click the <strong>"Reset Pwd"</strong> button (purple background)</li></ul><br><ul><li>A modal will appear</li></ul><br><ul><li>Enter the new password (min 6 characters)</li></ul><br><ul><li>Click "Reset Password"</li></ul><br><ul><li>User can now login with the new password</li></ul><br><br><strong>Note:</strong> The user will need to be informed of their new password separately.<br><br>---<br><br><h2>Deleting Users</h2><br><br><h3>To Delete a User:</h3><br><br><ul><li>Find the user in the users table</li></ul><br><ul><li>Click the <strong>"Delete"</strong> button (red background)</li></ul><br><ul><li>Confirm the deletion in the popup</li></ul><br><ul><li>User will be permanently deleted</li></ul><br><br><strong>Important:</strong><br><ul><li>You cannot delete your own account</li></ul><br><ul><li>Deleted users cannot be recovered</li></ul><br><ul><li>All data associated with the user remains (requisitions they created, etc.)</li></ul><br><br>---<br><br><h2>User Table Columns</h2><br><br>The users table displays:<br><br>| Column | Description |<br>|--------|-------------|<br>| <strong>Username</strong> | Login username |<br>| <strong>Full Name</strong> | User's display name |<br>| <strong>Email</strong> | Contact email |<br>| <strong>Role</strong> | User's role (blue badge) |<br>| <strong>Department</strong> | User's department |<br>| <strong>Actions</strong> | Edit, Delete, Reset Password buttons |<br><br>---<br><br><h2>Available Roles and Permissions</h2><br><br><h3>Role Details:</h3><br><br>| Role | Dashboard View | Can Approve | Special Actions |<br>|------|---------------|-------------|-----------------|<br>| <strong>Initiator</strong> | Own requisitions | No | Create, Submit requisitions |<br>| <strong>HOD</strong> | Department reqs with <code>pending<em>hod</code> | Yes (pending</em>hod) | Approve/Reject dept requisitions |<br>| <strong>Procurement</strong> | All <code>pending_procurement</code> | No | Add vendors, pricing |<br>| <strong>Finance</strong> | All <code>pending<em>finance</code> | Yes (pending</em>finance) | Approve/Reject for budget |<br>| <strong>MD</strong> | All <code>pending<em>md</code> | Yes (pending</em>md) | Final approval + PO generation |<br>| <strong>Admin</strong> | All requisitions | Yes (all stages) | Full access + user management |<br><br>---<br><br><h2>Department Options</h2><br><br>Currently available departments:<br><ul><li><strong>IT</strong> - Information Technology</li></ul><br><ul><li><strong>HR</strong> - Human Resources</li></ul><br><ul><li><strong>Finance</strong> - Finance Department</li></ul><br><ul><li><strong>Operations</strong> - Operations Department</li></ul><br><ul><li><strong>Procurement</strong> - Procurement Department</li></ul><br><ul><li><strong>Executive</strong> - Executive Management</li></ul><br><br><strong>Note:</strong> HOD users will only see requisitions from their own department.<br><br>---<br><br><h2>Best Practices</h2><br><br><h3>Security:</h3><br><ul><li><strong>Change Default Passwords:</strong> After creating users, inform them to change their password on first login</li></ul><br><ul><li><strong>Use Strong Passwords:</strong> Minimum 6 characters, but recommend 8+ with mix of letters and numbers</li></ul><br><ul><li><strong>Limit Admin Accounts:</strong> Only create admin accounts for trusted personnel</li></ul><br><ul><li><strong>Regular Audits:</strong> Periodically review user list and remove inactive users</li></ul><br><br><h3>Organization:</h3><br><ul><li><strong>Consistent Naming:</strong> Use firstname.lastname format for usernames</li></ul><br><ul><li><strong>Department Assignment:</strong> Ensure users are assigned to correct departments</li></ul><br><ul><li><strong>Role Assignment:</strong> Assign the most restrictive role necessary</li></ul><br><ul><li><strong>HOD Flag:</strong> Only check "Is HOD" for actual department heads</li></ul><br><br><h3>Documentation:</h3><br><ul><li><strong>Keep Records:</strong> Maintain a list of all users and their roles</li></ul><br><ul><li><strong>Onboarding:</strong> Document the user creation process for new admins</li></ul><br><ul><li><strong>Password Policy:</strong> Establish and communicate password requirements</li></ul><br><br>---<br><br><h2>Troubleshooting</h2><br><br><h3>Issue: "Failed to create user"</h3><br><br><strong>Possible Causes:</strong><br><ul><li>Username already exists</li></ul><br><ul><li>Missing required fields</li></ul><br><ul><li>Invalid email format</li></ul><br><ul><li>Password too short (< 6 characters)</li></ul><br><br><strong>Solution:</strong><br><ul><li>Check all required fields are filled</li></ul><br><ul><li>Try a different username</li></ul><br><ul><li>Ensure email format is valid (name@domain.com)</li></ul><br><ul><li>Use password with at least 6 characters</li></ul><br><br><h3>Issue: User created but can't login</h3><br><br><strong>Possible Causes:</strong><br><ul><li>Password was typed incorrectly</li></ul><br><ul><li>Caps Lock is on</li></ul><br><ul><li>Username has extra spaces</li></ul><br><br><strong>Solution:</strong><br><ul><li>Reset the user's password through Admin Panel</li></ul><br><ul><li>Inform user of the new password</li></ul><br><ul><li>Ensure they're typing credentials exactly as created</li></ul><br><br><h3>Issue: Can't see Admin Panel</h3><br><br><strong>Possible Causes:</strong><br><ul><li>User doesn't have admin role</li></ul><br><ul><li>Not logged in</li></ul><br><br><strong>Solution:</strong><br><ul><li>Only users with role=admin can access Admin Panel</li></ul><br><ul><li>Login with admin credentials</li></ul><br><ul><li>Create another admin user if needed</li></ul><br><br>---<br><br><h2>API Endpoints Used</h2><br><br>The frontend user management uses these backend endpoints:<br><br>| Method | Endpoint | Purpose |<br>|--------|----------|---------|<br>| GET | <code>/api/admin/users</code> | List all users |<br>| POST | <code>/api/admin/users</code> | Create new user |<br>| PUT | <code>/api/admin/users/:id</code> | Update user |<br>| DELETE | <code>/api/admin/users/:id</code> | Delete user |<br>| PUT | <code>/api/admin/users/:id/reset-password</code> | Reset password |<br><br>All endpoints require authentication and admin role.<br><br>---<br><br><h2>Example Workflow: Setting Up Complete System</h2><br><br><h3>Initial Setup (One-time):</h3><br><br><ul><li><strong>Login as default admin:</strong></li></ul><br>   <pre><code><br>   Username: admin<br>   Password: admin123<br>   </code></pre><br><br><ul><li><strong>Create Finance Manager:</strong></li></ul><br>   - Go to Admin Panel → Users<br>   - Click "+ Add User"<br>   - Fill: sarah.banda, Finance role, Finance dept<br>   - Save<br><br><ul><li><strong>Create MD:</strong></li></ul><br>   - Click "+ Add User"<br>   - Fill: david.mulenga, MD role, Executive dept<br>   - Save<br><br><ul><li><strong>Create Procurement Officer:</strong></li></ul><br>   - Click "+ Add User"<br>   - Fill: james.phiri, Procurement role, Procurement dept<br>   - Save<br><br><ul><li><strong>Create HODs for each department:</strong></li></ul><br>   - IT HOD: mary.mwanza<br>   - Operations HOD: joe.munthali<br>   - Finance HOD: anne.banda<br><br><ul><li><strong>Create Initiators:</strong></li></ul><br>   - IT Initiator: john.banda<br>   - Operations Initiator: justine.kaluya<br><br><h3>Testing:</h3><br><br><ul><li>Logout from admin account</li></ul><br><ul><li>Login as john.banda (initiator)</li></ul><br><ul><li>Create and submit a requisition</li></ul><br><ul><li>Login as mary.mwanza (HOD)</li></ul><br><ul><li>Approve the requisition</li></ul><br><ul><li>Login as james.phiri (procurement)</li></ul><br><ul><li>Add vendor and pricing, submit</li></ul><br><ul><li>Login as sarah.banda (finance)</li></ul><br><ul><li>Approve for budget</li></ul><br><ul><li>Login as david.mulenga (MD)</li></ul><br><ul><li>Final approval - PO generated!</li></ul><br><br>---<br><br><h2>Summary</h2><br><br>✅ <strong>User management is fully functional through the frontend!</strong><br><br><ul><li>No need to run backend scripts</li></ul><br><ul><li>Admins can create users through UI</li></ul><br><ul><li>All roles supported: Initiator, HOD, Procurement, Finance, MD, Admin</li></ul><br><ul><li>Password reset capability included</li></ul><br><ul><li>User editing and deletion available</li></ul><br><br><strong>To create the Finance Manager user:</strong><br><ul><li>Login as admin</li></ul><br><ul><li>Admin Panel → Users → "+ Add User"</li></ul><br><ul><li>Fill: <code>sarah.banda</code>, role <code>Finance</code>, dept <code>Finance</code></li></ul><br><ul><li>Save!</li></ul><br><br>---<br><br><strong>Last Updated:</strong> October 30, 2025<br><strong>Status:</strong> ✅ Fully Functional<br><strong>Access:</strong> Admin role required<br>
+</body>
+</html>

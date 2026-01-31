@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TROUBLESHOOTING</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Troubleshooting Guide - Purchase Requisition System</h1><br><br><h2>Problem: Blank Screen After Login</h2><br><br>If you encounter a blank screen after logging in, follow these steps:<br><br><h3>Quick Fix (Recommended)</h3><br><ul><li><strong>Hard Refresh</strong>: Press <code>Ctrl + Shift + R</code> (Windows/Linux) or <code>Cmd + Shift + R</code> (Mac)</li></ul><br><ul><li><strong>Clear Browser Cache</strong>:</li></ul><br>   - Open Developer Tools: Press <code>F12</code><br>   - Right-click the refresh button<br>   - Select "Empty Cache and Hard Reload"<br><ul><li><strong>Try Incognito/Private Mode</strong>: Open the app in a private/incognito window</li></ul><br><br><h3>Permanent Solution</h3><br><br>The system now has <strong>automatic cache clearing</strong> built-in (Version 5.0.0+). Every time you load the page:<br><ul><li>All service workers are unregistered</li></ul><br><ul><li>All cache storage is cleared</li></ul><br><ul><li>Old localStorage entries are removed</li></ul><br><ul><li>Version checking ensures fresh code</li></ul><br><br><h3>If Problem Persists</h3><br><br><ul><li><strong>Check Browser Console</strong>:</li></ul><br>   - Press <code>F12</code> to open Developer Tools<br>   - Click on the "Console" tab<br>   - Look for error messages (red text)<br>   - The console will show helpful diagnostic messages:<br>     - ✓ = Success (green checkmark)<br>     - ❌ = Error (red X)<br>     - ⚠️ = Warning (yellow warning)<br><br><ul><li><strong>Verify Backend is Running</strong>:</li></ul><br>   <pre><code>bash<br>   # The backend should be running on port 3001<br>   # Check if you see this message:<br>   🚀 Server running on http://localhost:3001<br>   </code></pre><br><br><ul><li><strong>Check Network Tab</strong>:</li></ul><br>   - In Developer Tools, click "Network" tab<br>   - Refresh the page<br>   - Verify that <code>app.js</code> loads successfully (should show status 200)<br><br><ul><li><strong>Manual Cache Clear</strong>:</li></ul><br>   - In Developer Tools, go to "Application" tab (Chrome) or "Storage" tab (Firefox)<br>   - Under "Storage", click "Clear site data"<br>   - Check all boxes and click "Clear"<br>   - Reload the page<br><br><h3>Error Messages Explained</h3><br><br><h4>"React Failed to Load"</h4><br><ul><li><strong>Cause</strong>: Internet connection issue or CDN is blocked</li></ul><br><ul><li><strong>Fix</strong>: Check your internet connection, try a different network</li></ul><br><br><h4>"Application Failed to Load"</h4><br><ul><li><strong>Cause</strong>: app.js file couldn't load or has a syntax error</li></ul><br><ul><li><strong>Fix</strong>:</li></ul><br>  1. Verify backend server is running<br>  2. Check browser console for JavaScript errors<br>  3. Ensure <code>C:\Projects\purchase-requisition-system\frontend\app.js</code> exists<br><br><h4>"Application Error" with stack trace</h4><br><ul><li><strong>Cause</strong>: Runtime JavaScript error in the application</li></ul><br><ul><li><strong>Fix</strong>: Take a screenshot of the error and check the file/line number mentioned</li></ul><br><br><h3>System Architecture</h3><br><br>The application consists of:<br><ul><li><strong>index.html</strong>: Entry point with cache clearing and error handling</li></ul><br><ul><li><strong>app.js</strong>: Main application code with all components (Sidebar, TopBar, etc.)</li></ul><br><ul><li><strong>Backend</strong>: Node.js server on port 3001</li></ul><br><br><h3>Version Information</h3><br><br>Current Version: <strong>5.0.0</strong><br><br>Features:<br><ul><li>✅ Automatic cache clearing</li></ul><br><ul><li>✅ Left sidebar navigation</li></ul><br><ul><li>✅ Budget management (Finance/MD/Admin)</li></ul><br><ul><li>✅ FX Rates management (Finance/Procurement/Admin)</li></ul><br><ul><li>✅ Complete error diagnostics</li></ul><br><ul><li>✅ Loading state indicators</li></ul><br><br><h3>Contact Support</h3><br><br>If none of these solutions work:<br><ul><li>Open browser Developer Tools (F12)</li></ul><br><ul><li>Copy all console messages</li></ul><br><ul><li>Copy any error messages displayed on screen</li></ul><br><ul><li>Report the issue with these details</li></ul><br><br><h3>Advanced: Complete Reset</h3><br><br>To completely reset the application state:<br><br><pre><code>javascript<br>// Run this in browser console (F12 > Console tab)<br>localStorage.clear();<br>sessionStorage.clear();<br>location.reload(true);<br></code></pre><br><br>This will log you out and clear all stored data.<br>
+</body>
+</html>

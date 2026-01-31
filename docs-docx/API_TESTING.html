@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>API_TESTING</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>API Testing Guide - Purchase Requisition System</h1><br><br><h2>Quick Start Testing</h2><br><br><h3>Prerequisites</h3><br><ul><li>Server running on <code>http://localhost:3001</code></li></ul><br><ul><li>Login to get JWT token</li></ul><br><ul><li>Use token in Authorization header for protected endpoints</li></ul><br><br>---<br><br><h2>Step 1: Login</h2><br><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{<br>    "username": "john.banda",<br>    "password": "password123"<br>  }'<br></code></pre><br><br><strong>Save the token from response:</strong><br><pre><code>json<br>{<br>  "success": true,<br>  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",<br>  "refreshToken": "...",<br>  "user": { "id": 1, "role": "initiator", ... }<br>}<br></code></pre><br><br><strong>For subsequent requests, use:</strong><br><pre><code>bash<br>TOKEN="your<em>token</em>here"<br></code></pre><br><br>---<br><br><h2>Step 2: Create Requisition (Draft)</h2><br><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/requisitions \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $TOKEN" \<br>  -d '{<br>    "description": "Laptops and accessories for IT team",<br>    "delivery_location": "IT Office, 3rd Floor",<br>    "urgency": "High",<br>    "required_date": "2025-11-15",<br>    "account_code": "IT-2025-Q4",<br>    "created_by": 1,<br>    "items": [<br>      {<br>        "item_name": "Dell Latitude 5520 Laptop",<br>        "quantity": 3,<br>        "specifications": "i7-11th Gen, 16GB RAM, 512GB SSD"<br>      },<br>      {<br>        "item_name": "Wireless Mouse",<br>        "quantity": 3,<br>        "specifications": "Logitech M330"<br>      }<br>    ]<br>  }'<br></code></pre><br><br><strong>Response:</strong><br><pre><code>json<br>{<br>  "success": true,<br>  "requisition_id": 1,<br>  "req_number": "KSB-IT-JB-20251023124500"<br>}<br></code></pre><br><br><strong>Save the requisition_id:</strong><br><pre><code>bash<br>REQ_ID=1<br></code></pre><br><br>---<br><br><h2>Step 3: View Requisition</h2><br><br><pre><code>bash<br>curl -X GET http://localhost:3001/api/requisitions/$REQ_ID \<br>  -H "Authorization: Bearer $TOKEN"<br></code></pre><br><br>---<br><br><h2>Step 4: Add Another Item</h2><br><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/requisitions/$REQ_ID/items \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $TOKEN" \<br>  -d '{<br>    "item_name": "USB-C Docking Station",<br>    "quantity": 2,<br>    "specifications": "Dell WD19, 130W"<br>  }'<br></code></pre><br><br>---<br><br><h2>Step 5: Submit for Approval</h2><br><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/submit \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $TOKEN" \<br>  -d '{<br>    "user_id": 1<br>  }'<br></code></pre><br><br><strong>Status changes from <code>draft</code> to <code>pending_hod</code></strong><br><br>---<br><br><h2>Step 6: HOD Login</h2><br><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{<br>    "username": "mary.mwanza",<br>    "password": "password123"<br>  }'<br></code></pre><br><br><strong>Save HOD token:</strong><br><pre><code>bash<br>HOD<em>TOKEN="hod</em>token_here"<br></code></pre><br><br>---<br><br><h2>Step 7a: HOD Approves</h2><br><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/hod-approve \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $HOD_TOKEN" \<br>  -d '{<br>    "user_id": 2,<br>    "approved": true,<br>    "comments": "Approved. Budget allocated for Q4 IT upgrades."<br>  }'<br></code></pre><br><br><strong>Status changes to <code>hod_approved</code></strong><br><br>---<br><br><h2>Step 7b: HOD Rejects (Alternative)</h2><br><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/hod-approve \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $HOD_TOKEN" \<br>  -d '{<br>    "user_id": 2,<br>    "approved": false,<br>    "comments": "Budget constraints. Please reduce quantity or find cheaper alternatives."<br>  }'<br></code></pre><br><br><strong>Status changes to <code>rejected</code></strong><br><br>---<br><br><h2>Step 8: Admin Redirection (Optional)</h2><br><br><strong>Login as admin:</strong><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{<br>    "username": "admin",<br>    "password": "admin123"<br>  }'<br></code></pre><br><br><strong>Redirect requisition:</strong><br><pre><code>bash<br>ADMIN<em>TOKEN="admin</em>token_here"<br><br>curl -X POST http://localhost:3001/api/requisitions/$REQ_ID/redirect \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $ADMIN_TOKEN" \<br>  -d '{<br>    "from<em>user</em>id": 2,<br>    "to<em>user</em>id": 4,<br>    "reason": "Original HOD on medical leave. Redirecting to Acting HOD (Sarah Banda).",<br>    "stage": "hod_approval"<br>  }'<br></code></pre><br><br>---<br><br><h2>Step 9: Procurement Login</h2><br><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{<br>    "username": "james.phiri",<br>    "password": "password123"<br>  }'<br></code></pre><br><br><strong>Save procurement token:</strong><br><pre><code>bash<br>PROC<em>TOKEN="procurement</em>token_here"<br></code></pre><br><br>---<br><br><h2>Step 10: Get Vendors List</h2><br><br><pre><code>bash<br>curl -X GET http://localhost:3001/api/vendors \<br>  -H "Authorization: Bearer $PROC_TOKEN"<br></code></pre><br><br><strong>Response:</strong><br><pre><code>json<br>[<br>  { "id": 1, "name": "Tech Solutions Ltd", ... },<br>  { "id": 2, "name": "Office Supplies Co", ... },<br>  { "id": 3, "name": "Hardware Plus", ... }<br>]<br></code></pre><br><br>---<br><br><h2>Step 11: Update Item with Vendor and Pricing</h2><br><br><strong>Get item IDs first:</strong><br><pre><code>bash<br>curl -X GET http://localhost:3001/api/requisitions/$REQ_ID \<br>  -H "Authorization: Bearer $PROC_TOKEN"<br></code></pre><br><br><strong>Update first item:</strong><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/items/1 \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{<br>    "unit_price": 5500.00,<br>    "vendor_id": 1<br>  }'<br></code></pre><br><br><strong>Total Price calculated automatically: 3 × 5500 = K16,500.00</strong><br><br><strong>Update second item:</strong><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/items/2 \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{<br>    "unit_price": 150.00,<br>    "vendor_id": 2<br>  }'<br></code></pre><br><br><strong>Total Price: 3 × 150 = K450.00</strong><br><br><strong>Update third item:</strong><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/items/3 \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{<br>    "unit_price": 850.00,<br>    "vendor_id": 1<br>  }'<br></code></pre><br><br><strong>Total Price: 2 × 850 = K1,700.00</strong><br><br><strong>Grand Total: 16,500 + 450 + 1,700 = K18,650.00</strong> ✅<br><br>---<br><br><h2>Step 12: Complete Procurement</h2><br><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/procurement \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{<br>    "user_id": 3,<br>    "comments": "All vendors confirmed. Delivery scheduled for Nov 10, 2025."<br>  }'<br></code></pre><br><br><strong>Status changes to <code>procurement_completed</code></strong><br><br>---<br><br><h2>Step 13: Generate PDF</h2><br><br><strong>Any authenticated user can download:</strong><br><pre><code>bash<br>curl -X GET http://localhost:3001/api/requisitions/$REQ_ID/pdf \<br>  -H "Authorization: Bearer $TOKEN" \<br>  --output "Requisition<em>${REQ</em>ID}.pdf"<br></code></pre><br><br><strong>File downloaded:</strong> <code>Requisition_1.pdf</code><br><br>---<br><br><h2>Testing Error Cases</h2><br><br><h3>1. Reject without comments (should fail)</h3><br><br><pre><code>bash<br>curl -X PUT http://localhost:3001/api/requisitions/$REQ_ID/hod-approve \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $HOD_TOKEN" \<br>  -d '{<br>    "user_id": 2,<br>    "approved": false<br>  }'<br></code></pre><br><br><strong>Expected Error:</strong><br><pre><code>json<br>{<br>  "error": "Comments required when rejecting a requisition"<br>}<br></code></pre><br><br>---<br><br><h3>2. PDF on draft (should fail)</h3><br><br><pre><code>bash<br>curl -X GET http://localhost:3001/api/requisitions/$REQ_ID/pdf \<br>  -H "Authorization: Bearer $TOKEN"<br></code></pre><br><br><strong>Expected Error:</strong><br><pre><code>json<br>{<br>  "error": "PDF can only be generated for approved requisitions",<br>  "current_status": "draft"<br>}<br></code></pre><br><br>---<br><br><h3>3. Missing required fields</h3><br><br><pre><code>bash<br>curl -X POST http://localhost:3001/api/requisitions/$REQ_ID/items \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $TOKEN" \<br>  -d '{<br>    "specifications": "Some specs"<br>  }'<br></code></pre><br><br><strong>Expected Error:</strong><br><pre><code>json<br>{<br>  "error": "Item name and quantity are required"<br>}<br></code></pre><br><br>---<br><br><h2>Complete Workflow Test Script</h2><br><br>Save this as <code>test_workflow.sh</code>:<br><br><pre><code>bash<br>#!/bin/bash<br><br>BASE_URL="http://localhost:3001"<br><br><h1>Colors</h1><br>GREEN='\033[0;32m'<br>RED='\033[0;31m'<br>NC='\033[0m' # No Color<br><br>echo "=== Purchase Requisition System - Full Workflow Test ==="<br><br><h1>1. Login as Initiator</h1><br>echo -e "\n${GREEN}1. Login as Initiator${NC}"<br>LOGIN<em>RESP=$(curl -s -X POST $BASE</em>URL/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{"username":"john.banda","password":"password123"}')<br><br>TOKEN=$(echo $LOGIN_RESP | grep -o '"token":"[^"]*' | cut -d'"' -f4)<br>echo "Token: ${TOKEN:0:20}..."<br><br><h1>2. Create Requisition</h1><br>echo -e "\n${GREEN}2. Create Requisition${NC}"<br>CREATE<em>RESP=$(curl -s -X POST $BASE</em>URL/api/requisitions \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $TOKEN" \<br>  -d '{<br>    "description": "Test requisition",<br>    "delivery_location": "IT Office",<br>    "urgency": "High",<br>    "required_date": "2025-11-15",<br>    "account_code": "IT-2025-TEST",<br>    "created_by": 1,<br>    "items": [<br>      {"item_name": "Laptop", "quantity": 2, "specifications": "Dell i7"},<br>      {"item_name": "Mouse", "quantity": 2, "specifications": "Wireless"}<br>    ]<br>  }')<br><br>REQ<em>ID=$(echo $CREATE</em>RESP | grep -o '"requisition_id":[0-9]*' | cut -d':' -f2)<br>echo "Created Requisition ID: $REQ_ID"<br><br><h1>3. Submit</h1><br>echo -e "\n${GREEN}3. Submit for Approval${NC}"<br>curl -s -X PUT $BASE<em>URL/api/requisitions/$REQ</em>ID/submit \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $TOKEN" \<br>  -d "{\"user_id\": 1}" | jq<br><br><h1>4. Login as HOD</h1><br>echo -e "\n${GREEN}4. Login as HOD${NC}"<br>HOD<em>LOGIN=$(curl -s -X POST $BASE</em>URL/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{"username":"mary.mwanza","password":"password123"}')<br><br>HOD<em>TOKEN=$(echo $HOD</em>LOGIN | grep -o '"token":"[^"]*' | cut -d'"' -f4)<br>echo "HOD Token: ${HOD_TOKEN:0:20}..."<br><br><h1>5. HOD Approve</h1><br>echo -e "\n${GREEN}5. HOD Approve${NC}"<br>curl -s -X PUT $BASE<em>URL/api/requisitions/$REQ</em>ID/hod-approve \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $HOD_TOKEN" \<br>  -d '{"user_id": 2, "approved": true, "comments": "Test approval"}' | jq<br><br><h1>6. Login as Procurement</h1><br>echo -e "\n${GREEN}6. Login as Procurement${NC}"<br>PROC<em>LOGIN=$(curl -s -X POST $BASE</em>URL/api/auth/login \<br>  -H "Content-Type: application/json" \<br>  -d '{"username":"james.phiri","password":"password123"}')<br><br>PROC<em>TOKEN=$(echo $PROC</em>LOGIN | grep -o '"token":"[^"]*' | cut -d'"' -f4)<br>echo "Procurement Token: ${PROC_TOKEN:0:20}..."<br><br><h1>7. Add pricing</h1><br>echo -e "\n${GREEN}7. Add Pricing to Items${NC}"<br>curl -s -X PUT $BASE<em>URL/api/requisitions/$REQ</em>ID/items/1 \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{"unit<em>price": 5500.00, "vendor</em>id": 1}' | jq<br><br>curl -s -X PUT $BASE<em>URL/api/requisitions/$REQ</em>ID/items/2 \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{"unit<em>price": 150.00, "vendor</em>id": 2}' | jq<br><br><h1>8. Complete procurement</h1><br>echo -e "\n${GREEN}8. Complete Procurement${NC}"<br>curl -s -X PUT $BASE<em>URL/api/requisitions/$REQ</em>ID/procurement \<br>  -H "Content-Type: application/json" \<br>  -H "Authorization: Bearer $PROC_TOKEN" \<br>  -d '{"user_id": 3, "comments": "All vendors confirmed"}' | jq<br><br><h1>9. Generate PDF</h1><br>echo -e "\n${GREEN}9. Generate PDF${NC}"<br>curl -X GET $BASE<em>URL/api/requisitions/$REQ</em>ID/pdf \<br>  -H "Authorization: Bearer $TOKEN" \<br>  --output "Test<em>Requisition</em>$REQ_ID.pdf"<br><br>echo -e "\n${GREEN}=== Test Complete ===${NC}"<br>echo "PDF saved as: Test<em>Requisition</em>$REQ_ID.pdf"<br></code></pre><br><br><strong>Run the script:</strong><br><pre><code>bash<br>chmod +x test_workflow.sh<br>./test_workflow.sh<br></code></pre><br><br>---<br><br><h2>Postman Collection</h2><br><br>Import this JSON into Postman:<br><br><pre><code>json<br>{<br>  "info": {<br>    "name": "Purchase Requisition System",<br>    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"<br>  },<br>  "variable": [<br>    {<br>      "key": "base_url",<br>      "value": "http://localhost:3001"<br>    },<br>    {<br>      "key": "token",<br>      "value": ""<br>    },<br>    {<br>      "key": "req_id",<br>      "value": ""<br>    }<br>  ],<br>  "item": [<br>    {<br>      "name": "Auth",<br>      "item": [<br>        {<br>          "name": "Login - Initiator",<br>          "request": {<br>            "method": "POST",<br>            "header": [],<br>            "body": {<br>              "mode": "raw",<br>              "raw": "{\n  \"username\": \"john.banda\",\n  \"password\": \"password123\"\n}",<br>              "options": { "raw": { "language": "json" } }<br>            },<br>            "url": { "raw": "{{base_url}}/api/auth/login" }<br>          }<br>        }<br>      ]<br>    }<br>  ]<br>}<br></code></pre><br><br>---<br><br><strong>For complete API documentation, see:</strong> <code>WORKFLOW_GUIDE.md</code><br>
+</body>
+</html>

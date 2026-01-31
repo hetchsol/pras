@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ADMIN_FEATURES_IMPLEMENTATION</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Admin Features Implementation Guide</h1><br><br><h2>✅ COMPLETED</h2><br><br><h3>Backend (100% Done)</h3><br><ul><li>✅ Database tables created (departments, department_codes)</li></ul><br><ul><li>✅ All API endpoints implemented</li></ul><br><ul><li>✅ Password reset with bcrypt</li></ul><br><ul><li>✅ Requisition rerouting with audit logging</li></ul><br><ul><li>✅ Server running on http://localhost:3001</li></ul><br><br><h3>Frontend State & Handlers (100% Done)</h3><br><ul><li>✅ All state variables added</li></ul><br><ul><li>✅ All handler functions implemented</li></ul><br><ul><li>✅ API client functions added</li></ul><br><ul><li>✅ Tab buttons added (Users, Vendors, Departments, Dept Codes, Reroute Reqs)</li></ul><br><br><h2>⏳ REMAINING: UI Components</h2><br><br>You need to add the UI components for each new tab. Add these AFTER the vendors tab section (around line 2200+ in frontend/app.js):<br><br><h3>1. Add Password Reset Button to Users Tab</h3><br><br>Find the user table row (around line 2100) and add a "Reset Password" button next to Edit/Delete:<br><br><pre><code>javascript<br>// In the users table, add this button in the actions column:<br>React.createElement('button', {<br>  onClick: () => {<br>    setResetUserId(user.id);<br>    setShowPasswordReset(true);<br>  },<br>  className: "text-yellow-600 hover:text-yellow-800 text-sm ml-2"<br>}, "Reset Password")<br><br>// Add this modal BEFORE the users table closes:<br>showPasswordReset && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" },<br>  React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },<br>    React.createElement('h3', { className: "text-lg font-bold mb-4" }, "Reset User Password"),<br>    React.createElement('input', {<br>      type: "password",<br>      placeholder: "New Password (min 6 characters)",<br>      value: newPassword,<br>      onChange: (e) => setNewPassword(e.target.value),<br>      className: "w-full px-3 py-2 border rounded-lg mb-4"<br>    }),<br>    React.createElement('div', { className: "flex gap-2" },<br>      React.createElement('button', {<br>        onClick: handleResetPassword,<br>        className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"<br>      }, "Reset Password"),<br>      React.createElement('button', {<br>        onClick: () => {<br>          setShowPasswordReset(false);<br>          setResetUserId(null);<br>          setNewPassword('');<br>        },<br>        className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"<br>      }, "Cancel")<br>    )<br>  )<br>)<br></code></pre><br><br><h3>2. Departments Tab UI</h3><br><br>Add after the vendors tab section:<br><br><pre><code>javascript<br>activeTab === 'departments' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },<br>  React.createElement('div', { className: "flex items-center justify-between mb-4" },<br>    React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Department Management"),<br>    React.createElement('button', {<br>      onClick: () => {<br>        setShowDepartmentForm(true);<br>        setEditingDepartment(null);<br>        setDepartmentForm({ name: '', code: '', description: '', is_active: 1 });<br>      },<br>      className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"<br>    }, "+ Add Department")<br>  ),<br><br>  // Department Form<br>  showDepartmentForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },<br>    React.createElement('h4', { className: "font-semibold mb-4" }, editingDepartment ? 'Edit Department' : 'New Department'),<br>    React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },<br>      React.createElement('input', {<br>        type: "text",<br>        placeholder: "Department Name",<br>        value: departmentForm.name,<br>        onChange: (e) => setDepartmentForm({ ...departmentForm, name: e.target.value }),<br>        className: "px-3 py-2 border rounded-lg"<br>      }),<br>      React.createElement('input', {<br>        type: "text",<br>        placeholder: "Department Code",<br>        value: departmentForm.code,<br>        onChange: (e) => setDepartmentForm({ ...departmentForm, code: e.target.value }),<br>        className: "px-3 py-2 border rounded-lg"<br>      }),<br>      React.createElement('input', {<br>        type: "text",<br>        placeholder: "Description",<br>        value: departmentForm.description,<br>        onChange: (e) => setDepartmentForm({ ...departmentForm, description: e.target.value }),<br>        className: "px-3 py-2 border rounded-lg md:col-span-2"<br>      }),<br>      React.createElement('label', { className: "flex items-center gap-2" },<br>        React.createElement('input', {<br>          type: "checkbox",<br>          checked: departmentForm.is_active === 1,<br>          onChange: (e) => setDepartmentForm({ ...departmentForm, is_active: e.target.checked ? 1 : 0 }),<br>          className: "w-4 h-4"<br>        }),<br>        React.createElement('span', null, "Active")<br>      )<br>    ),<br>    React.createElement('div', { className: "flex gap-2 mt-4" },<br>      React.createElement('button', {<br>        onClick: handleSaveDepartment,<br>        className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"<br>      }, "Save Department"),<br>      React.createElement('button', {<br>        onClick: () => {<br>          setShowDepartmentForm(false);<br>          setEditingDepartment(null);<br>        },<br>        className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"<br>      }, "Cancel")<br>    )<br>  ),<br><br>  // Departments Table<br>  React.createElement('table', { className: "w-full" },<br>    React.createElement('thead', { className: "bg-gray-50" },<br>      React.createElement('tr', null,<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Name"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Code"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Description"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Status"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Actions")<br>      )<br>    ),<br>    React.createElement('tbody', null,<br>      departments.map(dept =><br>        React.createElement('tr', { key: dept.id, className: "border-b hover:bg-gray-50" },<br>          React.createElement('td', { className: "px-4 py-2" }, dept.name),<br>          React.createElement('td', { className: "px-4 py-2" }, dept.code),<br>          React.createElement('td', { className: "px-4 py-2" }, dept.description || '-'),<br>          React.createElement('td', { className: "px-4 py-2" },<br>            React.createElement('span', {<br>              className: <code>px-2 py-1 rounded text-xs ${dept.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}</code><br>            }, dept.is_active ? 'Active' : 'Inactive')<br>          ),<br>          React.createElement('td', { className: "px-4 py-2" },<br>            React.createElement('button', {<br>              onClick: () => {<br>                setEditingDepartment(dept);<br>                setDepartmentForm(dept);<br>                setShowDepartmentForm(true);<br>              },<br>              className: "text-blue-600 hover:text-blue-800 text-sm mr-2"<br>            }, "Edit"),<br>            React.createElement('button', {<br>              onClick: () => handleDeleteDepartment(dept.id),<br>              className: "text-red-600 hover:text-red-800 text-sm"<br>            }, "Delete")<br>          )<br>        )<br>      )<br>    )<br>  )<br>),<br></code></pre><br><br><h3>3. Department Codes Tab UI</h3><br><br><pre><code>javascript<br>activeTab === 'codes' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },<br>  React.createElement('div', { className: "flex items-center justify-between mb-4" },<br>    React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Department Codes Management"),<br>    React.createElement('button', {<br>      onClick: () => {<br>        setShowCodeForm(true);<br>        setEditingCode(null);<br>        setCodeForm({ department<em>id: '', code: '', description: '', is</em>active: 1 });<br>      },<br>      className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"<br>    }, "+ Add Code")<br>  ),<br><br>  // Code Form<br>  showCodeForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },<br>    React.createElement('h4', { className: "font-semibold mb-4" }, editingCode ? 'Edit Code' : 'New Code'),<br>    React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },<br>      React.createElement('select', {<br>        value: codeForm.department_id,<br>        onChange: (e) => setCodeForm({ ...codeForm, department_id: e.target.value }),<br>        className: "px-3 py-2 border rounded-lg"<br>      },<br>        React.createElement('option', { value: "" }, "Select Department"),<br>        departments.map(dept =><br>          React.createElement('option', { key: dept.id, value: dept.id }, dept.name)<br>        )<br>      ),<br>      React.createElement('input', {<br>        type: "text",<br>        placeholder: "Code",<br>        value: codeForm.code,<br>        onChange: (e) => setCodeForm({ ...codeForm, code: e.target.value }),<br>        className: "px-3 py-2 border rounded-lg"<br>      }),<br>      React.createElement('input', {<br>        type: "text",<br>        placeholder: "Description",<br>        value: codeForm.description,<br>        onChange: (e) => setCodeForm({ ...codeForm, description: e.target.value }),<br>        className: "px-3 py-2 border rounded-lg md:col-span-2"<br>      }),<br>      React.createElement('label', { className: "flex items-center gap-2" },<br>        React.createElement('input', {<br>          type: "checkbox",<br>          checked: codeForm.is_active === 1,<br>          onChange: (e) => setCodeForm({ ...codeForm, is_active: e.target.checked ? 1 : 0 }),<br>          className: "w-4 h-4"<br>        }),<br>        React.createElement('span', null, "Active")<br>      )<br>    ),<br>    React.createElement('div', { className: "flex gap-2 mt-4" },<br>      React.createElement('button', {<br>        onClick: handleSaveCode,<br>        className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"<br>      }, "Save Code"),<br>      React.createElement('button', {<br>        onClick: () => {<br>          setShowCodeForm(false);<br>          setEditingCode(null);<br>        },<br>        className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"<br>      }, "Cancel")<br>    )<br>  ),<br><br>  // Codes Table<br>  React.createElement('table', { className: "w-full" },<br>    React.createElement('thead', { className: "bg-gray-50" },<br>      React.createElement('tr', null,<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Code"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Department"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Description"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Status"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Actions")<br>      )<br>    ),<br>    React.createElement('tbody', null,<br>      departmentCodes.map(code =><br>        React.createElement('tr', { key: code.id, className: "border-b hover:bg-gray-50" },<br>          React.createElement('td', { className: "px-4 py-2 font-semibold" }, code.code),<br>          React.createElement('td', { className: "px-4 py-2" }, code.department_name || '-'),<br>          React.createElement('td', { className: "px-4 py-2" }, code.description || '-'),<br>          React.createElement('td', { className: "px-4 py-2" },<br>            React.createElement('span', {<br>              className: <code>px-2 py-1 rounded text-xs ${code.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}</code><br>            }, code.is_active ? 'Active' : 'Inactive')<br>          ),<br>          React.createElement('td', { className: "px-4 py-2" },<br>            React.createElement('button', {<br>              onClick: () => {<br>                setEditingCode(code);<br>                setCodeForm(code);<br>                setShowCodeForm(true);<br>              },<br>              className: "text-blue-600 hover:text-blue-800 text-sm mr-2"<br>            }, "Edit"),<br>            React.createElement('button', {<br>              onClick: () => handleDeleteCode(code.id),<br>              className: "text-red-600 hover:text-red-800 text-sm"<br>            }, "Delete")<br>          )<br>        )<br>      )<br>    )<br>  )<br>),<br></code></pre><br><br><h3>4. Reroute Requisitions Tab UI</h3><br><br><pre><code>javascript<br>activeTab === 'reroute' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },<br>  React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "Reroute Requisitions"),<br><br>  // Reroute Modal<br>  showRerouteModal && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" },<br>    React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },<br>      React.createElement('h3', { className: "text-lg font-bold mb-4" }, "Reroute Requisition"),<br>      React.createElement('select', {<br>        value: rerouteForm.to<em>user</em>id,<br>        onChange: (e) => setRerouteForm({ ...rerouteForm, to<em>user</em>id: e.target.value }),<br>        className: "w-full px-3 py-2 border rounded-lg mb-3"<br>      },<br>        React.createElement('option', { value: "" }, "Select User"),<br>        rerouteUsers.map(user =><br>          React.createElement('option', { key: user.id, value: user.id }, <code>${user.full_name} (${user.role})</code>)<br>        )<br>      ),<br>      React.createElement('textarea', {<br>        placeholder: "Reason for rerouting (required)",<br>        value: rerouteForm.reason,<br>        onChange: (e) => setRerouteForm({ ...rerouteForm, reason: e.target.value }),<br>        className: "w-full px-3 py-2 border rounded-lg mb-3",<br>        rows: 3<br>      }),<br>      React.createElement('select', {<br>        value: rerouteForm.new_status,<br>        onChange: (e) => setRerouteForm({ ...rerouteForm, new_status: e.target.value }),<br>        className: "w-full px-3 py-2 border rounded-lg mb-4"<br>      },<br>        React.createElement('option', { value: "" }, "Keep Current Status"),<br>        React.createElement('option', { value: "pending_hod" }, "Pending HOD"),<br>        React.createElement('option', { value: "pending_procurement" }, "Pending Procurement"),<br>        React.createElement('option', { value: "pending_finance" }, "Pending Finance"),<br>        React.createElement('option', { value: "pending_md" }, "Pending MD")<br>      ),<br>      React.createElement('div', { className: "flex gap-2" },<br>        React.createElement('button', {<br>          onClick: handleReroute,<br>          className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"<br>        }, "Reroute"),<br>        React.createElement('button', {<br>          onClick: () => {<br>            setShowRerouteModal(false);<br>            setRerouteReqId(null);<br>            setRerouteForm({ to<em>user</em>id: '', reason: '', new_status: '' });<br>          },<br>          className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"<br>        }, "Cancel")<br>      )<br>    )<br>  ),<br><br>  // Requisitions List<br>  React.createElement('table', { className: "w-full" },<br>    React.createElement('thead', { className: "bg-gray-50" },<br>      React.createElement('tr', null,<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Req #"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Title"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Status"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Created By"),<br>        React.createElement('th', { className: "px-4 py-2 text-left" }, "Actions")<br>      )<br>    ),<br>    React.createElement('tbody', null,<br>      data.requisitions.map(req =><br>        React.createElement('tr', { key: req.id, className: "border-b hover:bg-gray-50" },<br>          React.createElement('td', { className: "px-4 py-2" }, req.req_number || req.id),<br>          React.createElement('td', { className: "px-4 py-2" }, req.title || req.description),<br>          React.createElement('td', { className: "px-4 py-2" }, req.status),<br>          React.createElement('td', { className: "px-4 py-2" }, req.created<em>by</em>name),<br>          React.createElement('td', { className: "px-4 py-2" },<br>            React.createElement('button', {<br>              onClick: () => handleOpenReroute(req.id),<br>              className: "px-3 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 text-sm"<br>            }, "Reroute")<br>          )<br>        )<br>      )<br>    )<br>  )<br>),<br></code></pre><br><br><h2>Installation</h2><br><br>The backend is ready. To add the UI components:<br><br><ul><li>Open <code>frontend/app.js</code></li></ul><br><ul><li>Find line ~2200 (after the vendors tab section)</li></ul><br><ul><li>Add the UI components above in order</li></ul><br><ul><li>Save and refresh your browser</li></ul><br><br><h2>Testing</h2><br><br><ul><li>Login as admin (admin / admin123)</li></ul><br><ul><li>Click on Admin Panel</li></ul><br><ul><li>You should see 5 tabs: Users, Vendors, Departments, Dept Codes, Reroute Reqs</li></ul><br><ul><li>Test each feature:</li></ul><br>   - Add/edit/delete departments<br>   - Add/edit/delete department codes<br>   - Reset user passwords from Users tab<br>   - Reroute requisitions from Reroute tab<br><br>All backend APIs are working and ready!<br>
+</body>
+</html>

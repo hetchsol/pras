@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>GITHUB_UPLOAD_CHECKLIST</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>📤 GitHub Upload Checklist</h1><br><br><h2>Files to Upload to GitHub</h2><br><br><h3>✅ INCLUDE These Files/Folders</h3><br><br><h4>Root Directory</h4><br><ul><li>[ ] <code>README.md</code> - Main documentation</li></ul><br><ul><li>[ ] <code>DEPLOYMENT.md</code> - Deployment guide</li></ul><br><ul><li>[ ] <code>.gitignore</code> - Git exclusions</li></ul><br><ul><li>[ ] <code>package.json</code> (if exists in root)</li></ul><br><ul><li>[ ] <code>package-lock.json</code> (if exists in root)</li></ul><br><br><h4>Backend Folder (<code>backend/</code>)</h4><br><ul><li>[ ] <code>server.js</code> - Main application file</li></ul><br><ul><li>[ ] <code>database.js</code> - Database initialization</li></ul><br><ul><li>[ ] <code>package.json</code> - Dependencies list</li></ul><br><ul><li>[ ] <code>package-lock.json</code> - Locked dependency versions</li></ul><br><ul><li>[ ] <code>.env.example</code> - Environment template (<strong>NOT .env</strong>)</li></ul><br><br><h4>Backend Subfolders</h4><br><ul><li>[ ] <code>backend/middleware/</code> - All files (auth.js, validation.js, etc.)</li></ul><br><ul><li>[ ] <code>backend/utils/</code> - All files (auth.js, logger.js, etc.)</li></ul><br><ul><li>[ ] <code>backend/scripts/</code> - All files (hashPasswords.js, etc.)</li></ul><br><ul><li>[ ] <code>backend/assets/</code> - README.md (logo.png is optional)</li></ul><br><br><h4>Frontend Folder (<code>frontend/</code>)</h4><br><ul><li>[ ] <code>index.html</code> - Main HTML file</li></ul><br><ul><li>[ ] <code>app.js</code> - React application</li></ul><br><br>---<br><br><h2>❌ EXCLUDE These Files/Folders</h2><br><br><h3>DO NOT Upload</h3><br><ul><li>[ ] <code>node_modules/</code> - Will be installed via npm</li></ul><br><ul><li>[ ] <code>.env</code> - Contains secrets</li></ul><br><ul><li>[ ] <code>*.db</code> - Database files (SQLite)</li></ul><br><ul><li>[ ] <code>*.db-shm</code> - Database temp files</li></ul><br><ul><li>[ ] <code>*.db-wal</code> - Database WAL files</li></ul><br><ul><li>[ ] <code>*.log</code> - Log files</li></ul><br><ul><li>[ ] <code>*.backup</code> - Backup files</li></ul><br><ul><li>[ ] <code><em>-old-</em></code> - Old backup files</li></ul><br><ul><li>[ ] <code>nul</code> - Windows temp file</li></ul><br><br><h3>Documentation (Optional - Your Choice)</h3><br>You may exclude these if you want a cleaner repo:<br><ul><li>[ ] <code>ADMIN<em>CONSOLE</em>GUIDE.md</code></li></ul><br><ul><li>[ ] <code>ADMIN<em>FEATURES</em>IMPLEMENTATION.md</code></li></ul><br><ul><li>[ ] <code>ANALYTICS<em>IMPLEMENTATION</em>GUIDE.md</code></li></ul><br><ul><li>[ ] <code>ANALYTICS<em>IMPLEMENTATION</em>STATUS.md</code></li></ul><br><ul><li>[ ] <code>ANALYTICS_PROPOSAL.md</code></li></ul><br><ul><li>[ ] <code>API_TESTING.md</code></li></ul><br><ul><li>[ ] <code>APPROVAL<em>WORKFLOW</em>UPDATE.md</code></li></ul><br><ul><li>[ ] <code>BROWSER<em>FIX</em>GUIDE.md</code></li></ul><br><ul><li>[ ] <code>BUDGET<em>FX</em>AND<em>REPORTING</em>GUIDE.md</code></li></ul><br><ul><li>[ ] <code>CACHE<em>FIX</em>FINAL.md</code></li></ul><br><ul><li>[ ] <code>CHANGES.md</code></li></ul><br><ul><li>[ ] <code>CONVERSATION_SUMMARY.md</code></li></ul><br><ul><li>[ ] <code>FINANCE<em>FLOW</em>FIX.md</code></li></ul><br><ul><li>[ ] <code>FINANCE<em>TO</em>MD<em>FLOW</em>VERIFICATION.md</code></li></ul><br><ul><li>[ ] <code>FIXES_SUMMARY.md</code></li></ul><br><ul><li>[ ] <code>FRONTEND_FIXES.md</code></li></ul><br><ul><li>[ ] <code>FRONTEND_SETUP.md</code></li></ul><br><ul><li>[ ] <code>HOD<em>APPROVAL</em>FIX.md</code></li></ul><br><ul><li>[ ] <code>HOD<em>REVIEW</em>FEATURES.md</code></li></ul><br><ul><li>[ ] <code>IMPLEMENTATION_COMPLETE.md</code></li></ul><br><ul><li>[ ] <code>IMPLEMENTATION<em>STATUS</em>OCT29.md</code></li></ul><br><ul><li>[ ] <code>IMPLEMENTATION<em>SUMMARY</em>V2.2.md</code></li></ul><br><ul><li>[ ] <code>IMPLEMENTATION<em>SUMMARY</em>V3.0.md</code></li></ul><br><ul><li>[ ] <code>NEW<em>FEATURES</em>V2.1.md</code></li></ul><br><ul><li>[ ] <code>PERMANENT<em>FIX</em>SUMMARY.md</code></li></ul><br><ul><li>[ ] <code>PO<em>AND</em>PROCUREMENT<em>DETAILS</em>FIX.md</code></li></ul><br><ul><li>[ ] <code>PO<em>QUICK</em>GUIDE.md</code></li></ul><br><ul><li>[ ] <code>PROCUREMENT_IMPLEMENTATION.md</code></li></ul><br><ul><li>[ ] <code>PROFILE<em>AND</em>REFRESH<em>TOKEN</em>FIX.md</code></li></ul><br><ul><li>[ ] <code>PURCHASE<em>ORDERS</em>IMPLEMENTATION.md</code></li></ul><br><ul><li>[ ] <code>QUICK<em>REFERENCE</em>V3.0.md</code></li></ul><br><ul><li>[ ] <code>QUICK<em>START</em>USERS.md</code></li></ul><br><ul><li>[ ] <code>README<em>BLANK</em>SCREEN_FIX.md</code></li></ul><br><ul><li>[ ] <code>SECURITY.md</code></li></ul><br><ul><li>[ ] <code>SUBMIT<em>BUTTON</em>FIX.md</code></li></ul><br><ul><li>[ ] <code>THEME_IMPLEMENTATION.md</code></li></ul><br><ul><li>[ ] <code>TROUBLESHOOTING.md</code></li></ul><br><ul><li>[ ] <code>USER<em>MANAGEMENT</em>GUIDE.md</code></li></ul><br><ul><li>[ ] <code>WORKFLOW_GUIDE.md</code></li></ul><br><ul><li>[ ] <code>WORKFLOW<em>STATUS</em>FIX.md</code></li></ul><br><br><strong>Recommendation</strong>: Delete or move these to a <code>docs/archive/</code> folder if you want to keep them.<br><br>---<br><br><h2>📋 Pre-Upload Steps</h2><br><br><h3>1. Clean Up Development Files</h3><br><pre><code>bash<br><h1>Remove node_modules (will be reinstalled)</h1><br>rm -rf node_modules<br>rm -rf backend/node_modules<br>rm -rf frontend/node_modules<br><br><h1>Remove database files</h1><br>rm -f backend/*.db<br>rm -f backend/*.db-shm<br>rm -f backend/*.db-wal<br><br><h1>Remove log files</h1><br>rm -f backend/*.log<br>rm -f *.log<br><br><h1>Remove temp files</h1><br>rm -f nul<br></code></pre><br><br><h3>2. Verify .env is NOT Included</h3><br><pre><code>bash<br><h1>Check that .env is in .gitignore</h1><br>cat .gitignore | grep .env<br><br><h1>Ensure .env.example exists</h1><br>ls backend/.env.example<br></code></pre><br><br><h3>3. Test Clean Install</h3><br><pre><code>bash<br><h1>Test that the app works from scratch</h1><br>cd backend<br>npm install<br>node scripts/hashPasswords.js<br>npm start<br><br><h1>Verify it starts without errors</h1><br></code></pre><br><br>---<br><br><h2>🚀 Upload to GitHub</h2><br><br><h3>Option 1: Using GitHub Desktop</h3><br><ul><li>Open GitHub Desktop</li></ul><br><ul><li>Click "Add" > "Add Existing Repository"</li></ul><br><ul><li>Select the <code>purchase-requisition-system</code> folder</li></ul><br><ul><li>Review changed files (ensure no .env or .db files)</li></ul><br><ul><li>Write commit message: "Initial commit - Purchase Requisition System v3.0"</li></ul><br><ul><li>Commit to main</li></ul><br><ul><li>Click "Publish repository"</li></ul><br><ul><li>Choose public/private</li></ul><br><ul><li>Uncheck "Keep this code private" if you want it public</li></ul><br><ul><li>Click "Publish Repository"</li></ul><br><br><h3>Option 2: Using Git Command Line</h3><br><pre><code>bash<br><h1>Navigate to project folder</h1><br>cd C:\Projects\purchase-requisition-system<br><br><h1>Initialize git (if not already initialized)</h1><br>git init<br><br><h1>Add remote repository</h1><br>git remote add origin https://github.com/YOUR-USERNAME/purchase-requisition-system.git<br><br><h1>Check what files will be added</h1><br>git status<br><br><h1>Add all files (respecting .gitignore)</h1><br>git add .<br><br><h1>Verify no sensitive files are staged</h1><br>git status<br><br><h1>Create commit</h1><br>git commit -m "Initial commit - Purchase Requisition System v3.0"<br><br><h1>Push to GitHub</h1><br>git branch -M main<br>git push -u origin main<br></code></pre><br><br>---<br><br><h2>✅ Post-Upload Verification</h2><br><br><h3>On GitHub Website</h3><br><ul><li>Visit your repository: <code>https://github.com/YOUR-USERNAME/purchase-requisition-system</code></li></ul><br><ul><li>Verify files are uploaded correctly</li></ul><br><ul><li>Check that <code>.env</code> is NOT visible</li></ul><br><ul><li>Check that <code>node_modules/</code> is NOT visible</li></ul><br><ul><li>Verify <code>README.md</code> displays properly</li></ul><br><ul><li>Verify <code>.env.example</code> is visible</li></ul><br><br><h3>Clone Test</h3><br><pre><code>bash<br><h1>Clone to a different folder</h1><br>cd /tmp<br>git clone https://github.com/YOUR-USERNAME/purchase-requisition-system.git test-clone<br>cd test-clone/backend<br><br><h1>Install and run</h1><br>npm install<br>cp .env.example .env<br><h1>Edit .env with real values</h1><br>node scripts/hashPasswords.js<br>npm start<br><br><h1>Verify it works</h1><br></code></pre><br><br>---<br><br><h2>🔐 Security Final Check</h2><br><br>Before making repository public:<br><br><ul><li>[ ] <code>.env</code> is NOT in repository</li></ul><br><ul><li>[ ] <code>JWT_SECRET</code> placeholder in <code>.env.example</code></li></ul><br><ul><li>[ ] No database files (*.db) in repository</li></ul><br><ul><li>[ ] No passwords in any code files</li></ul><br><ul><li>[ ] <code>.gitignore</code> is properly configured</li></ul><br><ul><li>[ ] <code>README.md</code> warns to change default passwords</li></ul><br><br>---<br><br><h2>📝 Repository Settings (Optional)</h2><br><br><h3>Add Repository Description</h3><br><pre><code><br>A comprehensive purchase requisition management system with multi-level approval workflows, analytics, and PDF generation for KSB Zambia<br></code></pre><br><br><h3>Add Topics/Tags</h3><br><ul><li><code>requisition-system</code></li></ul><br><ul><li><code>purchase-orders</code></li></ul><br><ul><li><code>workflow</code></li></ul><br><ul><li><code>nodejs</code></li></ul><br><ul><li><code>express</code></li></ul><br><ul><li><code>react</code></li></ul><br><ul><li><code>sqlite</code></li></ul><br><ul><li><code>pdf-generation</code></li></ul><br><ul><li><code>analytics</code></li></ul><br><br><h3>Add README Sections</h3><br><ul><li>[x] Installation instructions</li></ul><br><ul><li>[x] Features list</li></ul><br><ul><li>[x] Screenshots (optional - you can add later)</li></ul><br><ul><li>[x] API documentation</li></ul><br><ul><li>[x] Deployment guide</li></ul><br><ul><li>[x] Security information</li></ul><br><br>---<br><br><h2>🎯 Essential Files Summary</h2><br><br><strong>MUST UPLOAD:</strong><br><pre><code><br>purchase-requisition-system/<br>├── backend/<br>│   ├── middleware/        ← All files<br>│   ├── utils/            ← All files<br>│   ├── scripts/          ← All files<br>│   ├── assets/           ← README.md only<br>│   ├── server.js         ← Main file<br>│   ├── database.js       ← Database init<br>│   ├── .env.example      ← Template only<br>│   ├── package.json      ← Dependencies<br>│   └── package-lock.json ← Lock file<br>├── frontend/<br>│   ├── index.html        ← HTML<br>│   └── app.js            ← React app<br>├── .gitignore            ← Git rules<br>├── README.md             ← Documentation<br>└── DEPLOYMENT.md         ← Deploy guide<br></code></pre><br><br><strong>DO NOT UPLOAD:</strong><br><ul><li><code>.env</code> (secrets)</li></ul><br><ul><li><code>*.db</code> (database)</li></ul><br><ul><li><code>node_modules/</code> (dependencies)</li></ul><br><ul><li><code>*.log</code> (logs)</li></ul><br><ul><li><code>*.backup</code> (backups)</li></ul><br><br>---<br><br><h2>⚠️ Important Reminders</h2><br><br><ul><li><strong>Never commit <code>.env</code> file</strong> - Contains secrets</li></ul><br><ul><li><strong>Never commit database files</strong> - Contains user data</li></ul><br><ul><li><strong>Never commit <code>node_modules</code></strong> - Too large, regenerated</li></ul><br><ul><li><strong>Always test after cloning</strong> - Ensure it works for others</li></ul><br><ul><li><strong>Change default passwords</strong> - After deployment</li></ul><br><ul><li><strong>Update README</strong> - Replace YOUR-USERNAME with actual username</li></ul><br><br>---<br><br><h2>📞 Need Help?</h2><br><br>If you encounter issues:<br><ul><li>Check <code>.gitignore</code> is working: <code>git status</code></li></ul><br><ul><li>Review what will be committed: <code>git diff --staged</code></li></ul><br><ul><li>Remove accidentally added files: <code>git rm --cached <file></code></li></ul><br><ul><li>Reset if needed: <code>git reset</code></li></ul><br><br>---<br><br><strong>Ready to Upload!</strong> ✅<br><br>Follow the steps above and your application will be ready for deployment from GitHub.<br><br><strong>Last Updated:</strong> October 31, 2025<br>
+</body>
+</html>

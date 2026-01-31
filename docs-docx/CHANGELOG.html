@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CHANGELOG</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>📝 Changelog</h1><br><br>All notable changes to the Purchase Requisition System will be documented in this file.<br><br>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,<br>and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.<br><br>---<br><br><h2>[3.0.0] - 2025-01-06</h2><br><br><h3>🎉 Initial Release</h3><br><br>Complete purchase requisition management system with full workflow support.<br><br><h3>Added</h3><br><ul><li><strong>Multi-level Approval Workflow</strong></li></ul><br>  - Initiator → HOD → Finance → MD → Procurement flow<br>  - Role-based access control<br>  - Real-time status updates<br><br><ul><li><strong>User Management</strong></li></ul><br>  - User authentication with JWT<br>  - Password hashing with bcrypt<br>  - Refresh token support<br>  - Role-based permissions (Admin, MD, Finance, Procurement, HOD, Initiator)<br><br><ul><li><strong>Budget Management</strong></li></ul><br>  - Department budget tracking<br>  - FX rate management (ZMW/USD)<br>  - Budget balance calculations<br>  - Real-time budget status<br><br><ul><li><strong>Quotes & Adjudication</strong></li></ul><br>  - Support for 3 vendor quotes<br>  - Comparative analysis<br>  - Adjudication workflow<br>  - Justification for vendor selection<br><br><ul><li><strong>Purchase Orders</strong></li></ul><br>  - PO generation from approved requisitions<br>  - Sequential PO numbering<br>  - Delivery tracking<br>  - Invoice management<br><br><ul><li><strong>Analytics & Reporting</strong></li></ul><br>  - Dashboard with key metrics<br>  - Requisition status analytics<br>  - Budget utilization reports<br>  - Department-wise analysis<br>  - Excel report generation<br>  - PDF report generation<br><br><ul><li><strong>Document Management</strong></li></ul><br>  - File upload support<br>  - Attachment storage<br>  - Vendor document management<br><br><ul><li><strong>PDF Generation</strong></li></ul><br>  - Requisition PDFs<br>  - Purchase Order PDFs<br>  - Custom report PDFs<br>  - Professional formatting with logo<br><br><ul><li><strong>Security Features</strong></li></ul><br>  - Rate limiting<br>  - Input validation<br>  - SQL injection prevention<br>  - XSS protection<br>  - CSRF protection<br>  - Secure password storage<br><br><ul><li><strong>Logging & Monitoring</strong></li></ul><br>  - Winston logging<br>  - Request logging<br>  - Error tracking<br>  - Audit trail<br><br><h3>Technical Details</h3><br><ul><li><strong>Backend</strong>: Node.js, Express.js, SQLite</li></ul><br><ul><li><strong>Frontend</strong>: HTML, CSS, JavaScript</li></ul><br><ul><li><strong>Authentication</strong>: JWT tokens</li></ul><br><ul><li><strong>Database</strong>: SQLite with proper indexing</li></ul><br><ul><li><strong>File Storage</strong>: Local filesystem</li></ul><br><ul><li><strong>PDF Generation</strong>: PDFKit</li></ul><br><ul><li><strong>Excel Generation</strong>: ExcelJS</li></ul><br><br><h3>Documentation</h3><br><ul><li>User guides</li></ul><br><ul><li>Admin console guide</li></ul><br><ul><li>API documentation</li></ul><br><ul><li>Workflow diagrams</li></ul><br><ul><li>Troubleshooting guide</li></ul><br><ul><li>Security documentation</li></ul><br><br>---<br><br><h2>How to Use This Changelog</h2><br><br><h3>When Adding Entries</h3><br><br>Use these categories:<br><ul><li><strong>Added</strong> for new features</li></ul><br><ul><li><strong>Changed</strong> for changes in existing functionality</li></ul><br><ul><li><strong>Deprecated</strong> for soon-to-be removed features</li></ul><br><ul><li><strong>Removed</strong> for now removed features</li></ul><br><ul><li><strong>Fixed</strong> for any bug fixes</li></ul><br><ul><li><strong>Security</strong> for vulnerability fixes</li></ul><br><br><h3>Version Numbers</h3><br><br><ul><li><strong>MAJOR</strong> version (4.0.0) - Incompatible API changes</li></ul><br><ul><li><strong>MINOR</strong> version (3.1.0) - New features, backwards compatible</li></ul><br><ul><li><strong>PATCH</strong> version (3.0.1) - Bug fixes</li></ul><br><br><h3>Example Future Entries</h3><br><br><pre><code>markdown<br><h2>[3.0.1] - 2025-01-10</h2><br><br><h3>Fixed</h3><br><ul><li>HOD approval comments not saving to database</li></ul><br><ul><li>PDF generation failing for special characters</li></ul><br><ul><li>Budget calculations rounding errors</li></ul><br><br><h3>Changed</h3><br><ul><li>Improved error messages for failed uploads</li></ul><br><ul><li>Updated user interface colors for better contrast</li></ul><br><br><h2>[3.1.0] - 2025-01-15</h2><br><br><h3>Added</h3><br><ul><li>Email notifications for approval stages</li></ul><br><ul><li>SMS alerts for urgent requisitions</li></ul><br><ul><li>Export to CSV functionality</li></ul><br><ul><li>Advanced search filters</li></ul><br><br><h3>Changed</h3><br><ul><li>Redesigned dashboard layout</li></ul><br><ul><li>Improved mobile responsiveness</li></ul><br></code></pre><br><br>---<br><br><h2>Unreleased</h2><br><br>Changes that are in development but not yet released.<br><br><h3>Planned Features</h3><br><ul><li>[ ] Email notification system</li></ul><br><ul><li>[ ] SMS notifications</li></ul><br><ul><li>[ ] Mobile app</li></ul><br><ul><li>[ ] Offline mode</li></ul><br><ul><li>[ ] Advanced analytics dashboard</li></ul><br><ul><li>[ ] Integration with accounting systems</li></ul><br><ul><li>[ ] Barcode scanning</li></ul><br><ul><li>[ ] Inventory management</li></ul><br><ul><li>[ ] Supplier portal</li></ul><br><ul><li>[ ] Contract management</li></ul><br><br>---<br><br><h2>Support</h2><br><br>For issues or questions:<br><ul><li>Check TROUBLESHOOTING.md</li></ul><br><ul><li>Review VERSION<em>CONTROL</em>GUIDE.md</li></ul><br><ul><li>Check Git history: <code>git log</code></li></ul><br>
+</body>
+</html>

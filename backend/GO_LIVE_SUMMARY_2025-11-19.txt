@@ -1,0 +1,53 @@
+
+PURCHASE REQUISITION SYSTEM - GO-LIVE ARCHIVING SUMMARY
+========================================================
+Date: 19/11/2025, 3:58:14 pm
+Performed by: System Administrator
+
+ARCHIVED DATA:
+--------------
+✓ 29 Requisitions
+✓ 34 Requisition Items
+✓ 266 Audit Log Entries
+✓ 18 Purchase Orders
+✓ 33 Vendor Quotes
+✓ 11 Adjudications
+
+RETAINED DATA (Configuration):
+-------------------------------
+✓ 20 Users
+✓ 11 Departments
+✓ 3 FX Rates
+✓ 8 Budget Entries
+
+FILES CREATED:
+--------------
+✓ Backup Database: backup_before_golive_1763560692281.db
+✓ Archive Database: archive_golive_1763560692281.db
+✓ Summary Report: GO_LIVE_SUMMARY_2025-11-19.txt
+
+SYSTEM STATUS:
+--------------
+🚀 READY FOR GO-LIVE
+
+The production database has been cleaned and all test/development data
+has been safely archived. The system is now ready for live operations.
+
+Users, departments, FX rates, and budgets have been preserved.
+
+RESTORE INSTRUCTIONS (if needed):
+----------------------------------
+To restore archived data:
+1. Stop the server
+2. Backup current database: purchase_requisition.db
+3. Copy archive to production: archive_golive_1763560692281.db -> purchase_requisition.db
+4. Restart server
+
+To restore from backup:
+1. Stop the server
+2. Copy backup to production: backup_before_golive_1763560692281.db -> purchase_requisition.db
+3. Restart server
+
+========================================================
+GO-LIVE ARCHIVING COMPLETED SUCCESSFULLY
+========================================================

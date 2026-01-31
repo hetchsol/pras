@@ -9,7 +9,12 @@
       "Bash(taskkill /PID 3760 /F)",
       "Bash(powershell -Command \"Stop-Process -Id 3760 -Force\")",
       "Bash(curl:*)",
-      "Bash(powershell -Command \"Stop-Process -Id 11660 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 11660 -Force\")",
+      "Bash(git push:*)",
+      "Bash(node -e:*)",
+      "Bash(node export-users.js:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

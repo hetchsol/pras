@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DEPLOYMENT</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🚀 Purchase Requisition System - Deployment Guide</h1><br><br><h2>Quick Start Deployment (5 Minutes)</h2><br><br><h3>Prerequisites</h3><br><ul><li>Node.js (v14 or higher)</li></ul><br><ul><li>Git</li></ul><br><ul><li>A server with port 3001 available</li></ul><br><br><h3>Step 1: Clone from GitHub</h3><br><pre><code>bash<br>git clone https://github.com/YOUR-USERNAME/purchase-requisition-system.git<br>cd purchase-requisition-system<br></code></pre><br><br><h3>Step 2: Backend Setup</h3><br><pre><code>bash<br>cd backend<br>npm install<br></code></pre><br><br><h3>Step 3: Configure Environment Variables</h3><br><pre><code>bash<br><h1>Copy the example environment file</h1><br>cp .env.example .env<br><br><h1>Edit .env file with your settings</h1><br><h1>IMPORTANT: Change JWT_SECRET to a secure random string</h1><br><h1>Update ALLOWED_ORIGINS with your production domain</h1><br></code></pre><br><br><strong>Required .env changes:</strong><br><pre><code>env<br>NODE_ENV=production<br>JWT_SECRET=your-super-secret-random-string-here<br>ALLOWED_ORIGINS=https://your-domain.com<br></code></pre><br><br><h3>Step 4: Initialize Database</h3><br><pre><code>bash<br><h1>Hash the default passwords</h1><br>node scripts/hashPasswords.js<br><br><h1>Database will be created automatically on first run</h1><br></code></pre><br><br><h3>Step 5: Start the Application</h3><br><pre><code>bash<br><h1>Start backend server</h1><br>npm start<br><br><h1>Server will run on http://localhost:3001</h1><br><h1>Frontend is served from http://localhost:3001</h1><br></code></pre><br><br><h3>Step 6: Access the Application</h3><br>Open your browser and navigate to:<br><pre><code><br>http://your-server-ip:3001<br></code></pre><br><br><strong>Default Login Credentials:</strong><br><ul><li><strong>Initiator</strong>: john.banda / password123</li></ul><br><ul><li><strong>HOD</strong>: mary.mwanza / password123</li></ul><br><ul><li><strong>Procurement</strong>: james.phiri / password123</li></ul><br><ul><li><strong>Finance</strong>: sarah.banda / password123</li></ul><br><ul><li><strong>MD</strong>: david.mulenga / password123</li></ul><br><ul><li><strong>Admin</strong>: admin / admin123</li></ul><br><br>⚠️ <strong>IMPORTANT</strong>: Change these passwords immediately after first login!<br><br>---<br><br><h2>Production Deployment Options</h2><br><br><h3>Option 1: Simple Server Deployment (VPS/Dedicated Server)</h3><br><br><h4>1. Using PM2 (Recommended for Production)</h4><br><pre><code>bash<br><h1>Install PM2 globally</h1><br>npm install -g pm2<br><br><h1>Start the application</h1><br>cd backend<br>pm2 start server.js --name "purchase-requisition"<br><br><h1>Enable startup on boot</h1><br>pm2 startup<br>pm2 save<br><br><h1>Monitor the application</h1><br>pm2 status<br>pm2 logs purchase-requisition<br></code></pre><br><br><h4>2. Using systemd (Linux)</h4><br>Create a service file: <code>/etc/systemd/system/purchase-requisition.service</code><br><pre><code>ini<br>[Unit]<br>Description=Purchase Requisition System<br>After=network.target<br><br>[Service]<br>Type=simple<br>User=your-username<br>WorkingDirectory=/path/to/purchase-requisition-system/backend<br>ExecStart=/usr/bin/node server.js<br>Restart=on-failure<br>Environment=NODE_ENV=production<br><br>[Install]<br>WantedBy=multi-user.target<br></code></pre><br><br>Enable and start the service:<br><pre><code>bash<br>sudo systemctl enable purchase-requisition<br>sudo systemctl start purchase-requisition<br>sudo systemctl status purchase-requisition<br></code></pre><br><br><h3>Option 2: Docker Deployment</h3><br><br>Create a <code>Dockerfile</code> in the backend directory:<br><pre><code>dockerfile<br>FROM node:18-alpine<br>WORKDIR /app<br>COPY package*.json ./<br>RUN npm ci --only=production<br>COPY . .<br>EXPOSE 3001<br>CMD ["node", "server.js"]<br></code></pre><br><br>Create <code>docker-compose.yml</code> in the root directory:<br><pre><code>yaml<br>version: '3.8'<br>services:<br>  backend:<br>    build: ./backend<br>    ports:<br>      - "3001:3001"<br>    environment:<br>      - NODE_ENV=production<br>    volumes:<br>      - ./backend/purchase<em>requisition.db:/app/purchase</em>requisition.db<br>      - ./backend/assets:/app/assets<br>    restart: unless-stopped<br></code></pre><br><br>Deploy with Docker:<br><pre><code>bash<br>docker-compose up -d<br></code></pre><br><br><h3>Option 3: Cloud Platform Deployment</h3><br><br><h4>Heroku</h4><br><pre><code>bash<br><h1>Install Heroku CLI</h1><br>heroku create your-app-name<br><br><h1>Set environment variables</h1><br>heroku config:set NODE_ENV=production<br>heroku config:set JWT_SECRET=your-secret-key<br><br><h1>Deploy</h1><br>git push heroku main<br></code></pre><br><br><h4>DigitalOcean App Platform</h4><br><ul><li>Connect your GitHub repository</li></ul><br><ul><li>Select the <code>backend</code> directory as the source</li></ul><br><ul><li>Set environment variables in the dashboard</li></ul><br><ul><li>Deploy</li></ul><br><br><h4>AWS EC2</h4><br><ul><li>Launch an EC2 instance (Ubuntu recommended)</li></ul><br><ul><li>SSH into the instance</li></ul><br><ul><li>Follow "Simple Server Deployment" steps above</li></ul><br><ul><li>Configure security group to allow port 3001</li></ul><br><br>---<br><br><h2>Nginx Reverse Proxy Setup (Recommended)</h2><br><br>This allows you to run the app on port 80/443 with SSL.<br><br><h3>Install Nginx</h3><br><pre><code>bash<br>sudo apt update<br>sudo apt install nginx<br></code></pre><br><br><h3>Configure Nginx</h3><br>Create <code>/etc/nginx/sites-available/purchase-requisition</code>:<br><pre><code>nginx<br>server {<br>    listen 80;<br>    server_name your-domain.com;<br><br>    location / {<br>        proxy_pass http://localhost:3001;<br>        proxy<em>http</em>version 1.1;<br>        proxy<em>set</em>header Upgrade $http_upgrade;<br>        proxy<em>set</em>header Connection 'upgrade';<br>        proxy<em>set</em>header Host $host;<br>        proxy<em>cache</em>bypass $http_upgrade;<br>        proxy<em>set</em>header X-Real-IP $remote_addr;<br>        proxy<em>set</em>header X-Forwarded-For $proxy<em>add</em>x<em>forwarded</em>for;<br>        proxy<em>set</em>header X-Forwarded-Proto $scheme;<br>    }<br>}<br></code></pre><br><br>Enable the site:<br><pre><code>bash<br>sudo ln -s /etc/nginx/sites-available/purchase-requisition /etc/nginx/sites-enabled/<br>sudo nginx -t<br>sudo systemctl reload nginx<br></code></pre><br><br><h3>Add SSL with Let's Encrypt</h3><br><pre><code>bash<br>sudo apt install certbot python3-certbot-nginx<br>sudo certbot --nginx -d your-domain.com<br></code></pre><br><br>Update your <code>.env</code> file:<br><pre><code>env<br>ALLOWED_ORIGINS=https://your-domain.com<br></code></pre><br><br>---<br><br><h2>Security Checklist</h2><br><br>Before going to production, ensure:<br><br><ul><li>[ ] Changed <code>JWT_SECRET</code> to a strong random string</li></ul><br><ul><li>[ ] Updated <code>ALLOWED_ORIGINS</code> with your production domain</li></ul><br><ul><li>[ ] Changed all default user passwords</li></ul><br><ul><li>[ ] Enabled HTTPS/SSL</li></ul><br><ul><li>[ ] Configured firewall (allow only ports 80, 443, 22)</li></ul><br><ul><li>[ ] Set <code>NODE_ENV=production</code></li></ul><br><ul><li>[ ] Database backups configured</li></ul><br><ul><li>[ ] Monitoring and logging enabled</li></ul><br><ul><li>[ ] Rate limiting configured properly</li></ul><br><br>---<br><br><h2>Adding Company Logo</h2><br><br>To display your company logo on Purchase Orders and Requisitions:<br><br><ul><li>Prepare your logo:</li></ul><br>   - Format: PNG (transparent background recommended) or JPG<br>   - Size: 400x100 pixels (4:1 aspect ratio)<br>   - File size: Under 500KB<br><br><ul><li>Upload to server:</li></ul><br><pre><code>bash<br><h1>Copy your logo to the backend assets folder</h1><br>cp /path/to/your/logo.png backend/assets/logo.png<br></code></pre><br><br><ul><li>Restart the application:</li></ul><br><pre><code>bash<br>pm2 restart purchase-requisition<br><h1>OR</h1><br>sudo systemctl restart purchase-requisition<br></code></pre><br><br>The logo will automatically appear on all PDF downloads.<br><br>---<br><br><h2>Database Backup</h2><br><br><h3>Manual Backup</h3><br><pre><code>bash<br><h1>Backup the database</h1><br>cp backend/purchase<em>requisition.db backend/purchase</em>requisition.db.backup<br><br><h1>Or with timestamp</h1><br>cp backend/purchase<em>requisition.db backend/purchase</em>requisition.db.$(date +%Y%m%d_%H%M%S)<br></code></pre><br><br><h3>Automated Daily Backup (Linux)</h3><br>Create a backup script <code>/usr/local/bin/backup-requisition-db.sh</code>:<br><pre><code>bash<br>#!/bin/bash<br>BACKUP_DIR="/var/backups/purchase-requisition"<br>DB<em>PATH="/path/to/purchase-requisition-system/backend/purchase</em>requisition.db"<br>DATE=$(date +%Y%m%d_%H%M%S)<br><br>mkdir -p $BACKUP_DIR<br>cp $DB<em>PATH $BACKUP</em>DIR/purchase_requisition.db.$DATE<br><br><h1>Keep only last 30 days of backups</h1><br>find $BACKUP_DIR -name "<em>.db.</em>" -mtime +30 -delete<br></code></pre><br><br>Add to crontab:<br><pre><code>bash<br>sudo chmod +x /usr/local/bin/backup-requisition-db.sh<br>crontab -e<br><h1>Add this line:</h1><br>0 2 <em> </em> * /usr/local/bin/backup-requisition-db.sh<br></code></pre><br><br>---<br><br><h2>Troubleshooting</h2><br><br><h3>Application won't start</h3><br><pre><code>bash<br><h1>Check if port 3001 is already in use</h1><br>netstat -tulpn | grep 3001<br><br><h1>Check application logs</h1><br>pm2 logs purchase-requisition<br><h1>OR</h1><br>journalctl -u purchase-requisition -n 50<br></code></pre><br><br><h3>Database errors</h3><br><pre><code>bash<br><h1>Check database file permissions</h1><br>ls -l backend/purchase_requisition.db<br><br><h1>Ensure the backend user has write permissions</h1><br>chmod 644 backend/purchase_requisition.db<br></code></pre><br><br><h3>CORS errors</h3><br>Ensure your <code>.env</code> file has the correct domain:<br><pre><code>env<br>ALLOWED_ORIGINS=https://your-actual-domain.com<br></code></pre><br><br><h3>Can't login</h3><br><pre><code>bash<br><h1>Reset user passwords</h1><br>cd backend<br>node scripts/hashPasswords.js<br></code></pre><br><br>---<br><br><h2>Monitoring</h2><br><br><h3>Check Application Status</h3><br><pre><code>bash<br><h1>PM2</h1><br>pm2 status<br><br><h1>Systemd</h1><br>sudo systemctl status purchase-requisition<br><br><h1>Check logs</h1><br>pm2 logs purchase-requisition --lines 100<br></code></pre><br><br><h3>Monitor Server Resources</h3><br><pre><code>bash<br><h1>CPU and Memory usage</h1><br>top<br>htop<br><br><h1>Disk space</h1><br>df -h<br><br><h1>Application-specific</h1><br>pm2 monit<br></code></pre><br><br>---<br><br><h2>Updating the Application</h2><br><br><pre><code>bash<br><h1>Stop the application</h1><br>pm2 stop purchase-requisition<br><br><h1>Pull latest changes</h1><br>git pull origin main<br><br><h1>Update dependencies</h1><br>cd backend<br>npm install<br><br><h1>Restart application</h1><br>pm2 restart purchase-requisition<br></code></pre><br><br>---<br><br><h2>Support</h2><br><br>For issues or questions:<br><ul><li>Check the troubleshooting section above</li></ul><br><ul><li>Review logs: <code>pm2 logs purchase-requisition</code></li></ul><br><ul><li>Check GitHub issues</li></ul><br><ul><li>Contact your system administrator</li></ul><br><br>---<br><br><h2>System Requirements</h2><br><br><strong>Minimum:</strong><br><ul><li>CPU: 1 core</li></ul><br><ul><li>RAM: 512MB</li></ul><br><ul><li>Disk: 1GB</li></ul><br><ul><li>Node.js: v14+</li></ul><br><br><strong>Recommended for Production:</strong><br><ul><li>CPU: 2+ cores</li></ul><br><ul><li>RAM: 2GB+</li></ul><br><ul><li>Disk: 10GB+</li></ul><br><ul><li>Node.js: v18+</li></ul><br><br>---<br><br><strong>Last Updated:</strong> October 31, 2025<br><strong>Version:</strong> 3.0<br>
+</body>
+</html>

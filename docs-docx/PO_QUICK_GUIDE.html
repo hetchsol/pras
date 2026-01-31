@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PO_QUICK_GUIDE</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Purchase Orders - Quick Reference Guide</h1><br><br><h2>✅ Implementation Complete!</h2><br><br>Purchase Orders are now automatically generated when MD approves requisitions and are accessible through a new "Purchase Orders" section.<br><br>---<br><br><h2>How to Access Purchase Orders</h2><br><br><h3>1. Login to System</h3><br><ul><li>Use your credentials to login</li></ul><br><br><h3>2. Navigate to Purchase Orders</h3><br><ul><li>Click <strong>"📄 Purchase Orders"</strong> in the left sidebar</li></ul><br><ul><li>Located between "Requisitions" and "Budgets"</li></ul><br><br><h3>3. View Your POs</h3><br><ul><li>See table with all POs you have access to</li></ul><br><ul><li>Click <strong>"⬇️ Download PDF"</strong> to download any PO</li></ul><br><br>---<br><br><h2>Who Can See What?</h2><br><br>| Your Role | What You See |<br>|-----------|--------------|<br>| <strong>Procurement</strong> | All Purchase Orders (to distribute to vendors) |<br>| <strong>Finance</strong> | All Purchase Orders (for financial oversight) |<br>| <strong>MD</strong> | All Purchase Orders (executive view) |<br>| <strong>HOD</strong> | Only POs from requisitions you approved |<br>| <strong>Initiator</strong> | Only POs from your own requisitions |<br>| <strong>Admin</strong> | All Purchase Orders |<br><br>---<br><br><h2>How POs Are Created</h2><br><br><strong>Automatic Process:</strong><br><br><ul><li>Initiator creates requisition → Submit</li></ul><br><ul><li>HOD approves → Moves to Procurement</li></ul><br><ul><li>Procurement adds pricing → Moves to Finance</li></ul><br><ul><li>Finance approves → Moves to MD</li></ul><br><ul><li><strong>MD approves → PO automatically generated!</strong> ✅</li></ul><br><br><strong>PO Number Format:</strong> <code>PO-202510-KSB-IT-JB-20251030123456</code><br><br>---<br><br><h2>How to Download a PO</h2><br><br><ul><li>Go to "Purchase Orders" in sidebar</li></ul><br><ul><li>Find the PO you want in the table</li></ul><br><ul><li>Click the blue <strong>"⬇️ Download PDF"</strong> button</li></ul><br><ul><li>PDF will download automatically</li></ul><br><ul><li>Open the PDF to view complete details</li></ul><br><br>---<br><br><h2>What's in the PDF?</h2><br><br>The PO PDF includes:<br><br><ul><li><strong>Header:</strong> PO Number and Date</li></ul><br><ul><li><strong>From:</strong> Company Information (Kabwe Sugar Brokerage Ltd)</li></ul><br><ul><li><strong>To:</strong> Vendor Information (name, email, phone)</li></ul><br><ul><li><strong>Requisition Details:</strong> Req #, Description, Department, Delivery, Date, Urgency</li></ul><br><ul><li><strong>Items Table:</strong> Item names, quantities, unit prices, totals</li></ul><br><ul><li><strong>Grand Total:</strong> Total amount in ZMW</li></ul><br><ul><li><strong>Approval Chain:</strong> Complete list of who approved (HOD, Procurement, Finance, MD)</li></ul><br><ul><li><strong>Footer:</strong> Generation timestamp</li></ul><br><br>---<br><br><h2>Testing the System</h2><br><br><h3>Quick Test (5 minutes):</h3><br><br><ul><li><strong>Create Requisition</strong> (as Initiator)</li></ul><br>   - Login: <code>john.banda / password123</code><br>   - Create & submit requisition<br><br><ul><li><strong>Approve as HOD</strong></li></ul><br>   - Login: <code>mary.mwanza / password123</code><br>   - Approve requisition<br><br><ul><li><strong>Process as Procurement</strong></li></ul><br>   - Login: <code>james.phiri / password123</code><br>   - Add vendor & pricing, submit<br><br><ul><li><strong>Approve as Finance</strong></li></ul><br>   - Login: <code>sarah.banda / password123</code><br>   - Approve requisition<br><br><ul><li><strong>Final Approval as MD</strong></li></ul><br>   - Login: <code>david.mulenga / password123</code><br>   - Approve requisition<br>   - <strong>PO is automatically created!</strong><br><br><ul><li><strong>View PO</strong> (as any role)</li></ul><br>   - Click "Purchase Orders" in sidebar<br>   - See the new PO in table<br>   - Click "Download PDF"<br>   - Open and verify PDF content<br><br>---<br><br><h2>Troubleshooting</h2><br><br><strong>Q: I don't see "Purchase Orders" in the sidebar</strong><br><ul><li><strong>A:</strong> Make sure you're logged in as one of these roles: Initiator, HOD, Procurement, Finance, MD, or Admin</li></ul><br><br><strong>Q: "No Purchase Orders Found" message</strong><br><ul><li><strong>A:</strong> No requisitions have been fully approved by MD yet. Complete the workflow above to generate your first PO.</li></ul><br><br><strong>Q: I can't see a specific PO</strong><br><ul><li><strong>A:</strong> You may not have access to that PO based on your role:</li></ul><br>  - Initiators only see their own POs<br>  - HODs only see POs they approved<br>  - Procurement/Finance/MD/Admin see all POs<br><br><strong>Q: PDF download isn't working</strong><br><ul><li><strong>A:</strong> Check your browser's download settings and popup blocker. Try a different browser if the issue persists.</li></ul><br><br>---<br><br><h2>System URLs</h2><br><br><ul><li><strong>Backend:</strong> http://localhost:3001</li></ul><br><ul><li><strong>Frontend:</strong> http://localhost:3000 (or your configured URL)</li></ul><br><ul><li><strong>API Health Check:</strong> http://localhost:3001/api/health</li></ul><br><br>---<br><br><h2>Default Login Credentials</h2><br><br><pre><code><br>Initiator:   john.banda      / password123<br>HOD:         mary.mwanza     / password123<br>Procurement: james.phiri     / password123<br>Finance:     sarah.banda     / password123<br>MD:          david.mulenga   / password123<br>Admin:       admin           / admin123<br></code></pre><br><br>---<br><br><h2>Features Summary</h2><br><br>✅ <strong>Automatic PO Generation</strong> - Created when MD approves<br>✅ <strong>Role-Based Access</strong> - Users see only relevant POs<br>✅ <strong>PDF Download</strong> - Professional format with all details<br>✅ <strong>Sidebar Navigation</strong> - Easy access from any page<br>✅ <strong>Audit Trail</strong> - All downloads logged<br>✅ <strong>Security</strong> - Access controlled by backend<br><br>---<br><br><h2>Support</h2><br><br>For detailed documentation, see:<br><ul><li><code>PURCHASE<em>ORDERS</em>IMPLEMENTATION.md</code> - Complete technical documentation</li></ul><br><ul><li><code>WORKFLOW_GUIDE.md</code> - Full workflow explanation</li></ul><br><br>---<br><br><strong>Last Updated:</strong> October 30, 2025<br><strong>Status:</strong> ✅ Fully Operational<br><strong>Version:</strong> 1.0<br>
+</body>
+</html>

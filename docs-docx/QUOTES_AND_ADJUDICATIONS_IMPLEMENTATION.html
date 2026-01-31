@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>QUOTES_AND_ADJUDICATIONS_IMPLEMENTATION</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Quotes and Adjudications System Implementation</h1></p><p><h2>✅ COMPLETED - Backend Implementation</h2></p><p><h3>Database Tables Created</h3><br><ul><li><strong>vendor_quotes</strong> - Stores uploaded quote PDFs (max 3 per requisition)</li><br></ul>   - Fields: requisition<em>id, vendor</em>id, vendor<em>name, quote</em>number, quote_amount, currency, file path, uploader, notes</p><p><ul><li><strong>adjudications</strong> - Stores procurement's comparison summary</li><br></ul>   - Fields: requisition<em>id, recommended</em>vendor, amounts, summary, evaluation criteria, technical compliance, pricing analysis, delivery/payment terms, rationale</p><p><ul><li><strong>requisitions table</strong> - Added flags:</li><br></ul>   - <code>has_quotes</code> - Boolean flag<br>   - <code>has_adjudication</code> - Boolean flag</p><p><h3>Backend API Endpoints (All Functional)</h3></p><p><strong>Quote Management:</strong><br><ul><li><code>POST /api/requisitions/:id/quotes</code> - Upload vendor quote PDF (max 3)</li><br><li><code>GET /api/requisitions/:id/quotes</code> - Get all quotes for a requisition</li><br><li><code>GET /api/quotes/:id/download</code> - Download quote PDF</li><br><li><code>DELETE /api/quotes/:id</code> - Delete a quote</li><br></ul><br><strong>Adjudication Management:</strong><br><ul><li><code>POST /api/requisitions/:id/adjudication</code> - Create adjudication summary</li><br><li><code>GET /api/requisitions/:id/adjudication</code> - Get adjudication for a requisition</li><br></ul><br><strong>Access Control:</strong><br><ul><li>Procurement: Can upload quotes, create adjudications</li><br><li>Finance & MD: Can view quotes and adjudications</li><br><li>Admin: Full access</li><br></ul><br><h3>File Upload Configuration</h3><br><ul><li>Uses multer for PDF uploads</li><br><li>Maximum 3 quotes per requisition</li><br><li>10MB file size limit</li><br><li>Stored in: <code>backend/uploads/quotes/</code></li><br><li>Only PDF files accepted</li><br></ul><br><h2>🔨 TODO - Frontend Implementation</h2></p><p><h3>1. Add Frontend API Functions (<code>frontend/app.js</code>)</h3></p><p>Add to the <code>api</code> object around line 200-300:</p><p><pre><code>javascript<br>// Quotes API<br>uploadQuote: async (requisitionId, formData) => {<br>  const res = await fetch(<code>${API_URL}/requisitions/${requisitionId}/quotes</code>, {<br>    method: 'POST',<br>    headers: { 'Authorization': <code>Bearer ${getToken()}</code> },<br>    body: formData // FormData object with file<br>  });<br>  if (!res.ok) throw new Error('Failed to upload quote');<br>  return res.json();<br>},</p><p>getQuotes: async (requisitionId) => {<br>  const res = await fetch(<code>${API_URL}/requisitions/${requisitionId}/quotes</code>, {<br>    headers: getHeaders()<br>  });<br>  if (!res.ok) throw new Error('Failed to fetch quotes');<br>  return res.json();<br>},</p><p>downloadQuote: (quoteId) => {<br>  window.open(<code>${API<em>URL}/quotes/${quoteId}/download</code>, '</em>blank');<br>},</p><p>deleteQuote: async (quoteId) => {<br>  const res = await fetch(<code>${API_URL}/quotes/${quoteId}</code>, {<br>    method: 'DELETE',<br>    headers: getHeaders()<br>  });<br>  if (!res.ok) throw new Error('Failed to delete quote');<br>  return res.json();<br>},</p><p>// Adjudication API<br>createAdjudication: async (requisitionId, data) => {<br>  const res = await fetch(<code>${API_URL}/requisitions/${requisitionId}/adjudication</code>, {<br>    method: 'POST',<br>    headers: getHeaders(),<br>    body: JSON.stringify(data)<br>  });<br>  if (!res.ok) throw new Error('Failed to create adjudication');<br>  return res.json();<br>},</p><p>getAdjudication: async (requisitionId) => {<br>  const res = await fetch(<code>${API_URL}/requisitions/${requisitionId}/adjudication</code>, {<br>    headers: getHeaders()<br>  });<br>  if (!res.ok) throw new Error('Failed to fetch adjudication');<br>  return res.json();<br>}<br></code></pre></p><p><h3>2. Create Quote Upload Component</h3></p><p>Create a new component for procurement to upload up to 3 vendor quotes:</p><p><strong>Component: QuoteUploadSection</strong><br><ul><li>Shows list of uploaded quotes (max 3)</li><br><li>Upload form for each quote:</li><br></ul>  - Vendor selection dropdown<br>  - Quote number (optional)<br>  - Quote amount<br>  - Currency<br>  - PDF file upload<br>  - Notes (optional)<br><ul><li>Download/Delete buttons for each uploaded quote</li><br><li>Progress indicator (e.g., "2 of 3 quotes uploaded")</li><br></ul><br><h3>3. Create Adjudication Summary Form</h3></p><p>Create a comprehensive adjudication form component:</p><p><strong>Component: AdjudicationForm</strong><br><ul><li>Only shows after all 3 quotes are uploaded</li><br><li>Form fields:</li><br></ul>  - Recommended Vendor (dropdown from uploaded quotes)<br>  - Recommended Amount<br>  - Currency<br>  - <strong>Executive Summary</strong> (textarea, required)<br>  - <strong>Evaluation Criteria</strong> (textarea)<br>  - <strong>Technical Compliance</strong> (textarea)<br>  - <strong>Pricing Analysis</strong> (textarea) - compare 3 quotes<br>  - <strong>Delivery Terms</strong> (textarea)<br>  - <strong>Payment Terms</strong> (textarea)<br>  - <strong>Recommendation Rationale</strong> (textarea, required)<br><ul><li>Submit button creates adjudication</li><br></ul><br><h3>4. Add Menu Items to Sidebar</h3></p><p>Update sidebar menu items around line 1400-1450:</p><p><pre><code>javascript<br>// Add to procurement/admin menu<br>{<br>  id: 'rfq-management',<br>  label: 'RFQ & Quotes',<br>  icon: '📝',<br>  show: user.role === 'procurement' || user.role === 'admin',<br>  isGroup: true,<br>  children: [<br>    { id: 'upload-quotes', label: 'Upload Quotes', icon: '📤', show: true },<br>    { id: 'adjudications', label: 'Adjudications', icon: '⚖️', show: true }<br>  ]<br>}<br></code></pre></p><p><h3>5. Integrate with Requisition Review Flow</h3></p><p><strong>For Procurement:</strong><br><ul><li>After HOD/other approvals, show "Upload Quotes" button on requisition</li><br><li>After 3 quotes uploaded, show "Create Adjudication" button</li><br><li>Show status badges: "Quotes Pending", "Quotes Uploaded", "Adjudication Complete"</li><br></ul><br><strong>For Finance & MD:</strong><br><ul><li>Show "View Quotes" button on requisitions with quotes</li><br><li>Show "View Adjudication" button on requisitions with adjudications</li><br><li>Display quote comparison table</li><br><li>Allow downloading all quote PDFs</li><br><li>Show adjudication summary before making approval decision</li><br></ul><br><h3>6. Create View Components</h3></p><p><strong>QuotesViewer Component</strong> (for Finance/MD):<br><ul><li>Table showing all 3 quotes side-by-side</li><br><li>Columns: Vendor, Quote #, Amount, Currency, Upload Date</li><br><li>Download button for each PDF</li><br><li>Highlight recommended vendor</li><br></ul><br><strong>AdjudicationViewer Component</strong> (for Finance/MD):<br><ul><li>Display all adjudication fields in organized sections</li><br><li>Show recommended vendor prominently</li><br><li>Show comparison summary</li><br><li>Comments section for Finance/MD feedback</li><br></ul><br><h2>Implementation Priority</h2></p><p><ul><li><strong>HIGH</strong>: Add API functions to frontend</li><br><li><strong>HIGH</strong>: Create QuoteUploadSection component</li><br><li><strong>HIGH</strong>: Create AdjudicationForm component</li><br><li><strong>MEDIUM</strong>: Add sidebar menu items</li><br><li><strong>MEDIUM</strong>: Integrate with requisition approval workflow</li><br><li><strong>LOW</strong>: Create viewer components for Finance/MD</li><br></ul><br><h2>Usage Flow</h2></p><p><ul><li>Procurement receives responses to RFQ from 3 vendors</li><br><li>Procurement uploads each vendor's quote PDF (with amount, vendor info)</li><br><li>System enforces maximum 3 quotes per requisition</li><br><li>After 3 quotes uploaded, procurement creates adjudication summary</li><br><li>Adjudication includes comparison and recommendation</li><br><li>Finance Manager reviews quotes + adjudication before approval</li><br><li>MD reviews quotes + adjudication before final approval</li><br><li>Both can download quote PDFs for offline review</li><br></ul><br><h2>Security & Validation</h2></p><p>✅ Role-based access control implemented<br>✅ PDF-only file validation<br>✅ File size limits (10MB)<br>✅ Maximum 3 quotes enforced<br>✅ Required fields validated<br>✅ Adjudication requires quotes first</p><p><h2>Notes</h2></p><p><ul><li>Quote PDFs stored in: <code>backend/uploads/quotes/</code></li><br><li>Quotes attached to requisition ID, not deletable after adjudication submitted</li><br><li>Finance and MD cannot upload quotes, only view</li><br><li>Adjudication can be created only once per requisition</li><br><li>System tracks who uploaded each quote and when</li><br></ul>
+</body>
+</html>

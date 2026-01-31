@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>QUICK_VERSION_CONTROL_DEMO</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🚀 Quick Version Control & Backup Demo</h1><br><br>This guide shows you how to use the version control and backup system step-by-step.<br><br>---<br><br><h2>✅ Current Status</h2><br><br>Your system is now version controlled with Git!<br><br><ul><li><strong>Repository:</strong> Initialized ✅</li></ul><br><ul><li><strong>Initial Version:</strong> v3.0.0 ✅</li></ul><br><ul><li><strong>Backup Scripts:</strong> Ready ✅</li></ul><br><br>---<br><br><h2>📋 Quick Commands</h2><br><br><h3>1. View Current Version</h3><br><pre><code>bash<br>git describe --tags<br><h1>Output: v3.0.0</h1><br></code></pre><br><br><h3>2. View Version History</h3><br><pre><code>bash<br>git log --oneline --decorate<br><h1>Shows all commits with tags</h1><br></code></pre><br><br><h3>3. List All Versions</h3><br><pre><code>bash<br>git tag -l<br><h1>Lists all version tags</h1><br></code></pre><br><br>---<br><br><h2>🏷️ How to Create a New Version</h2><br><br><h3>Example: After fixing a bug</h3><br><br><strong>Step 1: Make your changes</strong><br><pre><code>bash<br><h1>Edit files, make improvements, fix bugs</h1><br></code></pre><br><br><strong>Step 2: Check what changed</strong><br><pre><code>bash<br>git status<br>git diff<br></code></pre><br><br><strong>Step 3: Commit changes</strong><br><pre><code>bash<br>git add .<br>git commit -m "Fixed HOD approval bug where comments were not saving"<br></code></pre><br><br><strong>Step 4: Create version tag</strong><br><pre><code>bash<br>git tag -a v3.0.1 -m "Version 3.0.1 - Bug fix: HOD approval comments"<br></code></pre><br><br><strong>Step 5: Verify</strong><br><pre><code>bash<br>git tag -l<br><h1>Should show: v3.0.0, v3.0.1</h1><br></code></pre><br><br><h3>Using the Script (Easier Method)</h3><br><br><pre><code>bash<br><h1>Windows Command Prompt or PowerShell</h1><br>cd C:\projects\purchase-requisition-system<br>scripts\create-version.bat v3.0.1 "Bug fix: HOD approval"<br></code></pre><br><br>The script will:<br><ul><li>Ask if you want to commit uncommitted changes</li></ul><br><ul><li>Create the commit</li></ul><br><ul><li>Create the git tag</li></ul><br><ul><li>Show confirmation</li></ul><br><br>---<br><br><h2>💾 How to Backup Each Version</h2><br><br><h3>Method 1: Manual Backup (Using Windows Explorer)</h3><br><br><strong>Step 1: Create backup folder</strong><br><pre><code><br>C:\Backups\PurchaseRequisitionSystem\<br></code></pre><br><br><strong>Step 2: Copy project folder</strong><br><ul><li>Copy entire <code>C:\projects\purchase-requisition-system</code> folder</li></ul><br><ul><li>Rename to: <code>PRS-v3.0.0-backup-2025-01-06</code></li></ul><br><ul><li>Compress to ZIP for storage</li></ul><br><br><h3>Method 2: Using Backup Script</h3><br><br><strong>Windows Command Prompt:</strong><br><pre><code>cmd<br>cd C:\projects\purchase-requisition-system<br>scripts\backup-version.bat v3.0.0<br></code></pre><br><br><strong>What it creates:</strong><br><pre><code><br>C:\Projects\purchase-requisition-backups\<br>  ├── prs-v3.0.0-20250106_143022\         (Folder)<br>  └── prs-v3.0.0-20250106_143022.zip      (Compressed)<br></code></pre><br><br><h3>Method 3: Git Archive (Quick Code-Only Backup)</h3><br><br><strong>Export specific version:</strong><br><pre><code>bash<br>git archive --format=zip --output=backup-v3.0.0.zip v3.0.0<br></code></pre><br><br>This creates a ZIP file with just the code (no database or uploads).<br><br>---<br><br><h2>🔄 Complete Workflow Example</h2><br><br><h3>Scenario: Adding a New Feature</h3><br><br><strong>1. Current state</strong><br><pre><code>bash<br>git status<br><h1>On branch master, v3.0.0</h1><br></code></pre><br><br><strong>2. Create backup before making changes</strong><br><pre><code>bash<br><h1>Option A: Manual copy</h1><br><h1>Copy folder and rename: PRS-backup-before-email-feature</h1><br><br><h1>Option B: Git tag (no changes yet, so we're at v3.0.0)</h1><br>git describe --tags<br><h1>v3.0.0</h1><br></code></pre><br><br><strong>3. Make changes</strong><br><pre><code>bash<br><h1>Edit files to add email notification feature</h1><br><h1>Test thoroughly</h1><br></code></pre><br><br><strong>4. Commit changes</strong><br><pre><code>bash<br>git add .<br>git commit -m "Feature: Add email notifications for approval stages<br><br><ul><li>Added email service integration</li></ul><br><ul><li>Notifications sent on approval/rejection</li></ul><br><ul><li>Configurable email templates</li></ul><br><ul><li>Tested with Gmail SMTP"</li></ul><br></code></pre><br><br><strong>5. Create new version</strong><br><pre><code>bash<br>git tag -a v3.1.0 -m "Version 3.1.0 - Email Notifications Feature"<br></code></pre><br><br><strong>6. Backup the new version</strong><br><pre><code>bash<br>scripts\backup-version.bat v3.1.0<br></code></pre><br><br><strong>7. Verify everything</strong><br><pre><code>bash<br>git tag -l<br><h1>v3.0.0</h1><br><h1>v3.1.0</h1><br><br>git log --oneline<br><h1>Shows both commits</h1><br></code></pre><br><br>---<br><br><h2>📦 Backup Types Explained</h2><br><br><h3>Type 1: Code-Only Backup (Git Archive)</h3><br><pre><code>bash<br>git archive --format=zip --output=backup-code-v3.0.0.zip v3.0.0<br></code></pre><br><br><strong>Includes:</strong><br><ul><li>✅ All source code</li></ul><br><ul><li>✅ Configuration files</li></ul><br><ul><li>✅ Documentation</li></ul><br><br><strong>Excludes:</strong><br><ul><li>❌ Database files</li></ul><br><ul><li>❌ Uploaded files</li></ul><br><ul><li>❌ .env file</li></ul><br><ul><li>❌ node_modules</li></ul><br><br><strong>Use when:</strong> Sharing code, storing in version control<br><br><strong>Size:</strong> ~1-5 MB<br><br><h3>Type 2: Full System Backup (Backup Script)</h3><br><pre><code>bash<br>scripts\backup-version.bat v3.0.0<br></code></pre><br><br><strong>Includes:</strong><br><ul><li>✅ All source code</li></ul><br><ul><li>✅ Database files (.db)</li></ul><br><ul><li>✅ Uploaded files</li></ul><br><ul><li>✅ .env configuration</li></ul><br><ul><li>✅ Documentation</li></ul><br><br><strong>Excludes:</strong><br><ul><li>❌ node_modules (can be reinstalled)</li></ul><br><ul><li>❌ Log files</li></ul><br><br><strong>Use when:</strong> Before major changes, regular backups<br><br><strong>Size:</strong> ~10-50 MB (depends on uploads)<br><br><h3>Type 3: Complete Clone (Manual Copy)</h3><br><br><strong>Includes:</strong><br><ul><li>✅ Everything including node_modules</li></ul><br><br><strong>Use when:</strong> Emergency backup, moving to new machine<br><br><strong>Size:</strong> ~200-500 MB<br><br>---<br><br><h2>🎯 Practical Examples</h2><br><br><h3>Example 1: Bug Fix Workflow</h3><br><br><pre><code>bash<br><h1>1. Notice bug in HOD approval</h1><br><h1>2. Create backup</h1><br>git tag -a v3.0.0-pre-fix -m "Before HOD fix"<br><br><h1>3. Fix the bug</h1><br><h1>Edit backend/routes/approvals.js</h1><br><br><h1>4. Test fix</h1><br>npm test<br><br><h1>5. Commit</h1><br>git add backend/routes/approvals.js<br>git commit -m "Fix: HOD approval comments not saving to database"<br><br><h1>6. Create patch version</h1><br>git tag -a v3.0.1 -m "Version 3.0.1 - Bug fix"<br><br><h1>7. Backup</h1><br>scripts\backup-version.bat v3.0.1<br></code></pre><br><br><h3>Example 2: Feature Development</h3><br><br><pre><code>bash<br><h1>1. Starting new feature</h1><br>git checkout -b feature-email-notifications<br><br><h1>2. Develop feature</h1><br><h1>... make changes ...</h1><br><br><h1>3. Test feature</h1><br>npm test<br><br><h1>4. Merge to master</h1><br>git checkout master<br>git merge feature-email-notifications<br><br><h1>5. Create minor version</h1><br>git tag -a v3.1.0 -m "Version 3.1.0 - Email notifications"<br><br><h1>6. Backup</h1><br>scripts\backup-version.bat v3.1.0<br><br><h1>7. Delete feature branch</h1><br>git branch -d feature-email-notifications<br></code></pre><br><br><h3>Example 3: Emergency Rollback</h3><br><br><pre><code>bash<br><h1>Something went wrong!</h1><br><h1>Need to go back to v3.0.0</h1><br><br><h1>Option A: Restore from backup</h1><br>scripts\restore-version.bat prs-v3.0.0-20250106_143022<br><br><h1>Option B: Git checkout</h1><br>git checkout v3.0.0<br><br><h1>Option C: Reset to tag</h1><br>git reset --hard v3.0.0<br></code></pre><br><br>---<br><br><h2>📅 Recommended Backup Schedule</h2><br><br><h3>Daily (Automated)</h3><br><ul><li><strong>What:</strong> Current state backup</li></ul><br><ul><li><strong>When:</strong> 2:00 AM</li></ul><br><ul><li><strong>Keep:</strong> 30 days</li></ul><br><ul><li><strong>How:</strong> Use Task Scheduler + automated-backup.bat</li></ul><br><br><h3>Weekly (Manual)</h3><br><ul><li><strong>What:</strong> Tagged version backup</li></ul><br><ul><li><strong>When:</strong> Friday EOD</li></ul><br><ul><li><strong>Keep:</strong> 90 days</li></ul><br><ul><li><strong>How:</strong> <code>scripts\backup-version.bat v3.0.x</code></li></ul><br><br><h3>Monthly (Manual)</h3><br><ul><li><strong>What:</strong> Full archive backup</li></ul><br><ul><li><strong>When:</strong> Last day of month</li></ul><br><ul><li><strong>Keep:</strong> Permanently</li></ul><br><ul><li><strong>How:</strong> Copy to external drive</li></ul><br><br><h3>Before Changes (Manual)</h3><br><ul><li><strong>What:</strong> Safety backup</li></ul><br><ul><li><strong>When:</strong> Before any major update</li></ul><br><ul><li><strong>Keep:</strong> Until verified</li></ul><br><ul><li><strong>How:</strong> Manual copy or git tag</li></ul><br><br>---<br><br><h2>🔍 How to Find a Specific Version</h2><br><br><h3>Find by Date</h3><br><pre><code>bash<br>git log --since="2025-01-01" --until="2025-01-07" --oneline<br></code></pre><br><br><h3>Find by Message</h3><br><pre><code>bash<br>git log --grep="email" --oneline<br></code></pre><br><br><h3>Find by File</h3><br><pre><code>bash<br>git log --follow -- backend/server.js<br></code></pre><br><br><h3>Find by Author</h3><br><pre><code>bash<br>git log --author="John" --oneline<br></code></pre><br><br><h3>Find Tag by Name</h3><br><pre><code>bash<br>git tag -l "v3.0.*"<br><h1>Shows: v3.0.0, v3.0.1, v3.0.2</h1><br></code></pre><br><br>---<br><br><h2>✅ Verification Checklist</h2><br><br>After creating a version and backup:<br><br><ul><li>[ ] Version tag created: <code>git tag -l</code></li></ul><br><ul><li>[ ] Commit has good message: <code>git log -1</code></li></ul><br><ul><li>[ ] Backup file exists: Check backup directory</li></ul><br><ul><li>[ ] Backup size is reasonable: 10-50 MB</li></ul><br><ul><li>[ ] Backup contains database: Check .zip contents</li></ul><br><ul><li>[ ] Application still works: Test it!</li></ul><br><ul><li>[ ] Document version: Update CHANGELOG.md</li></ul><br><br>---<br><br><h2>🆘 Troubleshooting</h2><br><br><h3>"Not a git repository"</h3><br><pre><code>bash<br>cd C:\projects\purchase-requisition-system<br>git status<br><h1>Should show current status</h1><br></code></pre><br><br><h3>"Tag already exists"</h3><br><pre><code>bash<br><h1>Delete old tag</h1><br>git tag -d v3.0.1<br><h1>Create new tag</h1><br>git tag -a v3.0.1 -m "New message"<br></code></pre><br><br><h3>"Nothing to commit"</h3><br><pre><code>bash<br><h1>Check status</h1><br>git status<br><h1>This is normal if no changes made</h1><br></code></pre><br><br><h3>Backup script doesn't run</h3><br><pre><code>bash<br><h1>Run from Command Prompt, not Git Bash</h1><br><h1>Make sure you're in project root directory</h1><br>cd C:\projects\purchase-requisition-system<br></code></pre><br><br>---<br><br><h2>📞 Quick Help</h2><br><br>| Problem | Solution |<br>|---------|----------|<br>| Forgot version number | <code>git describe --tags</code> |<br>| Want to undo last commit | <code>git reset HEAD~1</code> |<br>| Want to see changes | <code>git diff</code> |<br>| Want to see history | <code>git log --oneline --graph</code> |<br>| Need to restore | <code>scripts\restore-version.bat backup-name</code> |<br>| Backup failed | Check disk space, run as administrator |<br><br>---<br><br><h2>🎓 Learn More</h2><br><br><ul><li>Full guide: <code>VERSION<em>CONTROL</em>GUIDE.md</code></li></ul><br><ul><li>Git basics: https://git-scm.com/doc</li></ul><br><ul><li>Troubleshooting: <code>TROUBLESHOOTING.md</code></li></ul><br><br>---<br><br><strong>Ready to start?</strong><br><br><ul><li>Check current version: <code>git describe --tags</code></li></ul><br><ul><li>Make a change to test</li></ul><br><ul><li>Commit it: <code>git add . && git commit -m "Test commit"</code></li></ul><br><ul><li>Create tag: <code>git tag -a v3.0.1-test -m "Test version"</code></li></ul><br><ul><li>View it: <code>git log --oneline --graph</code></li></ul><br><br>You're all set! 🎉<br>
+</body>
+</html>

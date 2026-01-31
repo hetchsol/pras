@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FIX_LAN_ACCESS</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🔧 Fix LAN Access - Windows Firewall Configuration</h1><br><br><h2>Problem Identified ✅</h2><br><br>Your server is running correctly, but <strong>Windows Firewall is blocking</strong> incoming connections from other computers on port 3001.<br><br><h2>Solution: Add Firewall Rule</h2><br><br>You need to run <strong>ONE</strong> of these commands as Administrator:<br><br>---<br><br><h3>Option 1: Quick Fix (Recommended)</h3><br><br><ul><li><strong>Right-click</strong> on Command Prompt or PowerShell</li></ul><br><ul><li>Select <strong>"Run as Administrator"</strong></li></ul><br><ul><li>Copy and paste this command:</li></ul><br><br><pre><code>cmd<br>netsh advfirewall firewall add rule name="Purchase Requisition System" dir=in action=allow protocol=TCP localport=3001<br></code></pre><br><br><ul><li>Press Enter</li></ul><br><ul><li>You should see: <strong>"Ok."</strong></li></ul><br><br>---<br><br><h3>Option 2: Using Windows Firewall GUI</h3><br><br><ul><li>Press <code>Windows + R</code></li></ul><br><ul><li>Type: <code>wf.msc</code></li></ul><br><ul><li>Press Enter</li></ul><br><ul><li>Click <strong>"Inbound Rules"</strong> on the left</li></ul><br><ul><li>Click <strong>"New Rule..."</strong> on the right</li></ul><br><ul><li>Select <strong>"Port"</strong> → Click Next</li></ul><br><ul><li>Select <strong>"TCP"</strong></li></ul><br><ul><li>Enter port: <code>3001</code> → Click Next</li></ul><br><ul><li>Select <strong>"Allow the connection"</strong> → Click Next</li></ul><br><ul><li>Check <strong>all three boxes</strong> (Domain, Private, Public) → Click Next</li></ul><br><ul><li>Name: <code>Purchase Requisition System</code> → Click Finish</li></ul><br><br>---<br><br><h3>Option 3: PowerShell (Alternative)</h3><br><br>Run PowerShell as Administrator and execute:<br><br><pre><code>powershell<br>New-NetFirewallRule -DisplayName "Purchase Requisition System" -Direction Inbound -LocalPort 3001 -Protocol TCP -Action Allow<br></code></pre><br><br>---<br><br><h2>After Adding the Firewall Rule</h2><br><br><ul><li><strong>Restart the server</strong> (it will pick up the new CORS settings):</li></ul><br>   - Press <code>Ctrl+C</code> in the terminal running the server<br>   - Run: <code>cd backend && npm start</code><br><br><ul><li><strong>Test from another computer:</strong></li></ul><br>   - Open browser<br>   - Go to: <code>http://ZMKTCMW002:3001</code> OR <code>http://192.168.5.249:3001</code><br>   - Login with: <code>admin</code> / <code>admin123</code><br><br>---<br><br><h2>Verify Firewall Rule Was Created</h2><br><br>To confirm the rule was added successfully:<br><br><pre><code>cmd<br>netsh advfirewall firewall show rule name="Purchase Requisition System"<br></code></pre><br><br>You should see output showing the rule details.<br><br>---<br><br><h2>What Was Also Fixed ✅</h2><br><br><ul><li><strong>CORS Configuration Updated</strong> - Added IP address to allowed origins</li></ul><br><ul><li><strong>Passwords Hashed</strong> - All user passwords are encrypted</li></ul><br><ul><li><strong>Server Configured</strong> - Listening on all network interfaces</li></ul><br><br>---<br><br><h2>Quick Test Checklist</h2><br><br>After adding the firewall rule:<br><br><ul><li>[ ] Firewall rule created for port 3001</li></ul><br><ul><li>[ ] Server restarted</li></ul><br><ul><li>[ ] Can access from server: <code>http://localhost:3001</code> ✓</li></ul><br><ul><li>[ ] Can access from server: <code>http://ZMKTCMW002:3001</code></li></ul><br><ul><li>[ ] Can access from other PC: <code>http://ZMKTCMW002:3001</code></li></ul><br><ul><li>[ ] Login works with: <code>admin</code> / <code>admin123</code></li></ul><br><br>---<br><br><h2>Still Not Working?</h2><br><br>If it still doesn't work after adding the firewall rule, check:<br><br><h3>1. Test Port Connectivity</h3><br><br>From the <strong>remote computer</strong>, open PowerShell and run:<br><br><pre><code>powershell<br>Test-NetConnection -ComputerName ZMKTCMW002 -Port 3001<br></code></pre><br><br>You should see: <code>TcpTestSucceeded : True</code><br><br><h3>2. Ping the Server</h3><br><br>From the <strong>remote computer</strong>:<br><br><pre><code>cmd<br>ping ZMKTCMW002<br></code></pre><br><br>Should get replies with the IP address.<br><br><h3>3. Check Antivirus</h3><br><br>Some antivirus software has its own firewall. You may need to:<br><ul><li>Temporarily disable antivirus</li></ul><br><ul><li>Or add an exception for port 3001</li></ul><br><br><h3>4. Check Network Profile</h3><br><br>Ensure your network is set to "Private" not "Public":<br><ul><li>Settings → Network & Internet</li></ul><br><ul><li>Check network profile</li></ul><br><ul><li>If "Public", change to "Private"</li></ul><br><br>---<br><br><h2>Summary</h2><br><br><strong>The issue is:</strong> Windows Firewall is blocking port 3001<br><br><strong>The fix is:</strong> Run this command as Administrator:<br><pre><code>cmd<br>netsh advfirewall firewall add rule name="Purchase Requisition System" dir=in action=allow protocol=TCP localport=3001<br></code></pre><br><br>Then restart the server and try accessing from another computer.<br><br>---<br><br><strong>Last Updated:</strong> October 31, 2025<br>
+</body>
+</html>

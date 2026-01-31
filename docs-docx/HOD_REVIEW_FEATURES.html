@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>HOD_REVIEW_FEATURES</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 1in auto;
+            padding: 0 0.5in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 1em;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 1.5em;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+        h4 {
+            color: #555;
+            margin-top: 1em;
+            font-size: 1.1em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        strong {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        em {
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 1em 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>HOD Review Features - Complete Guide</h1><br><br><strong>Date:</strong> October 23, 2025<br><strong>Status:</strong> ✅ <strong>IMPLEMENTED</strong><br><br>---<br><br><h2>🎯 What Was Implemented</h2><br><br>The HOD (Head of Department) review interface has been enhanced with the following features:<br><br><h3>✅ <strong>1. Approve and Decline Buttons</strong></h3><br><ul><li><strong>Two clear action buttons:</strong></li></ul><br>  - 🟢 <strong>"Approve"</strong> - Approves the requisition<br>  - 🔴 <strong>"Decline"</strong> - Declines/rejects the requisition<br><ul><li>Both buttons are located in the modal footer</li></ul><br><ul><li>Buttons are disabled until comments are provided</li></ul><br><br><h3>✅ <strong>2. Mandatory Comments Section</strong></h3><br><ul><li><strong>Large textarea for comments</strong></li></ul><br><ul><li><strong>Marked as required</strong> with red asterisk (*)</li></ul><br><ul><li><strong>Validation:</strong> Both Approve and Decline actions require comments</li></ul><br><ul><li><strong>Alert shown if clicked without comments:</strong> "Please provide comments for your decision"</li></ul><br><ul><li>Comments are sent to the backend and stored in the database</li></ul><br><br><h3>✅ <strong>3. Editable Quantity Fields</strong></h3><br><ul><li><strong>HOD can modify item quantities</strong> before approving</li></ul><br><ul><li>Quantity fields shown as <strong>editable input boxes</strong> (number type)</li></ul><br><ul><li>Only HOD sees editable fields - others see read-only values</li></ul><br><ul><li>Changes are saved to database when requisition is approved</li></ul><br><br><h3>✅ <strong>4. PDF Download After Approval</strong></h3><br><ul><li><strong>"Download PDF" button</strong> appears after HOD approves</li></ul><br><ul><li>Button location: Left side of modal footer</li></ul><br><ul><li><strong>Also available to requisitioner</strong> after approval</li></ul><br><ul><li>Generates professional PDF document with all requisition details</li></ul><br><ul><li>Auto-downloads with filename: <code>Requisition<em>{req</em>number}.pdf</code></li></ul><br><br><h3>✅ <strong>5. Status Flow</strong></h3><br>Once HOD approves:<br><ul><li>Status changes: <code>pending<em>hod</code> → <code>hod</em>approved</code></li></ul><br><ul><li>Requisition moves to <strong>Procurement</strong> stage</li></ul><br><ul><li>PDF becomes downloadable</li></ul><br><ul><li>Procurement can add vendors and pricing</li></ul><br><br>---<br><br><h2>🖥️ How to Use (HOD)</h2><br><br><h3>Step 1: Login as HOD</h3><br><pre><code><br>Username: mary.mwanza<br>Password: password123<br></code></pre><br><br><h3>Step 2: View Pending Requisitions</h3><br><ul><li>You'll see requisitions with status <strong>"Pending HOD"</strong></li></ul><br><ul><li>Click <strong>"View"</strong> button on any requisition</li></ul><br><br><h3>Step 3: Review the Requisition</h3><br>The modal shows:<br><ul><li><strong>Basic Information:</strong> Title, description, location, requester</li></ul><br><ul><li><strong>Items Table:</strong></li></ul><br>  - Item name<br>  - <strong>Editable quantity</strong> (you can change this!)<br>  - Specifications<br>  - Unit price (if added by procurement)<br>  - Total price<br>  - Vendor (if selected)<br><br><h3>Step 4: Adjust Quantities (Optional)</h3><br><ul><li>Click in the <strong>Qty</strong> field for any item</li></ul><br><ul><li>Change the quantity as needed</li></ul><br><ul><li>System will save these changes when you approve</li></ul><br><br><h3>Step 5: Add Comments</h3><br><ul><li><strong>Mandatory step!</strong></li></ul><br><ul><li>Scroll to the <strong>Comments section</strong></li></ul><br><ul><li>Type your justification/decision reason</li></ul><br><ul><li>Examples:</li></ul><br>  - "Approved for Q4 budget. Urgent requirement."<br>  - "Declined. Budget not available for this quarter. Please resubmit in January."<br>  - "Approved but reduced quantity from 10 to 5 based on current needs."<br><br><h3>Step 6: Make Decision</h3><br><ul><li>Click <strong>"✓ Approve"</strong> to approve (buttons disabled until you add comments)</li></ul><br><ul><li>Click <strong>"✕ Decline"</strong> to reject</li></ul><br><br><h3>Step 7: Download PDF (After Approval)</h3><br><ul><li>If you approved, the requisition status becomes <strong>"HOD Approved"</strong></li></ul><br><ul><li>Click <strong>"📄 Download PDF"</strong> button (left side of footer)</li></ul><br><ul><li>PDF will be generated and downloaded automatically</li></ul><br><br>---<br><br><h2>📋 Features in Detail</h2><br><br><h3>Feature 1: Comments Validation</h3><br><br><strong>Frontend Validation:</strong><br><pre><code>javascript<br>if (!comments.trim()) {<br>    alert('Please provide comments for your decision');<br>    return;<br>}<br></code></pre><br><br><strong>Button State:</strong><br><ul><li>Buttons are <strong>disabled</strong> (grayed out) when comments field is empty</li></ul><br><ul><li>Buttons are <strong>enabled</strong> (colored) when you type comments</li></ul><br><br><h3>Feature 2: Quantity Editing</h3><br><br><strong>Before (Original):</strong><br><pre><code><br>Item: Laptop<br>Quantity: 10  (read-only)<br></code></pre><br><br><strong>After (HOD View):</strong><br><pre><code><br>Item: Laptop<br>Quantity: [  5  ]  (editable input box)<br></code></pre><br><br><strong>How it works:</strong><br><ul><li>HOD changes quantity from 10 to 5</li></ul><br><ul><li>Clicks "Approve"</li></ul><br><ul><li>System updates item quantity in database</li></ul><br><ul><li>System approves requisition</li></ul><br><ul><li>New quantity (5) is used for procurement</li></ul><br><br><h3>Feature 3: PDF Download</h3><br><br><strong>When PDF is available:</strong><br><ul><li>Status: <code>hod_approved</code></li></ul><br><ul><li>Status: <code>procurement_completed</code></li></ul><br><ul><li>Status: <code>completed</code></li></ul><br><br><strong>What's included in PDF:</strong><br><ul><li>Company header: "PURCHASE REQUISITION"</li></ul><br><ul><li>Requisition number</li></ul><br><ul><li>Basic details (location, date, requester, department)</li></ul><br><ul><li>All items with quantities, specs, prices</li></ul><br><ul><li><strong>Grand total</strong> (sum of all item totals)</li></ul><br><ul><li>Approval details</li></ul><br><ul><li>Procurement information (vendors, pricing)</li></ul><br><ul><li>Generated timestamp</li></ul><br><br>---<br><br><h2>🧪 Testing Guide</h2><br><br><h3>Test Scenario 1: Approve with Quantity Change</h3><br><br><ul><li><strong>Login as Initiator:</strong></li></ul><br>   - Username: <code>john.banda</code><br>   - Create requisition with:<br>     - Item: <code>Laptop</code><br>     - Quantity: <code>10</code><br>   - Click <strong>"Submit for Approval"</strong><br><br><ul><li><strong>Login as HOD:</strong></li></ul><br>   - Username: <code>mary.mwanza</code><br>   - View the requisition<br>   - <strong>Change quantity from 10 to 5</strong><br>   - Add comment: <code>"Approved but reduced quantity based on current budget"</code><br>   - Click <strong>"✓ Approve"</strong><br><br><ul><li><strong>Verify:</strong></li></ul><br>   - Status changes to <strong>"HOD Approved"</strong><br>   - Item quantity is now <strong>5</strong> (not 10)<br>   - Comment is saved<br>   - PDF download button appears<br><br><ul><li><strong>Download PDF:</strong></li></ul><br>   - Click <strong>"📄 Download PDF"</strong><br>   - Open PDF and verify quantity shows <strong>5</strong><br><br><h3>Test Scenario 2: Decline Without Comments</h3><br><br><ul><li><strong>Login as HOD</strong></li></ul><br><ul><li>View a pending requisition</li></ul><br><ul><li><strong>Don't type any comments</strong></li></ul><br><ul><li>Try clicking <strong>"✕ Decline"</strong></li></ul><br><br><strong>Expected Result:</strong><br><ul><li>Alert appears: <code>"Please provide comments for your decision"</code></li></ul><br><ul><li>Requisition is <strong>NOT declined</strong></li></ul><br><ul><li>You must add comments first</li></ul><br><br><h3>Test Scenario 3: Decline With Comments</h3><br><br><ul><li><strong>Login as HOD</strong></li></ul><br><ul><li>View a pending requisition</li></ul><br><ul><li>Type comment: <code>"Budget not available. Resubmit next quarter."</code></li></ul><br><ul><li>Click <strong>"✕ Decline"</strong></li></ul><br><br><strong>Expected Result:</strong><br><ul><li>Alert: <code>"Requisition declined successfully!"</code></li></ul><br><ul><li>Status changes to <strong>"Rejected"</strong></li></ul><br><ul><li>Rejection reason is stored</li></ul><br><ul><li>Requisitioner can see the reason</li></ul><br><br><h3>Test Scenario 4: PDF Download After Approval</h3><br><br><ul><li>Create and submit requisition (as initiator)</li></ul><br><ul><li>Approve requisition (as HOD)</li></ul><br><ul><li><strong>Login as initiator</strong> (<code>john.banda</code>)</li></ul><br><ul><li>View the approved requisition</li></ul><br><br><strong>Expected Result:</strong><br><ul><li><strong>"📄 Download PDF"</strong> button is visible</li></ul><br><ul><li>Click it to download</li></ul><br><ul><li>PDF contains all details</li></ul><br><br>---<br><br><h2>🔧 Technical Implementation</h2><br><br><h3>Frontend Changes (index.html)</h3><br><br><strong>1. Added State Variables:</strong><br><pre><code>javascript<br>const [comments, setComments] = useState('');<br>const [editedItems, setEditedItems] = useState(requisition.items || []);<br>const [downloadingPDF, setDownloadingPDF] = useState(false);<br></code></pre><br><br><strong>2. Quantity Update Function:</strong><br><pre><code>javascript<br>const updateItemQuantity = (index, newQuantity) => {<br>    const updated = [...editedItems];<br>    updated[index].quantity = parseInt(newQuantity) || 0;<br>    setEditedItems(updated);<br>};<br></code></pre><br><br><strong>3. Enhanced Approve Handler:</strong><br><pre><code>javascript<br>const handleApprove = async (approved) => {<br>    // Validate comments<br>    if (!comments.trim()) {<br>        alert('Please provide comments for your decision');<br>        return;<br>    }<br><br>    // Update quantities if changed (for HOD)<br>    if (approved && action === 'hod_approve') {<br>        for (let item of editedItems) {<br>            if (originalQuantity !== item.quantity) {<br>                await updateItemAPI(item);<br>            }<br>        }<br>    }<br><br>    // Send approval/decline with comments<br>    await fetch(<code>/api/requisitions/${id}/hod-approve</code>, {<br>        method: 'PUT',<br>        body: JSON.stringify({<br>            user_id: user.id,<br>            approved: approved,<br>            comments: comments<br>        })<br>    });<br>};<br></code></pre><br><br><strong>4. PDF Download Function:</strong><br><pre><code>javascript<br>const downloadPDF = async () => {<br>    const response = await fetch(<code>/api/requisitions/${id}/pdf</code>, {<br>        headers: { 'Authorization': <code>Bearer ${token}</code> }<br>    });<br>    const blob = await response.blob();<br>    const url = window.URL.createObjectURL(blob);<br>    const a = document.createElement('a');<br>    a.href = url;<br>    a.download = <code>Requisition<em>${req</em>number}.pdf</code>;<br>    a.click();<br>};<br></code></pre><br><br><strong>5. Editable Quantity Fields:</strong><br><pre><code>jsx<br><td><br>    {actionType === 'hod_approve' ? (<br>        <input<br>            type="number"<br>            className="form-control form-control-sm"<br>            value={item.quantity}<br>            min="1"<br>            onChange={(e) => updateItemQuantity(index, e.target.value)}<br>        /><br>    ) : (<br>        item.quantity<br>    )}<br></td><br></code></pre><br><br><strong>6. Comments Section:</strong><br><pre><code>jsx<br>{actionType === 'hod_approve' && (<br>    <div className="mb-4"><br>        <h6>Comments <span className="text-danger">*</span></h6><br>        <textarea<br>            className="form-control"<br>            rows="3"<br>            placeholder="Please provide your comments..."<br>            value={comments}<br>            onChange={(e) => setComments(e.target.value)}<br>            required<br>        /><br>        <small className="text-muted"><br>            Comments are mandatory for both approval and decline<br>        </small><br>    </div><br>)}<br></code></pre><br><br><strong>7. Modal Footer Buttons:</strong><br><pre><code>jsx<br><div className="modal-footer"><br>    {/<em> PDF Download Button </em>/}<br>    {canDownloadPDF && (<br>        <button onClick={downloadPDF}><br>            📄 Download PDF<br>        </button><br>    )}<br><br>    {/<em> Approve/Decline Buttons </em>/}<br>    {actionType === 'hod_approve' && (<br>        <><br>            <button<br>                className="btn btn-success"<br>                onClick={() => handleApprove(true)}<br>                disabled={!comments.trim()}<br>            ><br>                ✓ Approve<br>            </button><br>            <button<br>                className="btn btn-danger"<br>                onClick={() => handleApprove(false)}<br>                disabled={!comments.trim()}<br>            ><br>                ✕ Decline<br>            </button><br>        </><br>    )}<br><br>    <button className="btn btn-secondary" onClick={onClose}><br>        Close<br>    </button><br></div><br></code></pre><br><br><h3>Backend Changes (server.js)</h3><br><br><strong>1. Added HOD to Item Update Authorization:</strong><br><pre><code>javascript<br>app.put('/api/requisitions/:id/items/:item_id',<br>    authenticate,<br>    authorize('initiator', 'admin', 'procurement', 'hod'),  // Added 'hod'<br>    (req, res) => {<br>        // Update item quantity, specifications, etc.<br>    }<br>);<br></code></pre><br><br><strong>2. HOD Approval Endpoint Already Supported Comments:</strong><br><pre><code>javascript<br>app.put('/api/requisitions/:id/hod-approve',<br>    authenticate,<br>    authorize('hod', 'admin'),<br>    (req, res) => {<br>        const { user_id, approved, comments } = req.body;<br><br>        // Validate comments for rejection<br>        if (!approved && !comments) {<br>            return res.status(400).json({<br>                error: 'Comments required when rejecting a requisition'<br>            });<br>        }<br><br>        // Update requisition status<br>        const newStatus = approved ? 'hod_approved' : 'rejected';<br><br>        db.run(`UPDATE requisitions SET<br>            status = ?,<br>            rejection_reason = ?,<br>            rejected_by = ?,<br>            rejected<em>at = CURRENT</em>TIMESTAMP<br>            WHERE id = ?<br>        `, [newStatus, comments, user_id, id]);<br>    }<br>);<br></code></pre><br><br><strong>3. PDF Generation Endpoint:</strong><br><pre><code>javascript<br>app.get('/api/requisitions/:id/pdf',<br>    authenticate,<br>    (req, res) => {<br>        // Fetch requisition with items<br>        // Generate PDF using pdfGenerator utility<br>        // Return as downloadable file<br>    }<br>);<br></code></pre><br><br>---<br><br><h2>📊 Database Schema</h2><br><br><h3>Requisitions Table:</h3><br><pre><code>sql<br>CREATE TABLE requisitions (<br>    id INTEGER PRIMARY KEY,<br>    req_number TEXT,<br>    status TEXT,  -- 'pending<em>hod', 'hod</em>approved', 'rejected'<br>    rejection_reason TEXT,  -- Stores HOD comments for rejection<br>    rejected_by INTEGER,<br>    rejected_at DATETIME,<br>    -- ... other fields<br>);<br></code></pre><br><br><h3>Requisition Items Table:</h3><br><pre><code>sql<br>CREATE TABLE requisition_items (<br>    id INTEGER PRIMARY KEY,<br>    requisition_id INTEGER,<br>    item_name TEXT,<br>    quantity INTEGER,  -- Can be modified by HOD<br>    specifications TEXT,<br>    unit_price REAL,<br>    total_price REAL,<br>    vendor_id INTEGER<br>);<br></code></pre><br><br>---<br><br><h2>🎯 Success Criteria</h2><br><br><ul><li>[x] HOD sees <strong>Approve</strong> and <strong>Decline</strong> buttons</li></ul><br><ul><li>[x] <strong>Comments section</strong> is visible and mandatory</li></ul><br><ul><li>[x] Buttons are <strong>disabled without comments</strong></li></ul><br><ul><li>[x] <strong>Quantity fields are editable</strong> for HOD</li></ul><br><ul><li>[x] Quantity changes are <strong>saved to database</strong></li></ul><br><ul><li>[x] Comments are <strong>stored with approval/decline</strong></li></ul><br><ul><li>[x] <strong>PDF download button</strong> appears after approval</li></ul><br><ul><li>[x] PDF downloads successfully with correct filename</li></ul><br><ul><li>[x] <strong>Requisitioner can download PDF</strong> after HOD approval</li></ul><br><ul><li>[x] Status changes correctly: <code>pending<em>hod</code> → <code>hod</em>approved</code></li></ul><br><ul><li>[x] Declined requisitions show <strong>rejection reason</strong></li></ul><br><br>---<br><br><h2>🚀 Next Steps</h2><br><br><h3>For Requisitioner (After HOD Approval):</h3><br><ul><li>View approved requisitions</li></ul><br><ul><li>Download PDF for records</li></ul><br><ul><li>Track procurement progress</li></ul><br><br><h3>For Procurement (After HOD Approval):</h3><br><ul><li>View requisitions with status <strong>"HOD Approved"</strong></li></ul><br><ul><li>Select vendors from dropdown</li></ul><br><ul><li>Enter unit prices</li></ul><br><ul><li>Complete procurement process</li></ul><br><br>---<br><br><h2>📝 Files Modified</h2><br><br>| File | Changes |<br>|------|---------|<br>| <code>frontend/index.html</code> | Added HOD review UI, comments section, quantity editing, PDF download |<br>| <code>backend/server.js</code> | Added 'hod' to item update authorization |<br>| <code>HOD<em>REVIEW</em>FEATURES.md</code> | This documentation |<br><br>---<br><br><h2>🎉 Summary</h2><br><br><strong>HOD Review Features are now complete!</strong><br><br>✅ <strong>Approve/Decline buttons</strong> with proper labels<br>✅ <strong>Mandatory comments</strong> for all decisions<br>✅ <strong>Editable quantities</strong> before approval<br>✅ <strong>PDF download</strong> after approval<br>✅ <strong>Status flow</strong> to procurement after approval<br><br><strong>Test it now:</strong><br><ul><li>Start servers (backend + frontend)</li></ul><br><ul><li>Login as <code>john.banda</code> → Create requisition</li></ul><br><ul><li>Login as <code>mary.mwanza</code> (HOD) → Review & Approve</li></ul><br><ul><li>Download PDF and verify all details!</li></ul><br><br>---<br><br><strong>Status:</strong> ✅ <strong>READY FOR USE</strong><br><strong>Last Updated:</strong> October 23, 2025<br>
+</body>
+</html>
