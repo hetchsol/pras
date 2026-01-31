@@ -12,7 +12,7 @@ const eftRequisitionSchema = new mongoose.Schema({
   purpose: { type: String, required: true },
   account_code: { type: String },
   description: { type: String },
-  initiator_id: { type: Number, required: true },
+  initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },
   status: { type: String, required: true },
   created_at: { type: Date, default: Date.now }

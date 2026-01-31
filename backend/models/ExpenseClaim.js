@@ -27,7 +27,7 @@ const expenseClaimSchema = new mongoose.Schema({
   total_claim: { type: Number, default: 0 },
   amount_advanced: { type: Number, default: 0 },
   amount_due: { type: Number, default: 0 },
-  initiator_id: { type: Number, required: true },
+  initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },
   status: { type: String, required: true },
   items: [expenseClaimItemSchema],
