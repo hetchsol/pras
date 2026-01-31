@@ -7,6 +7,7 @@ const FXRate = require('./FXRate');
 const EFTRequisition = require('./EFTRequisition');
 const ExpenseClaim = require('./ExpenseClaim');
 const FormApproval = require('./FormApproval');
+const PettyCashRequisition = require('./PettyCashRequisition');
 
 module.exports = {
   User,
@@ -17,5 +18,6 @@ module.exports = {
   FXRate,
   EFTRequisition,
   ExpenseClaim,
-  FormApproval
+  FormApproval,
+  PettyCashRequisition
 };

@@ -9,7 +9,8 @@ const {
   FXRate,
   EFTRequisition,
   ExpenseClaim,
-  FormApproval
+  FormApproval,
+  PettyCashRequisition
 } = require('./models');
 
 // Connect to MongoDB
@@ -325,5 +326,6 @@ module.exports = {
   FXRate,
   EFTRequisition,
   ExpenseClaim,
-  FormApproval
+  FormApproval,
+  PettyCashRequisition
 };

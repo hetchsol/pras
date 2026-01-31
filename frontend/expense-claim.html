@@ -424,7 +424,7 @@
                 <td><input type="checkbox" class="breakfast" onchange="calculateRow(this)"></td>
                 <td><input type="checkbox" class="lunch" onchange="calculateRow(this)"></td>
                 <td><input type="checkbox" class="dinner" onchange="calculateRow(this)"></td>
-                <td><input type="number" class="meals" step="0.01" value="0" readonly></td>
+                <td><input type="number" class="meals" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="accommodation" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="phone" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="total" step="0.01" value="0" readonly></td>
@@ -443,17 +443,20 @@
 
         function calculateRow(element) {
             const row = element.closest('tr');
+            const mealsInput = row.querySelector('.meals');
 
-            // Calculate meals (Breakfast: K50, Lunch: K100, Dinner: K100)
-            const breakfast = row.querySelector('.breakfast').checked ? 50 : 0;
-            const lunch = row.querySelector('.lunch').checked ? 100 : 0;
-            const dinner = row.querySelector('.dinner').checked ? 100 : 0;
-            const mealsTotal = breakfast + lunch + dinner;
-            row.querySelector('.meals').value = mealsTotal.toFixed(2);
+            // Only auto-calculate meals from checkboxes if a checkbox was clicked
+            if (element.classList.contains('breakfast') || element.classList.contains('lunch') || element.classList.contains('dinner')) {
+                const breakfast = row.querySelector('.breakfast').checked ? 50 : 0;
+                const lunch = row.querySelector('.lunch').checked ? 100 : 0;
+                const dinner = row.querySelector('.dinner').checked ? 100 : 0;
+                const mealsTotal = breakfast + lunch + dinner;
+                mealsInput.value = mealsTotal.toFixed(2);
+            }
 
             // Calculate row total
             const km = parseFloat(row.querySelector('.km').value) || 0;
-            const meals = parseFloat(row.querySelector('.meals').value) || 0;
+            const meals = parseFloat(mealsInput.value) || 0;
             const accommodation = parseFloat(row.querySelector('.accommodation').value) || 0;
             const phone = parseFloat(row.querySelector('.phone').value) || 0;
 

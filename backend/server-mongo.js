@@ -162,6 +162,7 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
+        employee_number: user.employee_number || '',
         is_hod: user.is_hod
       }
     });
@@ -664,8 +665,8 @@ app.get('/api/forms/eft-requisitions', authenticate, async (req, res) => {
 
 app.get('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => {
   try {
-    // Return empty array if no petty cash model exists
-    res.json([]);
+    const pettyCash = await db.PettyCashRequisition.find().sort({ created_at: -1 }).lean();
+    res.json(pettyCash);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -735,6 +736,36 @@ app.post('/api/forms/eft-requisitions', authenticate, async (req, res) => {
     res.status(201).json({ success: true, id: eftId, eft_number: eftId });
   } catch (error) {
     console.error('Create EFT requisition error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// POST forms - create Petty Cash requisitions
+app.post('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => {
+  try {
+    const user = await db.getUserById(req.user.id);
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, '');
+    const pettyCashId = `KSB-PC-${dateStr}${timeStr}`;
+
+    const pettyCash = await db.PettyCashRequisition.create({
+      id: pettyCashId,
+      payee_name: req.body.payee_name || user?.full_name || '',
+      department: req.body.department || user?.department || '',
+      purpose: req.body.purpose || '',
+      description: req.body.description || '',
+      amount: req.body.amount || 0,
+      amount_in_words: req.body.amount_in_words || '',
+      items: req.body.items || [],
+      initiator_id: req.user.id,
+      initiator_name: user?.full_name || req.user.username,
+      status: 'pending_hod'
+    });
+
+    res.status(201).json({ success: true, id: pettyCashId, petty_cash_number: pettyCashId });
+  } catch (error) {
+    console.error('Create petty cash requisition error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
   }
 });
