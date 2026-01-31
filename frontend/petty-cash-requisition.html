@@ -18,6 +18,49 @@
             padding: 20px;
         }
 
+        .nav-header {
+            max-width: 900px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .nav-btn-home {
+            background: #fff;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .nav-btn-home:hover {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .nav-btn-back {
+            background: rgba(255,255,255,0.9);
+            color: #555;
+            border: 2px solid #ddd;
+        }
+
+        .nav-btn-back:hover {
+            background: #f0f0f0;
+            border-color: #bbb;
+        }
+
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -244,6 +287,16 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Header -->
+    <div class="nav-header">
+        <a href="index.html" class="nav-btn nav-btn-home">
+            <span>&#127968;</span> Home
+        </a>
+        <button onclick="goBack()" class="nav-btn nav-btn-back">
+            <span>&#8592;</span> Back
+        </button>
+    </div>
+
     <div class="container">
         <h1>💵 Petty Cash Requisition Form</h1>
 
@@ -546,6 +599,15 @@
 
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // Navigation function
+        function goBack() {
+            if (document.referrer && document.referrer.includes(window.location.hostname)) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
         }
     </script>
 </body>

@@ -3759,6 +3759,17 @@ function CreateRequisition({ user, setView, loadData }) {
   };
 
   return React.createElement('div', { className: "max-w-3xl mx-auto" },
+    // Navigation Header
+    React.createElement('div', { className: "flex gap-3 mb-4" },
+      React.createElement('button', {
+        onClick: () => setView('dashboard'),
+        className: "inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 border-2 border-blue-600 rounded-lg font-semibold hover:bg-blue-600 hover:text-white transition-all"
+      }, "\u{1F3E0} Home"),
+      React.createElement('button', {
+        onClick: () => setView('dashboard'),
+        className: "inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-200 transition-all"
+      }, "\u2190 Back")
+    ),
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Create New Requisition"),
 
