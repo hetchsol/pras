@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const pettyCashItemSchema = new mongoose.Schema({
   item_no: { type: Number, required: true },
   description: { type: String, required: true },
+  quantity: { type: Number, default: 1 },
   amount: { type: Number, required: true }
 });
 

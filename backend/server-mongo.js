@@ -66,6 +66,35 @@ app.get('/api/seed', async (req, res) => {
   }
 });
 
+// Setup specific user roles endpoint
+app.get('/api/setup-roles', async (req, res) => {
+  try {
+    const roleUpdates = [
+      { username: 'kanyembo.ndhlovu', role: 'md' },
+      { username: 'anne.banda', role: 'finance' },
+      { username: 'clarence.simwanza', role: 'procurement' }
+    ];
+
+    const results = [];
+    for (const update of roleUpdates) {
+      const result = await db.User.findOneAndUpdate(
+        { username: update.username.toLowerCase() },
+        { role: update.role },
+        { new: true }
+      );
+      if (result) {
+        results.push({ username: update.username, role: update.role, status: 'updated' });
+      } else {
+        results.push({ username: update.username, role: update.role, status: 'user not found' });
+      }
+    }
+
+    res.json({ success: true, message: 'Roles updated', results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Import users endpoint (for bulk import)
 app.post('/api/import-users', async (req, res) => {
   try {

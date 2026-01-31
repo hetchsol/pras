@@ -346,6 +346,7 @@
                             <tr>
                                 <th style="width: 60px;">Item No</th>
                                 <th>Description</th>
+                                <th style="width: 80px;">Qty</th>
                                 <th style="width: 150px;">Amount (K)</th>
                                 <th style="width: 80px;">Action</th>
                             </tr>
@@ -419,6 +420,7 @@
             row.innerHTML = `
                 <td><input type="number" class="item_no" value="${itemCounter}" readonly></td>
                 <td><input type="text" class="description" required placeholder="Item description"></td>
+                <td><input type="number" class="quantity" value="1" min="1" placeholder="Qty"></td>
                 <td><input type="number" class="amount" step="0.01" value="0" onchange="calculateTotal()" required></td>
                 <td><button type="button" class="btn btn-danger" onclick="deleteItemRow(this)">×</button></td>
             `;
@@ -532,6 +534,7 @@
                 items.push({
                     item_no: parseInt(row.querySelector('.item_no').value),
                     description: description,
+                    quantity: parseInt(row.querySelector('.quantity').value) || 1,
                     amount: amount
                 });
 
