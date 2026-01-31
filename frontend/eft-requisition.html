@@ -488,7 +488,7 @@
 
             try {
                 showLoading(true);
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('authToken');
 
                 const response = await fetch(`${API_URL}/forms/eft-requisitions`, {
                     method: 'POST',
