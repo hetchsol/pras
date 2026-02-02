@@ -1294,7 +1294,9 @@ function App() {
         view === 'approve-expense-claim' && React.createElement(ApproveExpenseClaim, { claim: selectedReq, user: currentUser, setView }),
         view === 'eft-requisitions' && React.createElement(EFTRequisitionsList, { user: currentUser, setView, setSelectedReq }),
         view === 'create-eft-requisition' && React.createElement(CreateEFTRequisition, { user: currentUser, setView }),
-        view === 'approve-eft-requisition' && React.createElement(ApproveEFTRequisition, { requisition: selectedReq, user: currentUser, setView })
+        view === 'approve-eft-requisition' && React.createElement(ApproveEFTRequisition, { requisition: selectedReq, user: currentUser, setView }),
+        view === 'approve-petty-cash' && React.createElement(ApprovePettyCash, { requisition: selectedReq, user: currentUser, setView }),
+        view === 'petty-cash-requisitions' && React.createElement(PettyCashRequisitionsList, { user: currentUser, setView, setSelectedReq })
       )
     )
   );
@@ -6520,75 +6522,129 @@ function AnalyticsDashboard({ user }) {
 // APPROVAL CONSOLE COMPONENT
 // ============================================
 function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
-  const [requisitions, setRequisitions] = useState([]);
+  const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    fetchPendingRequisitions();
+    fetchAllPendingItems();
   }, []);
 
-  const fetchPendingRequisitions = async () => {
+  const fetchAllPendingItems = async () => {
     setLoading(true);
     try {
-      const res = await fetchWithAuth(`${API_URL}/requisitions`);
-      if (!res.ok) throw new Error('Failed to fetch requisitions');
-      const data = await res.json();
+      // Fetch all types of requisitions/forms
+      const [reqRes, expRes, eftRes, pcRes] = await Promise.all([
+        fetchWithAuth(`${API_URL}/requisitions`),
+        fetchWithAuth(`${API_URL}/forms/expense-claims`),
+        fetchWithAuth(`${API_URL}/forms/eft-requisitions`),
+        fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`)
+      ]);
 
-      // Filter based on user role
+      const requisitions = reqRes.ok ? await reqRes.json() : [];
+      const expenseClaims = expRes.ok ? await expRes.json() : [];
+      const eftRequisitions = eftRes.ok ? await eftRes.json() : [];
+      const pettyCash = pcRes.ok ? await pcRes.json() : [];
+
+      // Add type identifier to each item
+      const taggedReqs = requisitions.map(r => ({ ...r, formType: 'purchase_requisition', displayType: 'Purchase Req' }));
+      const taggedExp = expenseClaims.map(r => ({ ...r, formType: 'expense_claim', displayType: 'Expense Claim' }));
+      const taggedEft = eftRequisitions.map(r => ({ ...r, formType: 'eft_requisition', displayType: 'EFT' }));
+      const taggedPc = pettyCash.map(r => ({ ...r, formType: 'petty_cash', displayType: 'Petty Cash' }));
+
+      const combinedItems = [...taggedReqs, ...taggedExp, ...taggedEft, ...taggedPc];
+
+      // Filter based on user role and status
       let filtered = [];
       if (user.role === 'hod') {
-        // HOD sees requisitions pending HOD approval
-        filtered = data.filter(req => req.status === 'pending_hod');
+        filtered = combinedItems.filter(item => item.status === 'pending_hod');
       } else if (user.role === 'finance') {
-        // Finance sees:
-        // 1. Requisitions pending finance approval
-        // 2. Requisitions pending_hod where finance is the assigned HOD (pre-adjudication)
-        filtered = data.filter(req =>
-          req.status === 'pending_finance' ||
-          (req.status === 'pending_hod' && !req.has_adjudication)
+        filtered = combinedItems.filter(item =>
+          item.status === 'pending_finance' ||
+          item.status === 'hod_approved' ||
+          (item.status === 'pending_hod' && !item.has_adjudication)
         );
       } else if (user.role === 'md') {
-        // MD sees:
-        // 1. Requisitions pending MD approval
-        // 2. Requisitions pending_hod where MD is the assigned HOD (pre-adjudication)
-        filtered = data.filter(req =>
-          req.status === 'pending_md' ||
-          (req.status === 'pending_hod' && !req.has_adjudication)
+        filtered = combinedItems.filter(item =>
+          item.status === 'pending_md' ||
+          item.status === 'finance_approved' ||
+          (item.status === 'pending_hod' && !item.has_adjudication)
         );
       } else if (user.role === 'admin') {
-        // Admin sees all pending requisitions
-        filtered = data.filter(req =>
-          req.status === 'pending_hod' ||
-          req.status === 'pending_finance' ||
-          req.status === 'pending_md'
+        filtered = combinedItems.filter(item =>
+          item.status === 'pending_hod' ||
+          item.status === 'pending_finance' ||
+          item.status === 'pending_md' ||
+          item.status === 'hod_approved' ||
+          item.status === 'finance_approved'
         );
       }
 
-      setRequisitions(filtered);
+      // Sort by created date, newest first
+      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      setAllItems(filtered);
     } catch (error) {
-      console.error('Error fetching requisitions:', error);
-      alert('Failed to load pending requisitions');
+      console.error('Error fetching items:', error);
+      alert('Failed to load pending items');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReview = (req) => {
-    setSelectedReq(req);
-    setView('approve');
+  const handleReview = (item) => {
+    setSelectedReq(item);
+    // Navigate to appropriate approval view based on form type
+    if (item.formType === 'expense_claim') {
+      setView('approve-expense-claim');
+    } else if (item.formType === 'eft_requisition') {
+      setView('approve-eft-requisition');
+    } else if (item.formType === 'petty_cash') {
+      setView('approve-petty-cash');
+    } else {
+      setView('approve');
+    }
   };
+
+  // Filter items based on selected filter
+  const filteredItems = filter === 'all' ? allItems : allItems.filter(item => item.formType === filter);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
       'pending_hod': { label: 'Pending HOD', color: 'bg-yellow-100 text-yellow-800' },
       'pending_finance': { label: 'Pending Finance', color: 'bg-blue-100 text-blue-800' },
-      'pending_md': { label: 'Pending MD', color: 'bg-purple-100 text-purple-800' }
+      'pending_md': { label: 'Pending MD', color: 'bg-purple-100 text-purple-800' },
+      'hod_approved': { label: 'HOD Approved', color: 'bg-green-100 text-green-800' },
+      'finance_approved': { label: 'Finance Approved', color: 'bg-green-100 text-green-800' }
     };
     const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
     return React.createElement('span', {
       className: `px-2 py-1 text-xs font-semibold rounded-full ${config.color}`
     }, config.label);
+  };
+
+  const getTypeBadge = (displayType) => {
+    const typeColors = {
+      'Purchase Req': 'bg-indigo-100 text-indigo-800',
+      'Expense Claim': 'bg-pink-100 text-pink-800',
+      'EFT': 'bg-cyan-100 text-cyan-800',
+      'Petty Cash': 'bg-orange-100 text-orange-800'
+    };
+    return React.createElement('span', {
+      className: `px-2 py-1 text-xs font-semibold rounded-full ${typeColors[displayType] || 'bg-gray-100 text-gray-800'}`
+    }, displayType);
+  };
+
+  const getItemAmount = (item) => {
+    return item.total_amount || item.total_claim || item.amount || 0;
+  };
+
+  const getItemDescription = (item) => {
+    return item.description || item.purpose || item.reason_for_trip || item.in_favour_of || 'N/A';
+  };
+
+  const getItemInitiator = (item) => {
+    return item.created_by_name || item.initiator_name || item.employee_name || item.payee_name || 'N/A';
   };
 
   if (loading) {
@@ -6602,86 +6658,730 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" },
-          `✅ Approval Console - ${user.role.toUpperCase()}`
+          `Approval Console - ${user.role.toUpperCase()}`
         ),
-        React.createElement('button', {
-          onClick: fetchPendingRequisitions,
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        }, '🔄 Refresh')
+        React.createElement('div', { className: "flex gap-3" },
+          React.createElement('select', {
+            value: filter,
+            onChange: (e) => setFilter(e.target.value),
+            className: "px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          },
+            React.createElement('option', { value: 'all' }, 'All Types'),
+            React.createElement('option', { value: 'purchase_requisition' }, 'Purchase Requisitions'),
+            React.createElement('option', { value: 'expense_claim' }, 'Expense Claims'),
+            React.createElement('option', { value: 'eft_requisition' }, 'EFT Requisitions'),
+            React.createElement('option', { value: 'petty_cash' }, 'Petty Cash')
+          ),
+          React.createElement('button', {
+            onClick: fetchAllPendingItems,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          }, 'Refresh')
+        )
       ),
 
       // Summary Cards
-      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" },
+      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" },
         React.createElement('div', { className: "bg-yellow-50 border border-yellow-200 rounded-lg p-4" },
-          React.createElement('div', { className: "text-yellow-800 text-sm font-medium" }, "Pending Your Approval"),
-          React.createElement('div', { className: "text-3xl font-bold text-yellow-900 mt-2" }, requisitions.length)
+          React.createElement('div', { className: "text-yellow-800 text-sm font-medium" }, "Pending Approval"),
+          React.createElement('div', { className: "text-3xl font-bold text-yellow-900 mt-2" }, filteredItems.length)
         ),
         React.createElement('div', { className: "bg-green-50 border border-green-200 rounded-lg p-4" },
           React.createElement('div', { className: "text-green-800 text-sm font-medium" }, "Total Amount"),
           React.createElement('div', { className: "text-3xl font-bold text-green-900 mt-2" },
-            `${requisitions.reduce((sum, req) => sum + (parseFloat(req.total_amount) || 0), 0).toLocaleString()} ZMW`
+            `K ${filteredItems.reduce((sum, item) => sum + (parseFloat(getItemAmount(item)) || 0), 0).toLocaleString()}`
           )
         ),
-        React.createElement('div', { className: "bg-blue-50 border border-blue-200 rounded-lg p-4" },
-          React.createElement('div', { className: "text-blue-800 text-sm font-medium" }, "Urgent"),
-          React.createElement('div', { className: "text-3xl font-bold text-blue-900 mt-2" },
-            requisitions.filter(req => req.urgency === 'High' || req.urgency === 'Emergency').length
+        React.createElement('div', { className: "bg-indigo-50 border border-indigo-200 rounded-lg p-4" },
+          React.createElement('div', { className: "text-indigo-800 text-sm font-medium" }, "Purchase Reqs"),
+          React.createElement('div', { className: "text-3xl font-bold text-indigo-900 mt-2" },
+            allItems.filter(i => i.formType === 'purchase_requisition').length
+          )
+        ),
+        React.createElement('div', { className: "bg-pink-50 border border-pink-200 rounded-lg p-4" },
+          React.createElement('div', { className: "text-pink-800 text-sm font-medium" }, "Forms"),
+          React.createElement('div', { className: "text-3xl font-bold text-pink-900 mt-2" },
+            allItems.filter(i => i.formType !== 'purchase_requisition').length
           )
         )
       ),
 
-      // Requisitions Table
-      requisitions.length === 0
+      // Items Table
+      filteredItems.length === 0
         ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500 text-lg" }, "No requisitions pending your approval"),
+            React.createElement('p', { className: "text-gray-500 text-lg" }, "No items pending your approval"),
             React.createElement('p', { className: "text-gray-400 text-sm mt-2" }, "Great! You're all caught up.")
           )
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Req #"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Urgency"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Initiator"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Created"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Type"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Ref #"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Initiator"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "bg-white divide-y divide-gray-200" },
-                requisitions.map(req =>
+                filteredItems.map(item =>
                   React.createElement('tr', {
-                    key: req.id,
+                    key: item.id || item._id,
                     className: "hover:bg-gray-50 transition-colors"
                   },
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600" }, req.req_number),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-900" },
-                      React.createElement('div', { className: "max-w-xs truncate" }, req.description || req.title)
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap" }, getTypeBadge(item.displayType)),
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600" },
+                      item.req_number || item.id || 'N/A'
                     ),
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900" },
-                      `${parseFloat(req.total_amount || 0).toLocaleString()} ZMW`
+                    React.createElement('td', { className: "px-4 py-4 text-sm text-gray-900" },
+                      React.createElement('div', { className: "max-w-xs truncate" }, getItemDescription(item))
                     ),
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap" },
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900" },
+                      `K ${parseFloat(getItemAmount(item)).toLocaleString()}`
+                    ),
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap text-sm text-gray-600" }, getItemInitiator(item)),
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap" }, getStatusBadge(item.status)),
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap text-sm text-gray-500" },
+                      new Date(item.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-4 whitespace-nowrap" },
+                      React.createElement('button', {
+                        onClick: () => handleReview(item),
+                        className: "px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                      }, 'Review')
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// APPROVE EXPENSE CLAIM COMPONENT
+// ============================================
+function ApproveExpenseClaim({ claim, user, setView }) {
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!claim) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-500" }, "No expense claim selected"),
+      React.createElement('button', {
+        onClick: () => setView('approval-console'),
+        className: "mt-4 text-blue-600 hover:text-blue-800"
+      }, "Back to Approval Console")
+    );
+  }
+
+  const handleApprove = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment || 'Approved'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Approval failed');
+      }
+
+      alert('Expense claim approved successfully!');
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error approving expense claim:', error);
+      alert(error.message || 'Error approving expense claim');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!comment.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Rejection failed');
+      }
+
+      alert('Expense claim rejected');
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error rejecting expense claim:', error);
+      alert(error.message || 'Error rejecting expense claim');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return React.createElement('div', { className: "max-w-4xl mx-auto" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Expense Claim"),
+        React.createElement('span', {
+          className: `px-4 py-2 rounded-full text-sm font-medium bg-pink-100 text-pink-700`
+        }, claim.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+      ),
+
+      // Claim Details
+      React.createElement('div', { className: "space-y-6" },
+        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Claim ID"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, claim.id)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Employee"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, claim.employee_name || claim.initiator_name)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Department"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, claim.department)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Total Claim Amount"),
+            React.createElement('p', { className: "text-2xl font-bold text-green-600" }, `K ${parseFloat(claim.total_claim || claim.amount || 0).toLocaleString()}`)
+          )
+        ),
+
+        // Items Section
+        claim.items && claim.items.length > 0 && React.createElement('div', { className: "mt-6" },
+          React.createElement('h3', { className: "text-lg font-semibold text-gray-800 mb-3" }, "Expense Items"),
+          React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full border" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "#"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Description"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Amount")
+                )
+              ),
+              React.createElement('tbody', null,
+                claim.items.map((item, idx) =>
+                  React.createElement('tr', { key: idx, className: "border-t" },
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, idx + 1),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.description || item.item_description),
+                    React.createElement('td', { className: "px-4 py-2 text-sm font-semibold" }, `K ${parseFloat(item.amount || item.total || 0).toLocaleString()}`)
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // Purpose/Reason
+        React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Purpose / Reason for Trip"),
+          React.createElement('p', { className: "text-gray-900" }, claim.reason_for_trip || claim.purpose || 'N/A')
+        ),
+
+        // Comments Section
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Comments"),
+          React.createElement('textarea', {
+            value: comment,
+            onChange: (e) => setComment(e.target.value),
+            placeholder: "Add your comments here (required for rejection)...",
+            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            rows: 3
+          })
+        ),
+
+        // Action Buttons
+        React.createElement('div', { className: "flex gap-4 mt-6" },
+          React.createElement('button', {
+            onClick: handleApprove,
+            disabled: loading,
+            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Approve'),
+          React.createElement('button', {
+            onClick: handleReject,
+            disabled: loading,
+            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Reject'),
+          React.createElement('button', {
+            onClick: () => setView('approval-console'),
+            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          }, 'Cancel')
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// APPROVE EFT REQUISITION COMPONENT
+// ============================================
+function ApproveEFTRequisition({ requisition, user, setView }) {
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!requisition) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-500" }, "No EFT requisition selected"),
+      React.createElement('button', {
+        onClick: () => setView('approval-console'),
+        className: "mt-4 text-blue-600 hover:text-blue-800"
+      }, "Back to Approval Console")
+    );
+  }
+
+  const handleApprove = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${requisition._id || requisition.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment || 'Approved'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Approval failed');
+      }
+
+      alert('EFT requisition approved successfully!');
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error approving EFT requisition:', error);
+      alert(error.message || 'Error approving EFT requisition');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!comment.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${requisition._id || requisition.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Rejection failed');
+      }
+
+      alert('EFT requisition rejected');
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error rejecting EFT requisition:', error);
+      alert(error.message || 'Error rejecting EFT requisition');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return React.createElement('div', { className: "max-w-4xl mx-auto" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review EFT Requisition"),
+        React.createElement('span', {
+          className: `px-4 py-2 rounded-full text-sm font-medium bg-cyan-100 text-cyan-700`
+        }, requisition.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+      ),
+
+      // Requisition Details
+      React.createElement('div', { className: "space-y-6" },
+        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition ID"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Initiator"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.initiator_name)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Department"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.department)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Amount"),
+            React.createElement('p', { className: "text-2xl font-bold text-green-600" }, `K ${parseFloat(requisition.amount || 0).toLocaleString()}`)
+          )
+        ),
+
+        // Payment Details
+        React.createElement('div', { className: "grid grid-cols-2 gap-6 p-4 bg-blue-50 rounded-lg" },
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "In Favour Of"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.in_favour_of || 'N/A')
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Bank"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.bank_name || 'N/A')
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Account Number"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.bank_account_number || requisition.account_number || 'N/A')
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Branch"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.branch || requisition.branch_code || 'N/A')
+          )
+        ),
+
+        // Purpose
+        React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Purpose"),
+          React.createElement('p', { className: "text-gray-900" }, requisition.purpose || requisition.description || 'N/A')
+        ),
+
+        // Amount in Words
+        requisition.amount_in_words && React.createElement('div', { className: "p-4 bg-yellow-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Amount in Words"),
+          React.createElement('p', { className: "text-gray-900 italic" }, requisition.amount_in_words)
+        ),
+
+        // Comments Section
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Comments"),
+          React.createElement('textarea', {
+            value: comment,
+            onChange: (e) => setComment(e.target.value),
+            placeholder: "Add your comments here (required for rejection)...",
+            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            rows: 3
+          })
+        ),
+
+        // Action Buttons
+        React.createElement('div', { className: "flex gap-4 mt-6" },
+          React.createElement('button', {
+            onClick: handleApprove,
+            disabled: loading,
+            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Approve'),
+          React.createElement('button', {
+            onClick: handleReject,
+            disabled: loading,
+            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Reject'),
+          React.createElement('button', {
+            onClick: () => setView('approval-console'),
+            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          }, 'Cancel')
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// APPROVE PETTY CASH COMPONENT
+// ============================================
+function ApprovePettyCash({ requisition, user, setView }) {
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!requisition) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-500" }, "No petty cash requisition selected"),
+      React.createElement('button', {
+        onClick: () => setView('approval-console'),
+        className: "mt-4 text-blue-600 hover:text-blue-800"
+      }, "Back to Approval Console")
+    );
+  }
+
+  const handleApprove = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${requisition._id || requisition.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment || 'Approved'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Approval failed');
+      }
+
+      alert('Petty cash requisition approved successfully!');
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error approving petty cash requisition:', error);
+      alert(error.message || 'Error approving petty cash requisition');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!comment.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${requisition._id || requisition.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Rejection failed');
+      }
+
+      alert('Petty cash requisition rejected');
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error rejecting petty cash requisition:', error);
+      alert(error.message || 'Error rejecting petty cash requisition');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return React.createElement('div', { className: "max-w-4xl mx-auto" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Petty Cash Requisition"),
+        React.createElement('span', {
+          className: `px-4 py-2 rounded-full text-sm font-medium bg-orange-100 text-orange-700`
+        }, requisition.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+      ),
+
+      // Requisition Details
+      React.createElement('div', { className: "space-y-6" },
+        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition ID"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Payee"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.payee_name || requisition.initiator_name)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Department"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.department)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Total Amount"),
+            React.createElement('p', { className: "text-2xl font-bold text-green-600" }, `K ${parseFloat(requisition.amount || 0).toLocaleString()}`)
+          )
+        ),
+
+        // Items Section
+        requisition.items && requisition.items.length > 0 && React.createElement('div', { className: "mt-6" },
+          React.createElement('h3', { className: "text-lg font-semibold text-gray-800 mb-3" }, "Items"),
+          React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full border" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "#"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Description"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Qty"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Amount")
+                )
+              ),
+              React.createElement('tbody', null,
+                requisition.items.map((item, idx) =>
+                  React.createElement('tr', { key: idx, className: "border-t" },
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.item_no || idx + 1),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.description),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.quantity || 1),
+                    React.createElement('td', { className: "px-4 py-2 text-sm font-semibold" }, `K ${parseFloat(item.amount || 0).toLocaleString()}`)
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // Purpose
+        React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Purpose"),
+          React.createElement('p', { className: "text-gray-900" }, requisition.purpose || requisition.description || 'N/A')
+        ),
+
+        // Amount in Words
+        requisition.amount_in_words && React.createElement('div', { className: "p-4 bg-yellow-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Amount in Words"),
+          React.createElement('p', { className: "text-gray-900 italic" }, requisition.amount_in_words)
+        ),
+
+        // Comments Section
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Comments"),
+          React.createElement('textarea', {
+            value: comment,
+            onChange: (e) => setComment(e.target.value),
+            placeholder: "Add your comments here (required for rejection)...",
+            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            rows: 3
+          })
+        ),
+
+        // Action Buttons
+        React.createElement('div', { className: "flex gap-4 mt-6" },
+          React.createElement('button', {
+            onClick: handleApprove,
+            disabled: loading,
+            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Approve'),
+          React.createElement('button', {
+            onClick: handleReject,
+            disabled: loading,
+            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Reject'),
+          React.createElement('button', {
+            onClick: () => setView('approval-console'),
+            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          }, 'Cancel')
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// PETTY CASH REQUISITIONS LIST COMPONENT
+// ============================================
+function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
+  const [requisitions, setRequisitions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPettyCashRequisitions();
+  }, []);
+
+  const fetchPettyCashRequisitions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`);
+      if (!res.ok) throw new Error('Failed to fetch petty cash requisitions');
+      const data = await res.json();
+      setRequisitions(data);
+    } catch (error) {
+      console.error('Error fetching petty cash requisitions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = (req) => {
+    setSelectedReq(req);
+    setView('approve-petty-cash');
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading petty cash requisitions...")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Petty Cash Requisitions"),
+        React.createElement('button', {
+          onClick: fetchPettyCashRequisitions,
+          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        }, 'Refresh')
+      ),
+
+      requisitions.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No petty cash requisitions found")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Payee"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Purpose"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                requisitions.map(req =>
+                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, req.id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, req.payee_name),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, req.purpose),
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
-                          req.urgency === 'Emergency' ? 'bg-red-100 text-red-800' :
-                          req.urgency === 'High' ? 'bg-orange-100 text-orange-800' :
-                          'bg-green-100 text-green-800'
+                          req.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          req.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
                         }`
-                      }, req.urgency || 'Standard')
+                      }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm text-gray-600" }, req.created_by_name || 'N/A'),
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap" }, getStatusBadge(req.status)),
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm text-gray-500" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
                       new Date(req.created_at).toLocaleDateString()
                     ),
-                    React.createElement('td', { className: "px-6 py-4 whitespace-nowrap" },
+                    React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('button', {
-                        onClick: () => handleReview(req),
-                        className: "px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                      }, 'Review & Approve')
+                        onClick: () => handleView(req),
+                        className: "px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      }, 'View')
                     )
                   )
                 )

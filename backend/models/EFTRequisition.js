@@ -14,8 +14,17 @@ const eftRequisitionSchema = new mongoose.Schema({
   description: { type: String },
   initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },
-  status: { type: String, required: true },
-  created_at: { type: Date, default: Date.now }
+  department: { type: String },
+  status: { type: String, required: true, default: 'pending_hod' },
+  approvals: [{
+    role: String,
+    name: String,
+    action: String,
+    comments: String,
+    date: { type: Date, default: Date.now }
+  }],
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('EFTRequisition', eftRequisitionSchema);

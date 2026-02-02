@@ -852,6 +852,7 @@ app.post('/api/forms/eft-requisitions', authenticate, async (req, res) => {
       purpose: req.body.purpose || req.body.description || '',
       account_code: req.body.account_code || '',
       description: req.body.description || '',
+      department: req.body.department || user?.department || '',
       initiator_id: req.user.id,
       initiator_name: user?.full_name || req.user.username,
       status: 'pending_hod'
@@ -905,6 +906,184 @@ app.get('/api/forms/eft-requisitions/:id/pdf', authenticate, (req, res) => {
 
 app.get('/api/requisitions/:id/pdf', authenticate, (req, res) => {
   res.status(501).json({ error: 'PDF generation not available in this version' });
+});
+
+// ============================================
+// APPROVAL ENDPOINTS FOR ALL FORM TYPES
+// ============================================
+
+// Approve/Reject Expense Claim
+app.put('/api/forms/expense-claims/:id/approve', authenticate, async (req, res) => {
+  try {
+    const { approved, approver_role, approver_name, comments } = req.body;
+    const claimId = req.params.id;
+
+    // Try to find by ObjectId first, then by custom id field
+    let claim = null;
+    try {
+      claim = await db.ExpenseClaim.findById(claimId);
+    } catch (e) {
+      // Not a valid ObjectId, try finding by custom id
+    }
+    if (!claim) {
+      claim = await db.ExpenseClaim.findOne({ id: claimId });
+    }
+    if (!claim) {
+      return res.status(404).json({ error: 'Expense claim not found' });
+    }
+
+    // Determine new status based on approver role and approval decision
+    let newStatus;
+    if (!approved) {
+      newStatus = 'rejected';
+    } else if (approver_role === 'hod') {
+      newStatus = 'pending_finance';
+    } else if (approver_role === 'finance') {
+      newStatus = 'pending_md';
+    } else if (approver_role === 'md' || approver_role === 'admin') {
+      newStatus = 'approved';
+    } else {
+      newStatus = 'pending_finance';
+    }
+
+    // Add approval record
+    const approvalRecord = {
+      role: approver_role,
+      name: approver_name,
+      action: approved ? 'approved' : 'rejected',
+      comments: comments,
+      date: new Date()
+    };
+
+    // Update claim
+    claim.status = newStatus;
+    if (!claim.approvals) claim.approvals = [];
+    claim.approvals.push(approvalRecord);
+    claim.updated_at = new Date();
+
+    await claim.save();
+
+    res.json({ success: true, message: `Expense claim ${approved ? 'approved' : 'rejected'}`, claim });
+  } catch (error) {
+    console.error('Error approving expense claim:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// Approve/Reject EFT Requisition
+app.put('/api/forms/eft-requisitions/:id/approve', authenticate, async (req, res) => {
+  try {
+    const { approved, approver_role, approver_name, comments } = req.body;
+    const reqId = req.params.id;
+
+    // Try to find by ObjectId first, then by custom id field
+    let eftReq = null;
+    try {
+      eftReq = await db.EFTRequisition.findById(reqId);
+    } catch (e) {
+      // Not a valid ObjectId, try finding by custom id
+    }
+    if (!eftReq) {
+      eftReq = await db.EFTRequisition.findOne({ id: reqId });
+    }
+    if (!eftReq) {
+      return res.status(404).json({ error: 'EFT requisition not found' });
+    }
+
+    // Determine new status based on approver role and approval decision
+    let newStatus;
+    if (!approved) {
+      newStatus = 'rejected';
+    } else if (approver_role === 'hod') {
+      newStatus = 'pending_finance';
+    } else if (approver_role === 'finance') {
+      newStatus = 'pending_md';
+    } else if (approver_role === 'md' || approver_role === 'admin') {
+      newStatus = 'approved';
+    } else {
+      newStatus = 'pending_finance';
+    }
+
+    // Add approval record
+    const approvalRecord = {
+      role: approver_role,
+      name: approver_name,
+      action: approved ? 'approved' : 'rejected',
+      comments: comments,
+      date: new Date()
+    };
+
+    // Update requisition
+    eftReq.status = newStatus;
+    if (!eftReq.approvals) eftReq.approvals = [];
+    eftReq.approvals.push(approvalRecord);
+    eftReq.updated_at = new Date();
+
+    await eftReq.save();
+
+    res.json({ success: true, message: `EFT requisition ${approved ? 'approved' : 'rejected'}`, requisition: eftReq });
+  } catch (error) {
+    console.error('Error approving EFT requisition:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// Approve/Reject Petty Cash Requisition
+app.put('/api/forms/petty-cash-requisitions/:id/approve', authenticate, async (req, res) => {
+  try {
+    const { approved, approver_role, approver_name, comments } = req.body;
+    const reqId = req.params.id;
+
+    // Try to find by ObjectId first, then by custom id field
+    let pcReq = null;
+    try {
+      pcReq = await db.PettyCashRequisition.findById(reqId);
+    } catch (e) {
+      // Not a valid ObjectId, try finding by custom id
+    }
+    if (!pcReq) {
+      pcReq = await db.PettyCashRequisition.findOne({ id: reqId });
+    }
+    if (!pcReq) {
+      return res.status(404).json({ error: 'Petty cash requisition not found' });
+    }
+
+    // Determine new status based on approver role and approval decision
+    let newStatus;
+    if (!approved) {
+      newStatus = 'rejected';
+    } else if (approver_role === 'hod') {
+      newStatus = 'pending_finance';
+    } else if (approver_role === 'finance') {
+      newStatus = 'pending_md';
+    } else if (approver_role === 'md' || approver_role === 'admin') {
+      newStatus = 'approved';
+    } else {
+      newStatus = 'pending_finance';
+    }
+
+    // Add approval record
+    const approvalRecord = {
+      role: approver_role,
+      name: approver_name,
+      action: approved ? 'approved' : 'rejected',
+      comments: comments,
+      date: new Date()
+    };
+
+    // Update requisition
+    pcReq.status = newStatus;
+    if (!pcReq.approvals) pcReq.approvals = [];
+    pcReq.approvals.push(approvalRecord);
+    pcReq.updated_at = new Date();
+
+    await pcReq.save();
+
+    res.json({ success: true, message: `Petty cash requisition ${approved ? 'approved' : 'rejected'}`, requisition: pcReq });
+  } catch (error) {
+    console.error('Error approving petty cash requisition:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
 });
 
 // Simple requisitions list

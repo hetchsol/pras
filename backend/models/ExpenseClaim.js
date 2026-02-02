@@ -29,9 +29,17 @@ const expenseClaimSchema = new mongoose.Schema({
   amount_due: { type: Number, default: 0 },
   initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },
-  status: { type: String, required: true },
+  status: { type: String, required: true, default: 'pending_hod' },
   items: [expenseClaimItemSchema],
-  created_at: { type: Date, default: Date.now }
+  approvals: [{
+    role: String,
+    name: String,
+    action: String,
+    comments: String,
+    date: { type: Date, default: Date.now }
+  }],
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('ExpenseClaim', expenseClaimSchema);
