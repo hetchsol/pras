@@ -120,10 +120,10 @@ const fetchWithAuth = async (url, options = {}) => {
         }
       });
     } catch (error) {
-      // Refresh failed, clear auth and redirect to login
-      clearAuthToken();
-      window.location.reload();
-      throw new Error('Session expired. Please login again.');
+      // Refresh failed - just return the 401 response, let the caller handle it
+      // Don't force reload or logout here - let the app decide
+      console.warn('Token refresh failed:', error.message);
+      return response; // Return the original 401 response
     }
   }
 
@@ -1655,10 +1655,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       show: true,
       isGroup: true,
       children: [
-        { id: 'create-expense-claim', label: 'New Expense Claim', icon: '📋', show: true, isLink: true, href: 'expense-claim.html' },
-        { id: 'create-eft-requisition', label: 'New EFT Requisition', icon: '💳', show: true, isLink: true, href: 'eft-requisition.html' },
-        { id: 'create-petty-cash', label: 'New Petty Cash', icon: '💰', show: true, isLink: true, href: 'petty-cash-requisition.html' },
-        { id: 'forms-approval', label: 'Forms Approval', icon: '✅', show: hasRole(user.role, 'hod', 'finance', 'md', 'admin'), isLink: true, href: 'forms-dashboard.html' }
+        { id: 'expense-claims', label: 'Expense Claims', icon: '📋', show: true },
+        { id: 'eft-requisitions', label: 'EFT Requisitions', icon: '💳', show: true },
+        { id: 'petty-cash-requisitions', label: 'Petty Cash', icon: '💰', show: true },
+        { id: 'approval-console', label: 'Pending Approvals', icon: '✅', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
       ]
     },
     // Financial Planning Group - Budget and FX rates
@@ -2377,30 +2377,22 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           comments: comment
         };
       } else {
-        // Forms (EFT, Petty Cash, Expense Claims) use action-based endpoints
-        let roleEndpoint = '';
-
-        if (user.role === 'hod') {
-          roleEndpoint = 'hod-action';
-        } else if (user.role === 'finance') {
-          roleEndpoint = 'finance-action';
-        } else if (user.role === 'md') {
-          roleEndpoint = 'md-action';
-        }
-
+        // Forms (EFT, Petty Cash, Expense Claims) use unified approve endpoint
         // Determine form type endpoint
         if (form.formType === 'expense_claim') {
-          endpoint = `${API_URL}/forms/expense-claims/${form.id}/${roleEndpoint}`;
+          endpoint = `${API_URL}/forms/expense-claims/${form._id || form.id}/approve`;
         } else if (form.formType === 'eft') {
-          endpoint = `${API_URL}/forms/eft-requisitions/${form.id}/${roleEndpoint}`;
+          endpoint = `${API_URL}/forms/eft-requisitions/${form._id || form.id}/approve`;
         } else if (form.formType === 'petty_cash') {
-          endpoint = `${API_URL}/forms/petty-cash-requisitions/${form.id}/${roleEndpoint}`;
+          endpoint = `${API_URL}/forms/petty-cash-requisitions/${form._id || form.id}/approve`;
         }
 
-        // Forms use 'action' and 'comment'
+        // Forms use unified approve format
         requestBody = {
-          action,
-          comment
+          approved: action === 'approve',
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: comment
         };
       }
 
@@ -7389,6 +7381,268 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
             )
           )
     )
+  );
+}
+
+// ============================================
+// EXPENSE CLAIMS LIST COMPONENT
+// ============================================
+function ExpenseClaimsList({ user, setView, setSelectedReq }) {
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchExpenseClaims();
+  }, []);
+
+  const fetchExpenseClaims = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/forms/expense-claims`);
+      if (!res.ok) throw new Error('Failed to fetch expense claims');
+      const data = await res.json();
+      setClaims(data);
+    } catch (error) {
+      console.error('Error fetching expense claims:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = (claim) => {
+    setSelectedReq(claim);
+    setView('approve-expense-claim');
+  };
+
+  const canApprove = (claim) => {
+    if (user.role === 'hod' && claim.status === 'pending_hod') return true;
+    if (user.role === 'finance' && (claim.status === 'pending_finance' || claim.status === 'hod_approved')) return true;
+    if (user.role === 'md' && (claim.status === 'pending_md' || claim.status === 'finance_approved')) return true;
+    if (user.role === 'admin') return true;
+    return false;
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading expense claims...")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Expense Claims"),
+        React.createElement('div', { className: "flex gap-3" },
+          React.createElement('a', {
+            href: 'expense-claim.html',
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, '+ New Expense Claim'),
+          React.createElement('button', {
+            onClick: fetchExpenseClaims,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, 'Refresh')
+        )
+      ),
+
+      claims.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No expense claims found")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Employee"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Reason"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                claims.map(claim =>
+                  React.createElement('tr', { key: claim._id || claim.id, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, claim.id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, claim.employee_name || claim.initiator_name),
+                    React.createElement('td', { className: "px-4 py-3 text-sm max-w-xs truncate" }, claim.reason_for_trip || 'N/A'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-semibold" }, `K ${parseFloat(claim.total_claim || claim.amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('span', {
+                        className: `px-2 py-1 text-xs font-semibold rounded-full ${
+                          claim.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          claim.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`
+                      }, claim.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+                    ),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                      new Date(claim.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('div', { className: "flex gap-2" },
+                        React.createElement('button', {
+                          onClick: () => handleView(claim),
+                          className: "px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                        }, 'View'),
+                        canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleView(claim),
+                          className: "px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                        }, 'Review')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// EFT REQUISITIONS LIST COMPONENT
+// ============================================
+function EFTRequisitionsList({ user, setView, setSelectedReq }) {
+  const [requisitions, setRequisitions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEFTRequisitions();
+  }, []);
+
+  const fetchEFTRequisitions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/forms/eft-requisitions`);
+      if (!res.ok) throw new Error('Failed to fetch EFT requisitions');
+      const data = await res.json();
+      setRequisitions(data);
+    } catch (error) {
+      console.error('Error fetching EFT requisitions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = (req) => {
+    setSelectedReq(req);
+    setView('approve-eft-requisition');
+  };
+
+  const canApprove = (req) => {
+    if (user.role === 'hod' && req.status === 'pending_hod') return true;
+    if (user.role === 'finance' && (req.status === 'pending_finance' || req.status === 'hod_approved')) return true;
+    if (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) return true;
+    if (user.role === 'admin') return true;
+    return false;
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading EFT requisitions...")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "EFT Requisitions"),
+        React.createElement('div', { className: "flex gap-3" },
+          React.createElement('a', {
+            href: 'eft-requisition.html',
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, '+ New EFT'),
+          React.createElement('button', {
+            onClick: fetchEFTRequisitions,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, 'Refresh')
+        )
+      ),
+
+      requisitions.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No EFT requisitions found")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "In Favour Of"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Purpose"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                requisitions.map(req =>
+                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, req.id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, req.in_favour_of),
+                    React.createElement('td', { className: "px-4 py-3 text-sm max-w-xs truncate" }, req.purpose || req.description || 'N/A'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('span', {
+                        className: `px-2 py-1 text-xs font-semibold rounded-full ${
+                          req.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          req.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`
+                      }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+                    ),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                      new Date(req.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('div', { className: "flex gap-2" },
+                        React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                        }, 'View'),
+                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                        }, 'Review')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// CREATE EXPENSE CLAIM COMPONENT (Redirect to HTML)
+// ============================================
+function CreateExpenseClaim({ user, setView }) {
+  useEffect(() => {
+    // Redirect to the HTML form
+    window.location.href = 'expense-claim.html';
+  }, []);
+
+  return React.createElement('div', { className: "text-center py-12" },
+    React.createElement('p', { className: "text-gray-600" }, "Redirecting to Expense Claim form...")
+  );
+}
+
+// ============================================
+// CREATE EFT REQUISITION COMPONENT (Redirect to HTML)
+// ============================================
+function CreateEFTRequisition({ user, setView }) {
+  useEffect(() => {
+    // Redirect to the HTML form
+    window.location.href = 'eft-requisition.html';
+  }, []);
+
+  return React.createElement('div', { className: "text-center py-12" },
+    React.createElement('p', { className: "text-gray-600" }, "Redirecting to EFT Requisition form...")
   );
 }
 
