@@ -149,49 +149,51 @@ app.get('/api/setup-roles', async (req, res) => {
 app.post('/api/setup-hod-assignments', authenticate, authorize('admin'), async (req, res) => {
   try {
     // HOD assignment data from spreadsheet
+    // Ndhlovu Kanyembo (MD) supervises all HODs and key staff directly
+    // Supervisor names match full_name format from spreadsheet
     const assignments = [
-      // Operations Department - Joe Munthali is HOD
-      { username: 'joe.munthali', role: 'hod', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 1 },
-      { username: 'chabala.john', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
-      { username: 'kaluya.justin', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
-      { username: 'phiri.isaac', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
-      { username: 'emmanuel.mumbi', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
-      { username: 'abraham.mubanga', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
+      // Operations Department - Joe Munthali is HOD (reports to MD)
+      { username: 'joe.munthali', role: 'hod', department: 'Operations', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 1 },
+      { username: 'chabala.john', role: 'initiator', department: 'Operations', supervisor_name: 'Munthali Joe Chabawela', is_hod: 0 },
+      { username: 'kaluya.justin', role: 'initiator', department: 'Operations', supervisor_name: 'Munthali Joe Chabawela', is_hod: 0 },
+      { username: 'phiri.isaac', role: 'initiator', department: 'Operations', supervisor_name: 'Munthali Joe Chabawela', is_hod: 0 },
+      { username: 'emmanuel.mumbi', role: 'initiator', department: 'Operations', supervisor_name: 'Munthali Joe Chabawela', is_hod: 0 },
+      { username: 'abraham.mubanga', role: 'initiator', department: 'Operations', supervisor_name: 'Munthali Joe Chabawela', is_hod: 0 },
 
-      // Sales Department - Moses Shebele is HOD
-      { username: 'moses.shebele', role: 'hod', department: 'Sales', supervisor_name: 'Moses Shebele', is_hod: 1 },
-      { username: 'waden.chishimba', role: 'initiator', department: 'Sales', supervisor_name: 'Moses Shebele', is_hod: 0 },
-      { username: 'lina.zimba', role: 'initiator', department: 'Sales', supervisor_name: 'Moses Shebele', is_hod: 0 },
-      { username: 'clarence.simwanza', role: 'procurement', department: 'Sales', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 },
+      // Sales Department - Moses Shebele is HOD (reports to MD)
+      { username: 'moses.shebele', role: 'hod', department: 'Sales', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 1 },
+      { username: 'waden.chishimba', role: 'initiator', department: 'Sales', supervisor_name: 'Shebele Moses', is_hod: 0 },
+      { username: 'lina.zimba', role: 'initiator', department: 'Sales', supervisor_name: 'Shebele Moses', is_hod: 0 },
+      { username: 'clarence.simwanza', role: 'procurement', department: 'Sales', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 0 },
 
-      // Finance Department - Anne Banda is Finance Manager (acts as HOD)
-      { username: 'anne.banda', role: 'finance', department: 'Finance', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 1 },
-      { username: 'annie.nanyangwe', role: 'initiator', department: 'Finance', supervisor_name: 'Anne Banda', is_hod: 0 },
-      { username: 'nashon.nguni', role: 'initiator', department: 'Finance', supervisor_name: 'Anne Banda', is_hod: 0 },
-      { username: 'mwelwa.mwansa', role: 'initiator', department: 'Finance', supervisor_name: 'Anne Banda', is_hod: 0 },
+      // Finance Department - Anne Banda is Finance Manager (reports to MD)
+      { username: 'anne.banda', role: 'finance', department: 'Finance', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 1 },
+      { username: 'annie.nanyangwe', role: 'initiator', department: 'Finance', supervisor_name: 'Banda Anne', is_hod: 0 },
+      { username: 'nashon.nguni', role: 'initiator', department: 'Finance', supervisor_name: 'Banda Anne', is_hod: 0 },
+      { username: 'mwelwa.mwansa', role: 'initiator', department: 'Finance', supervisor_name: 'Banda Anne', is_hod: 0 },
 
-      // Lusaka Department - Larry Mwambazi is HOD
-      { username: 'larry.mwambazi', role: 'hod', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 1 },
-      { username: 'bernard.kalimba', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'moses.phiri', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'hillary.chaponda', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'clever.malambo', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'mwaka.musonda', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'dickson.chipwalu', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'nkandu.mulobeka', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
-      { username: 'edward.nkonde', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      // Lusaka Department - Larry Mwambazi is HOD (reports to MD)
+      { username: 'larry.mwambazi', role: 'hod', department: 'Lusaka', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 1 },
+      { username: 'bernard.kalimba', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'moses.phiri', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'hillary.chaponda', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'clever.malambo', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'mwaka.musonda', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'dickson.chipwalu', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'nkandu.mulobeka', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
+      { username: 'edward.nkonde', role: 'initiator', department: 'Lusaka', supervisor_name: 'Mwambazi Larry', is_hod: 0 },
 
-      // HR Department
-      { username: 'mbialesi.namute', role: 'initiator', department: 'HR', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 },
+      // HR Department (reports to MD)
+      { username: 'mbialesi.namute', role: 'initiator', department: 'HR', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 0 },
 
-      // IT Department
-      { username: 'hetch.mbunda', role: 'admin', department: 'IT', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 },
+      // IT Department (reports to MD)
+      { username: 'hetch.mbunda', role: 'admin', department: 'IT', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 0 },
 
-      // Executive
+      // Executive - MD has no supervisor
       { username: 'kanyembo.ndhlovu', role: 'md', department: 'Executive', supervisor_name: null, is_hod: 0 },
 
-      // Solwezi
-      { username: 'ashley.rabie', role: 'initiator', department: 'Solwezi', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 }
+      // Solwezi (reports to MD)
+      { username: 'ashley.rabie', role: 'initiator', department: 'Solwezi', supervisor_name: 'Ndhlovu Kanyembo', is_hod: 0 }
     ];
 
     const results = [];
