@@ -7317,6 +7317,57 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
     setView('approve-petty-cash');
   };
 
+  const canApprove = (req) => {
+    if (user.role === 'hod' && req.status === 'pending_hod') return true;
+    if (user.role === 'finance' && (req.status === 'pending_finance' || req.status === 'hod_approved')) return true;
+    if (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) return true;
+    if (user.role === 'admin') return true;
+    return false;
+  };
+
+  const handleApprove = async (req) => {
+    if (!confirm(`Approve petty cash requisition ${req.id}?`)) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: 'Approved'
+        })
+      });
+      if (!response.ok) throw new Error('Approval failed');
+      alert('Petty cash requisition approved!');
+      fetchPettyCashRequisitions();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleReject = async (req) => {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: reason
+        })
+      });
+      if (!response.ok) throw new Error('Rejection failed');
+      alert('Petty cash requisition rejected');
+      fetchPettyCashRequisitions();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
       React.createElement('p', { className: "text-gray-600" }, "Loading petty cash requisitions...")
@@ -7327,10 +7378,16 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Petty Cash Requisitions"),
-        React.createElement('button', {
-          onClick: fetchPettyCashRequisitions,
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        }, 'Refresh')
+        React.createElement('div', { className: "flex gap-3" },
+          React.createElement('a', {
+            href: 'petty-cash-requisition.html',
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, '+ New Petty Cash'),
+          React.createElement('button', {
+            onClick: fetchPettyCashRequisitions,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, 'Refresh')
+        )
       ),
 
       requisitions.length === 0
@@ -7370,10 +7427,20 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                       new Date(req.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
-                      React.createElement('button', {
-                        onClick: () => handleView(req),
-                        className: "px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                      }, 'View')
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                        React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                        }, 'View'),
+                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleApprove(req),
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        }, 'Approve'),
+                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleReject(req),
+                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                        }, 'Reject')
+                      )
                     )
                   )
                 )
@@ -7420,6 +7487,49 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
     if (user.role === 'md' && (claim.status === 'pending_md' || claim.status === 'finance_approved')) return true;
     if (user.role === 'admin') return true;
     return false;
+  };
+
+  const handleApprove = async (claim) => {
+    if (!confirm(`Approve expense claim ${claim.id}?`)) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: 'Approved'
+        })
+      });
+      if (!response.ok) throw new Error('Approval failed');
+      alert('Expense claim approved!');
+      fetchExpenseClaims();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleReject = async (claim) => {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: reason
+        })
+      });
+      if (!response.ok) throw new Error('Rejection failed');
+      alert('Expense claim rejected');
+      fetchExpenseClaims();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
   };
 
   if (loading) {
@@ -7481,15 +7591,19 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                       new Date(claim.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
-                      React.createElement('div', { className: "flex gap-2" },
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(claim),
-                          className: "px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                         }, 'View'),
                         canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
-                          onClick: () => handleView(claim),
-                          className: "px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                        }, 'Review')
+                          onClick: () => handleApprove(claim),
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        }, 'Approve'),
+                        canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleReject(claim),
+                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                        }, 'Reject')
                       )
                     )
                   )
@@ -7537,6 +7651,49 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
     if (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) return true;
     if (user.role === 'admin') return true;
     return false;
+  };
+
+  const handleApprove = async (req) => {
+    if (!confirm(`Approve EFT requisition ${req.id}?`)) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: 'Approved'
+        })
+      });
+      if (!response.ok) throw new Error('Approval failed');
+      alert('EFT requisition approved!');
+      fetchEFTRequisitions();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleReject = async (req) => {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.name,
+          comments: reason
+        })
+      });
+      if (!response.ok) throw new Error('Rejection failed');
+      alert('EFT requisition rejected');
+      fetchEFTRequisitions();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
   };
 
   if (loading) {
@@ -7598,15 +7755,19 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                       new Date(req.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
-                      React.createElement('div', { className: "flex gap-2" },
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(req),
-                          className: "px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                         }, 'View'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
-                          onClick: () => handleView(req),
-                          className: "px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                        }, 'Review')
+                          onClick: () => handleApprove(req),
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        }, 'Approve'),
+                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleReject(req),
+                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                        }, 'Reject')
                       )
                     )
                   )
