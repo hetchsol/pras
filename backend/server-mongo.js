@@ -51,6 +51,56 @@ const authorize = (...roles) => {
   };
 };
 
+// Helper function to get department filter based on user role
+// Finance, MD, Admin see everything; HODs see their department's forms; Others see only their own
+const getDepartmentFilter = async (user) => {
+  const userRole = user.role?.toLowerCase();
+
+  // Finance, MD, Admin can see everything
+  if (['finance', 'md', 'admin'].includes(userRole)) {
+    return {}; // No filter - see all
+  }
+
+  // Get full user details including department and name
+  const fullUser = await db.getUserById(user.id);
+  if (!fullUser) {
+    return { initiator_id: user.id }; // Fallback to own forms only
+  }
+
+  // HODs see forms from users in their department who have them as supervisor
+  if (userRole === 'hod' || fullUser.is_hod === 1) {
+    // Get all users who have this HOD as their supervisor
+    const subordinates = await db.User.find({
+      supervisor_name: fullUser.full_name
+    }).select('_id full_name username');
+
+    const subordinateIds = subordinates.map(u => u._id);
+    const subordinateNames = subordinates.map(u => u.full_name);
+
+    // HOD can see their own forms + forms from subordinates
+    return {
+      $or: [
+        { initiator_id: user.id },
+        { initiator_id: fullUser._id },
+        { initiator_id: { $in: subordinateIds } },
+        { initiator_name: fullUser.full_name },
+        { initiator_name: { $in: subordinateNames } },
+        // Also match by department for forms where supervisor isn't set
+        { department: fullUser.department }
+      ]
+    };
+  }
+
+  // Initiators and other roles see only their own forms
+  return {
+    $or: [
+      { initiator_id: user.id },
+      { initiator_id: fullUser?._id },
+      { initiator_name: fullUser?.full_name }
+    ]
+  };
+};
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Purchase Requisition API is running', database: 'MongoDB' });
@@ -90,6 +140,138 @@ app.get('/api/setup-roles', async (req, res) => {
     }
 
     res.json({ success: true, message: 'Roles updated', results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Setup HOD assignments based on spreadsheet data
+app.post('/api/setup-hod-assignments', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    // HOD assignment data from spreadsheet
+    const assignments = [
+      // Operations Department - Joe Munthali is HOD
+      { username: 'joe.munthali', role: 'hod', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 1 },
+      { username: 'chabala.john', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
+      { username: 'kaluya.justin', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
+      { username: 'phiri.isaac', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
+      { username: 'emmanuel.mumbi', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
+      { username: 'abraham.mubanga', role: 'initiator', department: 'Operations', supervisor_name: 'Joe Munthali', is_hod: 0 },
+
+      // Sales Department - Moses Shebele is HOD
+      { username: 'moses.shebele', role: 'hod', department: 'Sales', supervisor_name: 'Moses Shebele', is_hod: 1 },
+      { username: 'waden.chishimba', role: 'initiator', department: 'Sales', supervisor_name: 'Moses Shebele', is_hod: 0 },
+      { username: 'lina.zimba', role: 'initiator', department: 'Sales', supervisor_name: 'Moses Shebele', is_hod: 0 },
+      { username: 'clarence.simwanza', role: 'procurement', department: 'Sales', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 },
+
+      // Finance Department - Anne Banda is Finance Manager (acts as HOD)
+      { username: 'anne.banda', role: 'finance', department: 'Finance', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 1 },
+      { username: 'annie.nanyangwe', role: 'initiator', department: 'Finance', supervisor_name: 'Anne Banda', is_hod: 0 },
+      { username: 'nashon.nguni', role: 'initiator', department: 'Finance', supervisor_name: 'Anne Banda', is_hod: 0 },
+      { username: 'mwelwa.mwansa', role: 'initiator', department: 'Finance', supervisor_name: 'Anne Banda', is_hod: 0 },
+
+      // Lusaka Department - Larry Mwambazi is HOD
+      { username: 'larry.mwambazi', role: 'hod', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 1 },
+      { username: 'bernard.kalimba', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'moses.phiri', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'hillary.chaponda', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'clever.malambo', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'mwaka.musonda', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'dickson.chipwalu', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'nkandu.mulobeka', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+      { username: 'edward.nkonde', role: 'initiator', department: 'Lusaka', supervisor_name: 'Larry Mwambazi', is_hod: 0 },
+
+      // HR Department
+      { username: 'mbialesi.namute', role: 'initiator', department: 'HR', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 },
+
+      // IT Department
+      { username: 'hetch.mbunda', role: 'admin', department: 'IT', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 },
+
+      // Executive
+      { username: 'kanyembo.ndhlovu', role: 'md', department: 'Executive', supervisor_name: null, is_hod: 0 },
+
+      // Solwezi
+      { username: 'ashley.rabie', role: 'initiator', department: 'Solwezi', supervisor_name: 'Kanyembo Ndhlovu', is_hod: 0 }
+    ];
+
+    const results = [];
+    for (const assignment of assignments) {
+      const updateData = {
+        role: assignment.role,
+        department: assignment.department,
+        supervisor_name: assignment.supervisor_name,
+        is_hod: assignment.is_hod
+      };
+
+      const result = await db.User.findOneAndUpdate(
+        { username: assignment.username.toLowerCase() },
+        updateData,
+        { new: true }
+      );
+
+      if (result) {
+        results.push({
+          username: assignment.username,
+          status: 'updated',
+          role: assignment.role,
+          department: assignment.department,
+          supervisor: assignment.supervisor_name
+        });
+      } else {
+        results.push({
+          username: assignment.username,
+          status: 'user not found'
+        });
+      }
+    }
+
+    // Also update full names for HODs to ensure matching
+    const hodFullNames = [
+      { username: 'joe.munthali', full_name: 'Munthali Joe Chabawela' },
+      { username: 'moses.shebele', full_name: 'Shebele Moses' },
+      { username: 'larry.mwambazi', full_name: 'Mwambazi Larry' },
+      { username: 'anne.banda', full_name: 'Banda Anne' },
+      { username: 'kanyembo.ndhlovu', full_name: 'Ndhlovu Kanyembo' }
+    ];
+
+    for (const hod of hodFullNames) {
+      await db.User.findOneAndUpdate(
+        { username: hod.username.toLowerCase() },
+        { full_name: hod.full_name }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'HOD assignments updated',
+      updated: results.filter(r => r.status === 'updated').length,
+      notFound: results.filter(r => r.status === 'user not found').length,
+      results
+    });
+  } catch (error) {
+    console.error('Error setting up HOD assignments:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get HOD structure endpoint
+app.get('/api/hod-structure', authenticate, async (req, res) => {
+  try {
+    const users = await db.User.find().select('username full_name role department supervisor_name is_hod').lean();
+
+    // Group by department
+    const departments = {};
+    for (const user of users) {
+      if (!departments[user.department]) {
+        departments[user.department] = { hod: null, members: [] };
+      }
+      if (user.is_hod === 1 || user.role === 'hod') {
+        departments[user.department].hod = user;
+      }
+      departments[user.department].members.push(user);
+    }
+
+    res.json({ success: true, departments, users });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -459,9 +641,55 @@ app.get('/api/admin/reports/summary', authenticate, authorize('admin'), async (r
 
 app.get('/api/requisitions', authenticate, async (req, res) => {
   try {
-    const requisitions = await db.getRequisitions();
+    // Get department-based filter for requisitions
+    const userRole = req.user.role?.toLowerCase();
+
+    // Finance, MD, Admin, Procurement can see all requisitions
+    if (['finance', 'md', 'admin', 'procurement'].includes(userRole)) {
+      const requisitions = await db.getRequisitions();
+      return res.json(requisitions);
+    }
+
+    // Get full user details
+    const fullUser = await db.getUserById(req.user.id);
+
+    // HODs see requisitions from their department
+    if (userRole === 'hod' || fullUser?.is_hod === 1) {
+      // Get subordinates
+      const subordinates = await db.User.find({
+        supervisor_name: fullUser.full_name
+      }).select('_id full_name username');
+
+      const subordinateIds = subordinates.map(u => u._id);
+      const subordinateNames = subordinates.map(u => u.full_name);
+
+      const filter = {
+        $or: [
+          { initiator_id: req.user.id },
+          { initiator_id: fullUser._id },
+          { initiator_id: { $in: subordinateIds } },
+          { initiator_name: fullUser.full_name },
+          { initiator_name: { $in: subordinateNames } },
+          { department: fullUser.department }
+        ]
+      };
+
+      const requisitions = await db.Requisition.find(filter).sort({ created_at: -1 }).lean();
+      return res.json(requisitions);
+    }
+
+    // Initiators see only their own requisitions
+    const filter = {
+      $or: [
+        { initiator_id: req.user.id },
+        { initiator_id: fullUser?._id },
+        { initiator_name: fullUser?.full_name }
+      ]
+    };
+    const requisitions = await db.Requisition.find(filter).sort({ created_at: -1 }).lean();
     res.json(requisitions);
   } catch (error) {
+    console.error('Error fetching requisitions:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -701,9 +929,11 @@ app.get('/api/fx-rates', authenticate, async (req, res) => {
 
 app.get('/api/eft-requisitions', authenticate, async (req, res) => {
   try {
-    const efts = await db.getEFTRequisitions();
+    const filter = await getDepartmentFilter(req.user);
+    const efts = await db.EFTRequisition.find(filter).sort({ created_at: -1 }).lean();
     res.json(efts);
   } catch (error) {
+    console.error('Error fetching EFT requisitions:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -736,9 +966,11 @@ app.post('/api/eft-requisitions', authenticate, async (req, res) => {
 
 app.get('/api/expense-claims', authenticate, async (req, res) => {
   try {
-    const claims = await db.getExpenseClaims();
+    const filter = await getDepartmentFilter(req.user);
+    const claims = await db.ExpenseClaim.find(filter).sort({ created_at: -1 }).lean();
     res.json(claims);
   } catch (error) {
+    console.error('Error fetching expense claims:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -771,27 +1003,33 @@ app.post('/api/expense-claims', authenticate, async (req, res) => {
 
 app.get('/api/forms/expense-claims', authenticate, async (req, res) => {
   try {
-    const claims = await db.ExpenseClaim.find().sort({ created_at: -1 }).lean();
+    const filter = await getDepartmentFilter(req.user);
+    const claims = await db.ExpenseClaim.find(filter).sort({ created_at: -1 }).lean();
     res.json(claims);
   } catch (error) {
+    console.error('Error fetching expense claims:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.get('/api/forms/eft-requisitions', authenticate, async (req, res) => {
   try {
-    const efts = await db.EFTRequisition.find().sort({ created_at: -1 }).lean();
+    const filter = await getDepartmentFilter(req.user);
+    const efts = await db.EFTRequisition.find(filter).sort({ created_at: -1 }).lean();
     res.json(efts);
   } catch (error) {
+    console.error('Error fetching EFT requisitions:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.get('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => {
   try {
-    const pettyCash = await db.PettyCashRequisition.find().sort({ created_at: -1 }).lean();
+    const filter = await getDepartmentFilter(req.user);
+    const pettyCash = await db.PettyCashRequisition.find(filter).sort({ created_at: -1 }).lean();
     res.json(pettyCash);
   } catch (error) {
+    console.error('Error fetching petty cash requisitions:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

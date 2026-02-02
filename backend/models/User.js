@@ -9,7 +9,8 @@ const userSchema = new mongoose.Schema({
   department: { type: String, required: true },
   employee_number: { type: String },
   is_hod: { type: Number, default: 0 },
-  assigned_hod: { type: Number },
+  assigned_hod: { type: mongoose.Schema.Types.Mixed },  // Can be ID or name
+  supervisor_name: { type: String },  // Supervisor's full name for lookup
   created_at: { type: Date, default: Date.now }
 });
 
