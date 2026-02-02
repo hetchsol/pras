@@ -36,45 +36,97 @@ function addHeader(doc, title) {
      .moveDown(2);
 }
 
-// Helper function to add signature section
-function addSignatureSection(doc, approvals, yPosition) {
-  doc.fontSize(10).font('Helvetica-Bold');
+// Helper function to format datetime with time
+function formatDateTime(dateString) {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
-  // Finance Manager Signature
-  const financeApproval = approvals.find(a => a.approver_role === 'finance_manager' && a.action);
-  doc.text('FINANCE MANAGER:', 50, yPosition);
+// Helper function to add approval workflow section
+function addApprovalWorkflowSection(doc, approvals, yPosition) {
+  doc.fontSize(12).font('Helvetica-Bold');
+  doc.text('APPROVAL WORKFLOW', 50, yPosition);
+  yPosition += 20;
+
+  // Draw box around approval section
+  doc.rect(50, yPosition, 500, 180).stroke();
+  yPosition += 15;
+
+  // Find approvals by role
+  const hodApproval = approvals.find(a => a.role === 'hod');
+  const financeApproval = approvals.find(a => a.role === 'finance');
+  const mdApproval = approvals.find(a => a.role === 'md');
+
+  // HOD Approval
+  doc.fontSize(10).font('Helvetica-Bold');
+  doc.text('HEAD OF DEPARTMENT:', 70, yPosition);
+  yPosition += 15;
+  if (hodApproval) {
+    doc.font('Helvetica')
+       .text(`Name: ${hodApproval.name || 'N/A'}`, 70, yPosition)
+       .text(`Action: ${hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
+       .text(`Date/Time: ${formatDateTime(hodApproval.date)}`, 370, yPosition);
+    yPosition += 12;
+    if (hodApproval.comments) {
+      doc.text(`Comments: ${hodApproval.comments}`, 70, yPosition, { width: 460 });
+    }
+  } else {
+    doc.font('Helvetica').text('Pending', 70, yPosition);
+  }
+  yPosition += 25;
+  doc.moveTo(70, yPosition).lineTo(530, yPosition).stroke();
+  yPosition += 15;
+
+  // Finance Approval
+  doc.font('Helvetica-Bold');
+  doc.text('FINANCE:', 70, yPosition);
+  yPosition += 15;
   if (financeApproval) {
     doc.font('Helvetica')
-       .text(`Name: ${financeApproval.approver_name || 'Pending'}`, 50, yPosition + 15)
-       .text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'Pending'}`, 50, yPosition + 30)
-       .text(`Date: ${formatDate(financeApproval.created_at)}`, 50, yPosition + 45);
+       .text(`Name: ${financeApproval.name || 'N/A'}`, 70, yPosition)
+       .text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
+       .text(`Date/Time: ${formatDateTime(financeApproval.date)}`, 370, yPosition);
+    yPosition += 12;
     if (financeApproval.comments) {
-      doc.text(`Comments: ${financeApproval.comments}`, 50, yPosition + 60, { width: 200 });
+      doc.text(`Comments: ${financeApproval.comments}`, 70, yPosition, { width: 460 });
     }
   } else {
-    doc.font('Helvetica').text('Pending', 50, yPosition + 15);
+    doc.font('Helvetica').text('Pending', 70, yPosition);
   }
+  yPosition += 25;
+  doc.moveTo(70, yPosition).lineTo(530, yPosition).stroke();
+  yPosition += 15;
 
-  doc.text('_______________________', 50, yPosition + 90);
-  doc.font('Helvetica-Bold').text('Signature & Date', 50, yPosition + 105);
-
-  // MD Signature
-  const mdApproval = approvals.find(a => a.approver_role === 'md' && a.action);
-  doc.font('Helvetica-Bold').text('MANAGING DIRECTOR:', 320, yPosition);
+  // MD Approval
+  doc.font('Helvetica-Bold');
+  doc.text('MANAGING DIRECTOR:', 70, yPosition);
+  yPosition += 15;
   if (mdApproval) {
     doc.font('Helvetica')
-       .text(`Name: ${mdApproval.approver_name || 'Pending'}`, 320, yPosition + 15)
-       .text(`Action: ${mdApproval.action ? mdApproval.action.toUpperCase() : 'Pending'}`, 320, yPosition + 30)
-       .text(`Date: ${formatDate(mdApproval.created_at)}`, 320, yPosition + 45);
+       .text(`Name: ${mdApproval.name || 'N/A'}`, 70, yPosition)
+       .text(`Action: ${mdApproval.action ? mdApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
+       .text(`Date/Time: ${formatDateTime(mdApproval.date)}`, 370, yPosition);
+    yPosition += 12;
     if (mdApproval.comments) {
-      doc.text(`Comments: ${mdApproval.comments}`, 320, yPosition + 60, { width: 200 });
+      doc.text(`Comments: ${mdApproval.comments}`, 70, yPosition, { width: 460 });
     }
   } else {
-    doc.font('Helvetica').text('Pending', 320, yPosition + 15);
+    doc.font('Helvetica').text('Pending', 70, yPosition);
   }
 
-  doc.text('_______________________', 320, yPosition + 90);
-  doc.font('Helvetica-Bold').text('Signature & Date', 320, yPosition + 105);
+  return yPosition + 40;
+}
+
+// Legacy function for backward compatibility
+function addSignatureSection(doc, approvals, yPosition) {
+  return addApprovalWorkflowSection(doc, approvals, yPosition);
 }
 
 // Generate Expense Claim PDF

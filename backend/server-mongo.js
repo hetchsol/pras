@@ -895,17 +895,109 @@ app.post('/api/forms/petty-cash-requisitions', authenticate, async (req, res) =>
   }
 });
 
-// PDF endpoints (return error for now)
-app.get('/api/forms/expense-claims/:id/pdf', authenticate, (req, res) => {
-  res.status(501).json({ error: 'PDF generation not available in this version' });
+// PDF Generation endpoints
+const { generateExpenseClaimPDF, generateEFTPDF, generatePettyCashPDF } = require('./utils/formsPDFGenerator');
+const os = require('os');
+
+// Expense Claim PDF
+app.get('/api/forms/expense-claims/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const claimId = req.params.id;
+    let claim = null;
+    try {
+      claim = await db.ExpenseClaim.findById(claimId).lean();
+    } catch (e) {}
+    if (!claim) {
+      claim = await db.ExpenseClaim.findOne({ id: claimId }).lean();
+    }
+    if (!claim) {
+      return res.status(404).json({ error: 'Expense claim not found' });
+    }
+
+    const outputPath = path.join(os.tmpdir(), `expense_claim_${claim.id}.pdf`);
+    await generateExpenseClaimPDF(claim, claim.items || [], claim.approvals || [], outputPath);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="ExpenseClaim_${claim.id}.pdf"`);
+
+    const fileStream = fs.createReadStream(outputPath);
+    fileStream.pipe(res);
+    fileStream.on('end', () => {
+      fs.unlink(outputPath, () => {});
+    });
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
 });
 
-app.get('/api/forms/eft-requisitions/:id/pdf', authenticate, (req, res) => {
-  res.status(501).json({ error: 'PDF generation not available in this version' });
+// EFT Requisition PDF
+app.get('/api/forms/eft-requisitions/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    let eft = null;
+    try {
+      eft = await db.EFTRequisition.findById(reqId).lean();
+    } catch (e) {}
+    if (!eft) {
+      eft = await db.EFTRequisition.findOne({ id: reqId }).lean();
+    }
+    if (!eft) {
+      return res.status(404).json({ error: 'EFT requisition not found' });
+    }
+
+    const outputPath = path.join(os.tmpdir(), `eft_${eft.id}.pdf`);
+    await generateEFTPDF(eft, eft.approvals || [], outputPath);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="EFT_${eft.id}.pdf"`);
+
+    const fileStream = fs.createReadStream(outputPath);
+    fileStream.pipe(res);
+    fileStream.on('end', () => {
+      fs.unlink(outputPath, () => {});
+    });
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
 });
 
+// Petty Cash PDF
+app.get('/api/forms/petty-cash-requisitions/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    let pc = null;
+    try {
+      pc = await db.PettyCashRequisition.findById(reqId).lean();
+    } catch (e) {}
+    if (!pc) {
+      pc = await db.PettyCashRequisition.findOne({ id: reqId }).lean();
+    }
+    if (!pc) {
+      return res.status(404).json({ error: 'Petty cash requisition not found' });
+    }
+
+    const outputPath = path.join(os.tmpdir(), `petty_cash_${pc.id}.pdf`);
+    await generatePettyCashPDF(pc, pc.items || [], pc.approvals || [], outputPath);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="PettyCash_${pc.id}.pdf"`);
+
+    const fileStream = fs.createReadStream(outputPath);
+    fileStream.pipe(res);
+    fileStream.on('end', () => {
+      fs.unlink(outputPath, () => {});
+    });
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Purchase Requisition PDF (placeholder)
 app.get('/api/requisitions/:id/pdf', authenticate, (req, res) => {
-  res.status(501).json({ error: 'PDF generation not available in this version' });
+  res.status(501).json({ error: 'PDF generation not available for purchase requisitions in this version' });
 });
 
 // ============================================

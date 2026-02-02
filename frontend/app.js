@@ -7368,6 +7368,40 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handlePreviewPDF = async (req) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (req) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PettyCash_${req.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const isApproved = (status) => {
+    return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
+  };
+
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
       React.createElement('p', { className: "text-gray-600" }, "Loading petty cash requisitions...")
@@ -7439,7 +7473,15 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
                           className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                        }, 'Reject')
+                        }, 'Reject'),
+                        isApproved(req.status) && React.createElement('button', {
+                          onClick: () => handlePreviewPDF(req),
+                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                        }, 'Preview'),
+                        isApproved(req.status) && React.createElement('button', {
+                          onClick: () => handleDownloadPDF(req),
+                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                        }, 'Download')
                       )
                     )
                   )
@@ -7532,6 +7574,40 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handlePreviewPDF = async (claim) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (claim) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ExpenseClaim_${claim.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const isApproved = (status) => {
+    return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
+  };
+
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
       React.createElement('p', { className: "text-gray-600" }, "Loading expense claims...")
@@ -7603,7 +7679,15 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                         canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(claim),
                           className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                        }, 'Reject')
+                        }, 'Reject'),
+                        isApproved(claim.status) && React.createElement('button', {
+                          onClick: () => handlePreviewPDF(claim),
+                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                        }, 'Preview'),
+                        isApproved(claim.status) && React.createElement('button', {
+                          onClick: () => handleDownloadPDF(claim),
+                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                        }, 'Download')
                       )
                     )
                   )
@@ -7696,6 +7780,40 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handlePreviewPDF = async (req) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (req) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `EFT_${req.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const isApproved = (status) => {
+    return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
+  };
+
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
       React.createElement('p', { className: "text-gray-600" }, "Loading EFT requisitions...")
@@ -7767,7 +7885,15 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
                           className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                        }, 'Reject')
+                        }, 'Reject'),
+                        isApproved(req.status) && React.createElement('button', {
+                          onClick: () => handlePreviewPDF(req),
+                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                        }, 'Preview'),
+                        isApproved(req.status) && React.createElement('button', {
+                          onClick: () => handleDownloadPDF(req),
+                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                        }, 'Download')
                       )
                     )
                   )
