@@ -2283,16 +2283,41 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   // Combine ALL requisitions (Purchase + EFT + Petty Cash + Expense Claims)
   const allRequisitions = [...requisitions, ...allForms];
 
-  // Pending: ALL forms with pending status
-  const pendingPurchaseReqs = requisitions.filter(r => r.status.includes('pending'));
-  const pendingForms = allForms.filter(f => f.status.includes('pending'));
+  // Role-aware pending filter: only count items pending for THIS user's role
+  const isPendingForRole = (status) => {
+    const role = user.role;
+    if (role === 'hod') {
+      return status === 'pending_hod';
+    } else if (role === 'finance') {
+      return status === 'pending_finance' || status === 'hod_approved';
+    } else if (role === 'md') {
+      return status === 'pending_md' || status === 'finance_approved';
+    } else if (role === 'procurement') {
+      return status === 'pending_procurement';
+    } else if (role === 'admin') {
+      // Admin sees all pending items
+      return status.includes('pending') || status === 'hod_approved' || status === 'finance_approved';
+    } else {
+      // Initiators see all their pending items
+      return status.includes('pending');
+    }
+  };
+
+  // Pending: items pending for THIS user's role
+  const pendingPurchaseReqs = requisitions.filter(r => isPendingForRole(r.status));
+  const pendingForms = allForms.filter(f => isPendingForRole(f.status));
   const pendingRequisitions = [...pendingPurchaseReqs, ...pendingForms];
   const pendingApprovals = pendingRequisitions.length;
 
-  // Approved: Purchase Requisitions + ALL approved forms (includes partial approvals)
-  const approvedPurchaseRequisitions = requisitions.filter(r => isApproved(r.status));
-  const approvedForms = allForms.filter(f => isApproved(f.status));
+  // Approved: only fully approved items
+  const approvedPurchaseRequisitions = requisitions.filter(r => r.status === 'approved' || r.status === 'completed' || r.status === 'md_approved');
+  const approvedForms = allForms.filter(f => f.status === 'approved' || f.status === 'completed' || f.status === 'md_approved');
   const approvedRequisitions = [...approvedPurchaseRequisitions, ...approvedForms];
+
+  // In-progress: partially approved (HOD or Finance approved, still pending further approval)
+  const inProgressPurchaseReqs = requisitions.filter(r => r.status === 'hod_approved' || r.status === 'finance_approved' || r.status === 'pending_procurement');
+  const inProgressForms = allForms.filter(f => f.status === 'hod_approved' || f.status === 'finance_approved');
+  const inProgressRequisitions = [...inProgressPurchaseReqs, ...inProgressForms];
 
   // Rejected: Purchase Requisitions + ALL rejected forms
   const rejectedPurchaseRequisitions = requisitions.filter(r => r.status === 'rejected');
@@ -3080,7 +3105,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               React.createElement('span', {
                 className: "text-sm font-bold",
                 style: { color: '#D97706' }
-              }, approvedForms.filter(f => f.formType === 'expense').length)
+              }, approvedForms.filter(f => f.formType === 'expense_claim').length)
             )
           ),
           React.createElement('div', {
@@ -3119,9 +3144,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   req.formType && React.createElement('span', {
                     className: "px-2 py-1 text-xs font-semibold rounded",
                     style: {
-                      backgroundColor: req.formType === 'expense' ? '#FEF3C7' :
+                      backgroundColor: req.formType === 'expense_claim' ? '#FEF3C7' :
                                       req.formType === 'eft' ? '#DBEAFE' : '#D1FAE5',
-                      color: req.formType === 'expense' ? '#D97706' :
+                      color: req.formType === 'expense_claim' ? '#D97706' :
                              req.formType === 'eft' ? '#1E40AF' : '#059669'
                     }
                   }, req.displayType),
