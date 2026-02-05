@@ -257,7 +257,8 @@
                 email: '',
                 password: '',
                 role: '',
-                department: ''
+                department: '',
+                can_access_stores: false
             });
 
             useEffect(() => {
@@ -285,7 +286,8 @@
                     email: '',
                     password: '',
                     role: '',
-                    department: ''
+                    department: '',
+                    can_access_stores: false
                 });
                 setShowModal(true);
             };
@@ -298,7 +300,8 @@
                     email: user.email || '',
                     password: '',
                     role: user.role,
-                    department: user.department || ''
+                    department: user.department || '',
+                    can_access_stores: user.can_access_stores ? true : false
                 });
                 setShowModal(true);
             };
@@ -382,6 +385,7 @@
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Department</th>
+                                <th>Stores</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -394,6 +398,7 @@
                                     <td>{user.email || '-'}</td>
                                     <td><span className="badge bg-info">{user.role}</span></td>
                                     <td>{user.department || '-'}</td>
+                                    <td>{user.can_access_stores ? <span className="badge bg-success">Yes</span> : <span className="badge bg-secondary">No</span>}</td>
                                     <td className="table-actions">
                                         <button
                                             className="btn btn-sm btn-warning"
@@ -493,6 +498,20 @@
                                                 onChange={(e) => setFormData({...formData, department: e.target.value})}
                                                 placeholder="e.g., IT, HR, Finance"
                                             />
+                                        </div>
+                                        <div className="mb-3">
+                                            <div className="form-check form-switch">
+                                                <input
+                                                    type="checkbox"
+                                                    className="form-check-input"
+                                                    id="canAccessStores"
+                                                    checked={formData.can_access_stores}
+                                                    onChange={(e) => setFormData({...formData, can_access_stores: e.target.checked})}
+                                                />
+                                                <label className="form-check-label" htmlFor="canAccessStores">
+                                                    Can Access Stores (Issue Slips & Picking Slips)
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="modal-footer">
