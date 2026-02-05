@@ -104,7 +104,7 @@ async function importVendors() {
       const currency = rowData['Currency']?.toString().trim() || 'ZMW';
       const country = rowData['Country']?.toString().trim() || null;
       const taxId = rowData['TPIN (Federal Tax ID)']?.toString().trim() || null;
-      const phone = rowData['Phone Number']?.toString().trim() || null;
+      const phone = (rowData['Phone  Number'] || rowData['Phone Number'])?.toString().trim() || null;
 
       // Validate required fields
       if (!vendorCode || !vendorName) {
