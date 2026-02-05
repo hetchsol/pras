@@ -3618,6 +3618,58 @@ app.delete('/api/admin/vendors/:id', authenticate, authorize('admin'), (req, res
     }
 });
 
+// Bulk upload vendors
+app.post('/api/admin/vendors/bulk-upload', authenticate, authorize('admin'), (req, res, next) => {
+    try {
+        const { vendors } = req.body;
+
+        if (!vendors || !Array.isArray(vendors) || vendors.length === 0) {
+            return res.status(400).json({ error: 'No vendors provided' });
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO vendors (name, contact_person, email, phone, address)
+            VALUES (?, ?, ?, ?, ?)
+        `);
+
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+
+        vendors.forEach((vendor, index) => {
+            if (!vendor.name || vendor.name.trim() === '') {
+                errorCount++;
+                errors.push(`Row ${index + 1}: Vendor name is required`);
+                return;
+            }
+
+            try {
+                stmt.run(
+                    vendor.name.trim(),
+                    vendor.contact_person || '',
+                    vendor.email || '',
+                    vendor.phone || '',
+                    vendor.address || ''
+                );
+                successCount++;
+            } catch (err) {
+                errorCount++;
+                errors.push(`Row ${index + 1}: ${err.message}`);
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `Uploaded ${successCount} vendors successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+            successCount,
+            errorCount,
+            errors: errors.slice(0, 10) // Return first 10 errors only
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // ====== REQUISITION REASSIGNMENT ======
 
 // Get requisitions pending approval

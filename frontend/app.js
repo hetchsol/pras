@@ -1263,7 +1263,7 @@ function App() {
         React.createElement('p', {
           className: "mt-4 transition-colors",
           style: { color: 'var(--text-secondary)' }
-        }, "Loading...")
+        }, "Loading… please wait")
       )
     );
   }
@@ -4853,6 +4853,10 @@ function AdminPanel({ data, loadData }) {
 
   // New state for rerouting
   const [rerouteUsers, setRerouteUsers] = useState([]);
+
+  // State for vendor bulk upload
+  const [showVendorUpload, setShowVendorUpload] = useState(false);
+  const [uploadingVendors, setUploadingVendors] = useState(false);
   const [showRerouteModal, setShowRerouteModal] = useState(false);
   const [rerouteReqId, setRerouteReqId] = useState(null);
   const [rerouteForm, setRerouteForm] = useState({
@@ -4873,17 +4877,43 @@ function AdminPanel({ data, loadData }) {
   const loadAdminData = async () => {
     setLoading(true);
     try {
-      const [usersData, vendorsData, departmentsData, codesData] = await Promise.all([
+      // Load each data source independently to prevent one failure from blocking all
+      const [usersResult, vendorsResult, departmentsResult, codesResult] = await Promise.allSettled([
         api.getAdminUsers(),
         api.getVendors(),
         api.getAdminDepartments(),
         api.getDepartmentCodes()
       ]);
-      setUsers(usersData);
-      setVendors(vendorsData);
-      setDepartments(departmentsData);
-      setDepartmentCodes(codesData);
+
+      if (usersResult.status === 'fulfilled') {
+        setUsers(usersResult.value);
+      } else {
+        console.error('Failed to load users:', usersResult.reason);
+        setUsers([]);
+      }
+
+      if (vendorsResult.status === 'fulfilled') {
+        setVendors(vendorsResult.value);
+      } else {
+        console.error('Failed to load vendors:', vendorsResult.reason);
+        setVendors([]);
+      }
+
+      if (departmentsResult.status === 'fulfilled') {
+        setDepartments(departmentsResult.value);
+      } else {
+        console.error('Failed to load departments:', departmentsResult.reason);
+        setDepartments([]);
+      }
+
+      if (codesResult.status === 'fulfilled') {
+        setDepartmentCodes(codesResult.value);
+      } else {
+        console.error('Failed to load department codes:', codesResult.reason);
+        setDepartmentCodes([]);
+      }
     } catch (error) {
+      console.error('Failed to load admin data:', error);
       alert('Failed to load admin data: ' + error.message);
     } finally {
       setLoading(false);
@@ -4963,6 +4993,89 @@ function AdminPanel({ data, loadData }) {
       if (loadData) loadData();
     } catch (error) {
       alert('Error deleting vendor: ' + error.message);
+    }
+  };
+
+  // Vendor bulk upload handler
+  const handleVendorFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check file type
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!validTypes.includes(fileExt)) {
+      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+      return;
+    }
+
+    setUploadingVendors(true);
+
+    try {
+      // For CSV files, parse directly
+      if (fileExt === '.csv') {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+        // Find column indices
+        const nameIdx = headers.findIndex(h => h.includes('name') && !h.includes('contact'));
+        const contactIdx = headers.findIndex(h => h.includes('contact'));
+        const emailIdx = headers.findIndex(h => h.includes('email'));
+        const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('tel'));
+        const addressIdx = headers.findIndex(h => h.includes('address'));
+
+        if (nameIdx === -1) {
+          alert('CSV must have a "name" column');
+          setUploadingVendors(false);
+          return;
+        }
+
+        const vendors = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          if (values[nameIdx]) {
+            vendors.push({
+              name: values[nameIdx] || '',
+              contact_person: contactIdx >= 0 ? values[contactIdx] || '' : '',
+              email: emailIdx >= 0 ? values[emailIdx] || '' : '',
+              phone: phoneIdx >= 0 ? values[phoneIdx] || '' : '',
+              address: addressIdx >= 0 ? values[addressIdx] || '' : ''
+            });
+          }
+        }
+
+        if (vendors.length === 0) {
+          alert('No valid vendors found in file');
+          setUploadingVendors(false);
+          return;
+        }
+
+        // Upload to server
+        const response = await fetchWithAuth(`${API_URL}/admin/vendors/bulk-upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vendors })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert(result.message);
+          loadAdminData();
+          setShowVendorUpload(false);
+        } else {
+          alert('Upload failed: ' + (result.error || 'Unknown error'));
+        }
+      } else {
+        // For Excel files, we need to use a library or ask user to convert to CSV
+        alert('For Excel files, please save as CSV first, or use the CSV format.\n\nRequired columns: name (required), contact_person, email, phone, address');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Error processing file: ' + error.message);
+    } finally {
+      setUploadingVendors(false);
+      event.target.value = ''; // Reset file input
     }
   };
 
@@ -5079,7 +5192,7 @@ function AdminPanel({ data, loadData }) {
 
   if (loading && users.length === 0) {
     return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading admin data...")
+      React.createElement('p', { className: "text-center text-gray-600" }, "Loading admin data… please wait")
     );
   }
 
@@ -5318,19 +5431,46 @@ function AdminPanel({ data, loadData }) {
     activeTab === 'vendors' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
       React.createElement('div', { className: "flex items-center justify-between mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Vendor Management"),
+        React.createElement('div', { className: "flex gap-2" },
+          React.createElement('button', {
+            onClick: () => setShowVendorUpload(!showVendorUpload),
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, "Upload CSV"),
+          React.createElement('button', {
+            onClick: () => {
+              setShowVendorForm(true);
+              setEditingVendor(null);
+              setVendorForm({
+                name: '',
+                email: '',
+                phone: '',
+                address: ''
+              });
+            },
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, "+ Add Vendor")
+        )
+      ),
+      // Vendor Upload Section
+      showVendorUpload && React.createElement('div', { className: "mb-6 p-4 bg-green-50 rounded-lg border border-green-200" },
+        React.createElement('h4', { className: "font-semibold mb-3 text-green-800" }, "Bulk Upload Vendors from CSV"),
+        React.createElement('p', { className: "text-sm text-green-700 mb-3" },
+          "Upload a CSV file with columns: name (required), contact_person, email, phone, address"
+        ),
+        React.createElement('div', { className: "flex items-center gap-4" },
+          React.createElement('input', {
+            type: "file",
+            accept: ".csv",
+            onChange: handleVendorFileUpload,
+            disabled: uploadingVendors,
+            className: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+          }),
+          uploadingVendors && React.createElement('span', { className: "text-green-600 font-medium" }, "Uploading...")
+        ),
         React.createElement('button', {
-          onClick: () => {
-            setShowVendorForm(true);
-            setEditingVendor(null);
-            setVendorForm({
-              name: '',
-              email: '',
-              phone: '',
-              address: ''
-            });
-          },
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        }, "+ Add Vendor")
+          onClick: () => setShowVendorUpload(false),
+          className: "mt-3 text-sm text-gray-500 hover:text-gray-700"
+        }, "Cancel")
       ),
       showVendorForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingVendor ? 'Edit Vendor' : 'New Vendor'),
@@ -6702,7 +6842,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading Approval Console...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading Approval Console… please wait")
     );
   }
 
@@ -7466,7 +7606,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading petty cash requisitions...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading petty cash requisitions… please wait")
     );
   }
 
@@ -7672,7 +7812,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading expense claims...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading expense claims… please wait")
     );
   }
 
@@ -7878,7 +8018,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading EFT requisitions...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading EFT requisitions… please wait")
     );
   }
 
@@ -8033,7 +8173,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading Requisition Adjudication...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading Requisition Adjudication… please wait")
     );
   }
 
@@ -8250,7 +8390,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
       className: "text-center py-12",
       style: { color: 'var(--text-secondary)' }
     },
-      React.createElement('p', null, "Loading Rejected Requisitions...")
+      React.createElement('p', null, "Loading Rejected Requisitions… please wait")
     );
   }
 
@@ -8721,7 +8861,7 @@ function PurchaseOrders({ user }) {
 
   if (loading) {
     return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading Purchase Orders...")
+      React.createElement('p', { className: "text-center text-gray-600" }, "Loading Purchase Orders… please wait")
     );
   }
 
@@ -8862,7 +9002,7 @@ function BudgetManagement({ user }) {
 
   if (loading) {
     return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading budget data...")
+      React.createElement('p', { className: "text-center text-gray-600" }, "Loading budget data… please wait")
     );
   }
 
@@ -9116,7 +9256,7 @@ function FXRatesManagement({ user }) {
 
   if (loading) {
     return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading FX rates...")
+      React.createElement('p', { className: "text-center text-gray-600" }, "Loading FX rates… please wait")
     );
   }
 
@@ -9537,7 +9677,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
 
   if (loading) {
     return React.createElement('div', { className: "flex items-center justify-center p-8" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading requisitions...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading requisitions… please wait")
     );
   }
 
@@ -10162,7 +10302,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading issue slips...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading issue slips… please wait")
     );
   }
 
@@ -10576,7 +10716,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
 
   if (loading) {
     return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading picking slips...")
+      React.createElement('p', { className: "text-gray-600" }, "Loading picking slips… please wait")
     );
   }
 
