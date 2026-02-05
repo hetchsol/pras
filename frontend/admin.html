@@ -258,6 +258,7 @@
                 password: '',
                 role: '',
                 department: '',
+                assigned_hod: '',
                 can_access_stores: false
             });
 
@@ -287,6 +288,7 @@
                     password: '',
                     role: '',
                     department: '',
+                    assigned_hod: '',
                     can_access_stores: false
                 });
                 setShowModal(true);
@@ -301,6 +303,7 @@
                     password: '',
                     role: user.role,
                     department: user.department || '',
+                    assigned_hod: user.assigned_hod || '',
                     can_access_stores: user.can_access_stores ? true : false
                 });
                 setShowModal(true);
@@ -499,6 +502,21 @@
                                                 placeholder="e.g., IT, HR, Finance"
                                             />
                                         </div>
+                                        {!['hod', 'md', 'admin', 'finance'].includes(formData.role) && (
+                                        <div className="mb-3">
+                                            <label className="form-label">Supervisor / HOD</label>
+                                            <select
+                                                className="form-control"
+                                                value={formData.assigned_hod}
+                                                onChange={(e) => setFormData({...formData, assigned_hod: e.target.value})}
+                                            >
+                                                <option value="">Select supervisor...</option>
+                                                {users.filter(u => ['hod', 'md', 'finance'].includes(u.role)).map(u => (
+                                                    <option key={u.id} value={u.id}>{u.full_name} ({u.role.toUpperCase()})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        )}
                                         <div className="mb-3">
                                             <div className="form-check form-switch">
                                                 <input

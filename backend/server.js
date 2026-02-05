@@ -3397,7 +3397,9 @@ app.post('/api/admin/users', authenticate, authorize('admin'), (req, res, next) 
             return res.status(400).json({ error: 'Department is required' });
         }
 
-        if (!assigned_hod) {
+        // assigned_hod is optional for hod, md, admin, finance roles
+        const rolesWithoutHod = ['hod', 'md', 'admin', 'finance'];
+        if (!assigned_hod && !rolesWithoutHod.includes(role)) {
             return res.status(400).json({ error: 'Assigned HOD is required' });
         }
 
@@ -3411,8 +3413,8 @@ app.post('/api/admin/users', authenticate, authorize('admin'), (req, res, next) 
             const bcrypt = require('bcryptjs');
             const hashedPassword = bcrypt.hashSync(password, 10);
 
-            // Parse assigned_hod as integer
-            const assignedHodId = parseInt(assigned_hod, 10);
+            // Parse assigned_hod as integer (null if not provided)
+            const assignedHodId = assigned_hod ? parseInt(assigned_hod, 10) : null;
 
             db.run(`
                 INSERT INTO users (username, full_name, email, password, role, department, assigned_hod, can_access_stores)
@@ -3462,13 +3464,15 @@ app.put('/api/admin/users/:id', authenticate, authorize('admin'), (req, res, nex
             return res.status(400).json({ error: 'Department is required' });
         }
 
-        if (!assigned_hod) {
+        // assigned_hod is optional for hod, md, admin, finance roles
+        const rolesWithoutHod = ['hod', 'md', 'admin', 'finance'];
+        if (!assigned_hod && !rolesWithoutHod.includes(role)) {
             console.log('Validation failed: Assigned HOD is required');
             return res.status(400).json({ error: 'Assigned HOD is required' });
         }
 
-        // Parse assigned_hod as integer
-        const assignedHodId = parseInt(assigned_hod, 10);
+        // Parse assigned_hod as integer (null if not provided)
+        const assignedHodId = assigned_hod ? parseInt(assigned_hod, 10) : null;
 
         let query = `
             UPDATE users
