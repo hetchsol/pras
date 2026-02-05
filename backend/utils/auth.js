@@ -19,7 +19,9 @@ const generateToken = (user) => {
     {
       id: user.id,
       username: user.username,
-      role: user.role
+      role: user.role,
+      full_name: user.full_name,
+      department: user.department
     },
     process.env.JWT_SECRET || 'your-secret-key-change-this-in-production',
     { expiresIn: process.env.JWT_EXPIRES_IN || '15m' } // Shorter expiry for access tokens
