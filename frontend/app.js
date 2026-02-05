@@ -1296,7 +1296,11 @@ function App() {
         view === 'create-eft-requisition' && React.createElement(CreateEFTRequisition, { user: currentUser, setView }),
         view === 'approve-eft-requisition' && React.createElement(ApproveEFTRequisition, { requisition: selectedReq, user: currentUser, setView }),
         view === 'approve-petty-cash' && React.createElement(ApprovePettyCash, { requisition: selectedReq, user: currentUser, setView }),
-        view === 'petty-cash-requisitions' && React.createElement(PettyCashRequisitionsList, { user: currentUser, setView, setSelectedReq })
+        view === 'petty-cash-requisitions' && React.createElement(PettyCashRequisitionsList, { user: currentUser, setView, setSelectedReq }),
+        // Stores Module Views
+        view === 'issue-slips' && React.createElement(IssueSlipsList, { user: currentUser, setView, setSelectedReq }),
+        view === 'approve-issue-slip' && React.createElement(ApproveIssueSlip, { slip: selectedReq, user: currentUser, setView }),
+        view === 'picking-slips' && React.createElement(PickingSlipsList, { user: currentUser, setView, setSelectedReq })
       )
     )
   );
@@ -1659,6 +1663,20 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
         { id: 'eft-requisitions', label: 'EFT Requisitions', icon: '💳', show: true },
         { id: 'petty-cash-requisitions', label: 'Petty Cash', icon: '💰', show: true },
         { id: 'approval-console', label: 'Pending Approvals', icon: '✅', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
+      ]
+    },
+    // Stores Management Group - Issue Slips & Picking Slips
+    {
+      id: 'stores-group',
+      label: 'Stores',
+      icon: '📦',
+      show: user.can_access_stores || hasAnyRole(user.role, ['admin', 'hod', 'finance']),
+      isGroup: true,
+      children: [
+        { id: 'issue-slips', label: 'Issue Slips', icon: '📤', show: true },
+        { id: 'create-issue-slip', label: 'Create Issue Slip', icon: '➕', show: user.can_access_stores, isLink: true, href: 'issue-slip.html' },
+        { id: 'picking-slips', label: 'Picking Slips', icon: '📥', show: true },
+        { id: 'create-picking-slip', label: 'Create Picking Slip', icon: '➕', show: user.can_access_stores, isLink: true, href: 'picking-slip.html' }
       ]
     },
     // Financial Planning Group - Budget and FX rates
@@ -4801,7 +4819,8 @@ function AdminPanel({ data, loadData }) {
     email: '',
     role: 'initiator',
     department: 'IT',
-    is_hod: 0
+    is_hod: 0,
+    can_access_stores: false
   });
   const [vendorForm, setVendorForm] = useState({
     name: '',
@@ -4889,7 +4908,8 @@ function AdminPanel({ data, loadData }) {
         email: '',
         role: 'initiator',
         department: 'IT',
-        is_hod: 0
+        is_hod: 0,
+        can_access_stores: false
       });
       loadAdminData();
       if (loadData) loadData();
@@ -5186,6 +5206,15 @@ function AdminPanel({ data, loadData }) {
               className: "w-4 h-4"
             }),
             React.createElement('span', null, "Is HOD")
+          ),
+          React.createElement('label', { className: "flex items-center gap-2" },
+            React.createElement('input', {
+              type: "checkbox",
+              checked: userForm.can_access_stores,
+              onChange: (e) => setUserForm({ ...userForm, can_access_stores: e.target.checked }),
+              className: "w-4 h-4"
+            }),
+            React.createElement('span', null, "Stores Access")
           )
         ),
         React.createElement('div', { className: "flex gap-2 mt-4" },
@@ -5235,7 +5264,8 @@ function AdminPanel({ data, loadData }) {
                         email: user.email,
                         role: user.role,
                         department: user.department,
-                        is_hod: user.is_hod
+                        is_hod: user.is_hod,
+                        can_access_stores: user.can_access_stores || false
                       });
                       setShowUserForm(true);
                     },
@@ -6551,25 +6581,28 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     setLoading(true);
     try {
       // Fetch all types of requisitions/forms
-      const [reqRes, expRes, eftRes, pcRes] = await Promise.all([
+      const [reqRes, expRes, eftRes, pcRes, issRes] = await Promise.all([
         fetchWithAuth(`${API_URL}/requisitions`),
         fetchWithAuth(`${API_URL}/forms/expense-claims`),
         fetchWithAuth(`${API_URL}/forms/eft-requisitions`),
-        fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`)
+        fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`),
+        fetchWithAuth(`${API_URL}/stores/issue-slips`)
       ]);
 
       const requisitions = reqRes.ok ? await reqRes.json() : [];
       const expenseClaims = expRes.ok ? await expRes.json() : [];
       const eftRequisitions = eftRes.ok ? await eftRes.json() : [];
       const pettyCash = pcRes.ok ? await pcRes.json() : [];
+      const issueSlips = issRes.ok ? await issRes.json() : [];
 
       // Add type identifier to each item
       const taggedReqs = requisitions.map(r => ({ ...r, formType: 'purchase_requisition', displayType: 'Purchase Req' }));
       const taggedExp = expenseClaims.map(r => ({ ...r, formType: 'expense_claim', displayType: 'Expense Claim' }));
       const taggedEft = eftRequisitions.map(r => ({ ...r, formType: 'eft_requisition', displayType: 'EFT' }));
       const taggedPc = pettyCash.map(r => ({ ...r, formType: 'petty_cash', displayType: 'Petty Cash' }));
+      const taggedIss = issueSlips.map(r => ({ ...r, formType: 'issue_slip', displayType: 'Issue Slip' }));
 
-      const combinedItems = [...taggedReqs, ...taggedExp, ...taggedEft, ...taggedPc];
+      const combinedItems = [...taggedReqs, ...taggedExp, ...taggedEft, ...taggedPc, ...taggedIss];
 
       // Filter based on user role and status
       let filtered = [];
@@ -6618,6 +6651,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       setView('approve-eft-requisition');
     } else if (item.formType === 'petty_cash') {
       setView('approve-petty-cash');
+    } else if (item.formType === 'issue_slip') {
+      setView('approve-issue-slip');
     } else {
       setView('approve');
     }
@@ -6645,7 +6680,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       'Purchase Req': 'bg-indigo-100 text-indigo-800',
       'Expense Claim': 'bg-pink-100 text-pink-800',
       'EFT': 'bg-cyan-100 text-cyan-800',
-      'Petty Cash': 'bg-orange-100 text-orange-800'
+      'Petty Cash': 'bg-orange-100 text-orange-800',
+      'Issue Slip': 'bg-emerald-100 text-emerald-800'
     };
     return React.createElement('span', {
       className: `px-2 py-1 text-xs font-semibold rounded-full ${typeColors[displayType] || 'bg-gray-100 text-gray-800'}`
@@ -6687,7 +6723,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
             React.createElement('option', { value: 'purchase_requisition' }, 'Purchase Requisitions'),
             React.createElement('option', { value: 'expense_claim' }, 'Expense Claims'),
             React.createElement('option', { value: 'eft_requisition' }, 'EFT Requisitions'),
-            React.createElement('option', { value: 'petty_cash' }, 'Petty Cash')
+            React.createElement('option', { value: 'petty_cash' }, 'Petty Cash'),
+            React.createElement('option', { value: 'issue_slip' }, 'Issue Slips')
           ),
           React.createElement('button', {
             onClick: fetchAllPendingItems,
@@ -10042,6 +10079,568 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
           )
         )
       )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - ISSUE SLIPS LIST
+// ============================================
+function IssueSlipsList({ user, setView, setSelectedReq }) {
+  const [slips, setSlips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchIssueSlips();
+  }, []);
+
+  const fetchIssueSlips = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/issue-slips`);
+      if (!res.ok) throw new Error('Failed to fetch issue slips');
+      const data = await res.json();
+      setSlips(data);
+    } catch (error) {
+      console.error('Error fetching issue slips:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = (slip) => {
+    setSelectedReq(slip);
+    setView('approve-issue-slip');
+  };
+
+  const canApprove = (slip) => {
+    if (hasRole(user.role, 'hod') && slip.status === 'pending_hod') return true;
+    if (hasRole(user.role, 'finance', 'finance_manager') && slip.status === 'pending_finance') return true;
+    if (hasRole(user.role, 'admin')) return true;
+    return false;
+  };
+
+  const handlePreviewPDF = async (slip) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slip.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (slip) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slip.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `IssueSlip_${slip.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusColors = {
+      'pending_hod': 'bg-yellow-100 text-yellow-800',
+      'pending_finance': 'bg-blue-100 text-blue-800',
+      'approved': 'bg-green-100 text-green-800',
+      'rejected': 'bg-red-100 text-red-800'
+    };
+    return statusColors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading issue slips...")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Issue Slips"),
+        React.createElement('div', { className: "flex gap-3" },
+          user.can_access_stores && React.createElement('a', {
+            href: 'issue-slip.html',
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, '+ New Issue Slip'),
+          React.createElement('button', {
+            onClick: fetchIssueSlips,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, 'Refresh')
+        )
+      ),
+
+      slips.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No issue slips found")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Issued To"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Created By"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                slips.map(slip =>
+                  React.createElement('tr', { key: slip.id, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, slip.id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.issued_to),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.department || slip.initiator_department || 'N/A'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.initiator_name),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('span', {
+                        className: `px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(slip.status)}`
+                      }, slip.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
+                    ),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                      new Date(slip.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                        React.createElement('button', {
+                          onClick: () => handleView(slip),
+                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                        }, 'View'),
+                        canApprove(slip) && slip.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleView(slip),
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        }, 'Approve'),
+                        slip.status === 'approved' && React.createElement('button', {
+                          onClick: () => handlePreviewPDF(slip),
+                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                        }, 'Preview'),
+                        slip.status === 'approved' && React.createElement('button', {
+                          onClick: () => handleDownloadPDF(slip),
+                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                        }, 'Download')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - APPROVE ISSUE SLIP
+// ============================================
+function ApproveIssueSlip({ slip, user, setView }) {
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [slipData, setSlipData] = useState(slip);
+
+  useEffect(() => {
+    if (slip && slip.id) {
+      fetchSlipDetails();
+    }
+  }, [slip]);
+
+  const fetchSlipDetails = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slip.id}`);
+      if (!res.ok) throw new Error('Failed to fetch slip details');
+      const data = await res.json();
+      setSlipData(data);
+    } catch (error) {
+      console.error('Error fetching slip details:', error);
+    }
+  };
+
+  if (!slipData) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-500" }, "No issue slip selected"),
+      React.createElement('button', {
+        onClick: () => setView('issue-slips'),
+        className: "mt-4 text-blue-600 hover:text-blue-800"
+      }, "Back to Issue Slips")
+    );
+  }
+
+  const getActionEndpoint = () => {
+    if (slipData.status === 'pending_hod') return 'hod-action';
+    if (slipData.status === 'pending_finance') return 'finance-action';
+    return null;
+  };
+
+  const canTakeAction = () => {
+    if (hasRole(user.role, 'hod') && slipData.status === 'pending_hod') return true;
+    if (hasRole(user.role, 'finance', 'finance_manager') && slipData.status === 'pending_finance') return true;
+    if (hasRole(user.role, 'admin')) return true;
+    return false;
+  };
+
+  const handleApprove = async () => {
+    const actionEndpoint = getActionEndpoint();
+    if (!actionEndpoint) {
+      alert('No pending action for this slip');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slipData.id}/${actionEndpoint}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'approved',
+          comments: comment || 'Approved'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Approval failed');
+      }
+
+      alert('Issue slip approved successfully!');
+      setView('issue-slips');
+    } catch (error) {
+      console.error('Error approving issue slip:', error);
+      alert(error.message || 'Error approving issue slip');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!comment.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    const actionEndpoint = getActionEndpoint();
+    if (!actionEndpoint) {
+      alert('No pending action for this slip');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slipData.id}/${actionEndpoint}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rejected',
+          comments: comment
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Rejection failed');
+      }
+
+      alert('Issue slip rejected');
+      setView('issue-slips');
+    } catch (error) {
+      console.error('Error rejecting issue slip:', error);
+      alert(error.message || 'Error rejecting issue slip');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slipData.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  return React.createElement('div', { className: "max-w-4xl mx-auto" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Issue Slip"),
+        React.createElement('span', {
+          className: `px-4 py-2 rounded-full text-sm font-medium ${
+            slipData.status === 'approved' ? 'bg-green-100 text-green-700' :
+            slipData.status === 'rejected' ? 'bg-red-100 text-red-700' :
+            'bg-yellow-100 text-yellow-700'
+          }`
+        }, slipData.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
+      ),
+
+      // Slip Details
+      React.createElement('div', { className: "space-y-6" },
+        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Slip ID"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.id)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Issued To"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.issued_to)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Department"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.department || slipData.initiator_department)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Created By"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.initiator_name)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Delivery Location"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.delivery_location || 'N/A')
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Delivered By"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.delivered_by || 'N/A')
+          )
+        ),
+
+        // Items Section
+        slipData.items && slipData.items.length > 0 && React.createElement('div', { className: "mt-6" },
+          React.createElement('h3', { className: "text-lg font-semibold text-gray-800 mb-3" }, "Items"),
+          React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full border" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "#"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Item Code"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Item Name"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Description"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Qty"),
+                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Unit")
+                )
+              ),
+              React.createElement('tbody', null,
+                slipData.items.map((item, idx) =>
+                  React.createElement('tr', { key: idx, className: "border-t" },
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, idx + 1),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.item_code || '-'),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.item_name),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.description || '-'),
+                    React.createElement('td', { className: "px-4 py-2 text-sm font-semibold" }, item.quantity),
+                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.unit || 'pcs')
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // Remarks
+        slipData.remarks && React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Remarks"),
+          React.createElement('p', { className: "text-gray-900" }, slipData.remarks)
+        ),
+
+        // Approval History
+        slipData.approvals && slipData.approvals.length > 0 && React.createElement('div', { className: "mt-6" },
+          React.createElement('h3', { className: "text-lg font-semibold text-gray-800 mb-3" }, "Approval History"),
+          React.createElement('div', { className: "space-y-2" },
+            slipData.approvals.map((approval, idx) =>
+              React.createElement('div', { key: idx, className: "flex items-center justify-between p-3 bg-gray-50 rounded" },
+                React.createElement('div', null,
+                  React.createElement('span', { className: "font-medium" }, approval.role?.toUpperCase() || 'Unknown'),
+                  React.createElement('span', { className: "mx-2 text-gray-400" }, '-'),
+                  React.createElement('span', null, approval.user_name || 'Pending')
+                ),
+                React.createElement('div', { className: "flex items-center gap-3" },
+                  React.createElement('span', {
+                    className: `px-2 py-1 text-xs rounded ${
+                      approval.action === 'approved' ? 'bg-green-100 text-green-800' :
+                      approval.action === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`
+                  }, approval.action?.toUpperCase() || 'PENDING'),
+                  approval.timestamp && React.createElement('span', { className: "text-sm text-gray-500" },
+                    new Date(approval.timestamp).toLocaleString()
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // Comments Section (for approvers)
+        canTakeAction() && React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Comments"),
+          React.createElement('textarea', {
+            value: comment,
+            onChange: (e) => setComment(e.target.value),
+            placeholder: "Add your comments here (required for rejection)...",
+            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            rows: 3
+          })
+        ),
+
+        // Action Buttons
+        React.createElement('div', { className: "flex gap-4 mt-6" },
+          canTakeAction() && React.createElement('button', {
+            onClick: handleApprove,
+            disabled: loading,
+            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Approve'),
+          canTakeAction() && React.createElement('button', {
+            onClick: handleReject,
+            disabled: loading,
+            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+          }, loading ? 'Processing...' : 'Reject'),
+          slipData.status === 'approved' && React.createElement('button', {
+            onClick: handlePreviewPDF,
+            className: "flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          }, 'Preview PDF'),
+          React.createElement('button', {
+            onClick: () => setView('issue-slips'),
+            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          }, 'Back')
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - PICKING SLIPS LIST
+// ============================================
+function PickingSlipsList({ user, setView, setSelectedReq }) {
+  const [slips, setSlips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPickingSlips();
+  }, []);
+
+  const fetchPickingSlips = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/picking-slips`);
+      if (!res.ok) throw new Error('Failed to fetch picking slips');
+      const data = await res.json();
+      setSlips(data);
+    } catch (error) {
+      console.error('Error fetching picking slips:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreviewPDF = async (slip) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/picking-slips/${slip.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (slip) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/picking-slips/${slip.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PickingSlip_${slip.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading picking slips...")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Picking Slips"),
+        React.createElement('div', { className: "flex gap-3" },
+          user.can_access_stores && React.createElement('a', {
+            href: 'picking-slip.html',
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, '+ New Picking Slip'),
+          React.createElement('button', {
+            onClick: fetchPickingSlips,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, 'Refresh')
+        )
+      ),
+
+      slips.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No picking slips found")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Picked By"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Destination"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Created By"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                slips.map(slip =>
+                  React.createElement('tr', { key: slip.id, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, slip.id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.picked_by),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.destination),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.department || slip.initiator_department || 'N/A'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.initiator_name),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                      new Date(slip.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                        React.createElement('button', {
+                          onClick: () => handlePreviewPDF(slip),
+                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                        }, 'Preview'),
+                        React.createElement('button', {
+                          onClick: () => handleDownloadPDF(slip),
+                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                        }, 'Download')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
     )
   );
 }

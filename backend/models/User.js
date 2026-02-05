@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   is_hod: { type: Number, default: 0 },
   assigned_hod: { type: mongoose.Schema.Types.Mixed },  // Can be ID or name
   supervisor_name: { type: String },  // Supervisor's full name for lookup
+  can_access_stores: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now }
 });
 

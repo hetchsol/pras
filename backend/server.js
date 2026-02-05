@@ -126,9 +126,15 @@ function initializeDatabase() {
             department TEXT,
             is_hod BOOLEAN DEFAULT 0,
             assigned_hod INTEGER,
+            can_access_stores BOOLEAN DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (assigned_hod) REFERENCES users(id)
         )`);
+
+        // Add can_access_stores column to existing users table if not exists
+        db.run(`ALTER TABLE users ADD COLUMN can_access_stores BOOLEAN DEFAULT 0`, (err) => {
+            // Ignore error if column already exists
+        });
 
         // Requisitions table
         db.run(`CREATE TABLE IF NOT EXISTS requisitions (
@@ -403,7 +409,8 @@ app.get('/api/auth/me', authenticate, (req, res, next) => {
             email: user.email,
             role: user.role,
             department: user.department,
-            employee_number: user.employee_number
+            employee_number: user.employee_number,
+            can_access_stores: user.can_access_stores || false
         });
     } catch (error) {
         next(error);
@@ -3355,7 +3362,7 @@ app.get('/api/admin/stats', authenticate, authorize('admin'), (req, res, next) =
 app.get('/api/admin/users', authenticate, authorize('admin'), (req, res, next) => {
     try {
         db.all(`
-            SELECT id, username, full_name, email, role, department, assigned_hod, created_at
+            SELECT id, username, full_name, email, role, department, assigned_hod, can_access_stores, created_at
             FROM users
             ORDER BY created_at DESC
         `, (err, users) => {
@@ -3376,9 +3383,9 @@ app.post('/api/admin/users', authenticate, authorize('admin'), (req, res, next) 
         console.log('=== CREATE USER REQUEST ===');
         console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-        const { username, full_name, email, password, role, department, assigned_hod } = req.body;
+        const { username, full_name, email, password, role, department, assigned_hod, can_access_stores } = req.body;
 
-        console.log('Extracted fields:', { username, full_name, email, role, department, assigned_hod: assigned_hod ? 'present' : 'missing' });
+        console.log('Extracted fields:', { username, full_name, email, role, department, assigned_hod: assigned_hod ? 'present' : 'missing', can_access_stores });
 
         // Validation
         if (!username || !full_name || !password || !role) {
@@ -3408,9 +3415,9 @@ app.post('/api/admin/users', authenticate, authorize('admin'), (req, res, next) 
             const assignedHodId = parseInt(assigned_hod, 10);
 
             db.run(`
-                INSERT INTO users (username, full_name, email, password, role, department, assigned_hod)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `, [username, full_name, email, hashedPassword, role, department, assignedHodId], function(err) {
+                INSERT INTO users (username, full_name, email, password, role, department, assigned_hod, can_access_stores)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [username, full_name, email, hashedPassword, role, department, assignedHodId, can_access_stores ? 1 : 0], function(err) {
                 if (err) {
                     console.error('Error creating user:', err);
                     logError(err, { context: 'create_user', username, role, department });
@@ -3445,9 +3452,9 @@ app.put('/api/admin/users/:id', authenticate, authorize('admin'), (req, res, nex
         console.log('User ID:', userId);
         console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-        const { full_name, email, role, department, assigned_hod, password } = req.body;
+        const { full_name, email, role, department, assigned_hod, password, can_access_stores } = req.body;
 
-        console.log('Extracted fields:', { full_name, email, role, department, assigned_hod: assigned_hod ? 'present' : 'missing', password: password ? 'present' : 'not provided' });
+        console.log('Extracted fields:', { full_name, email, role, department, assigned_hod: assigned_hod ? 'present' : 'missing', password: password ? 'present' : 'not provided', can_access_stores });
 
         // Validation
         if (!department) {
@@ -3465,9 +3472,9 @@ app.put('/api/admin/users/:id', authenticate, authorize('admin'), (req, res, nex
 
         let query = `
             UPDATE users
-            SET full_name = ?, email = ?, role = ?, department = ?, assigned_hod = ?
+            SET full_name = ?, email = ?, role = ?, department = ?, assigned_hod = ?, can_access_stores = ?
         `;
-        let params = [full_name, email, role, department, assignedHodId];
+        let params = [full_name, email, role, department, assignedHodId, can_access_stores ? 1 : 0];
 
         // If password is provided, update it
         if (password) {
@@ -3475,9 +3482,9 @@ app.put('/api/admin/users/:id', authenticate, authorize('admin'), (req, res, nex
             const hashedPassword = bcrypt.hashSync(password, 10);
             query = `
                 UPDATE users
-                SET full_name = ?, email = ?, role = ?, department = ?, assigned_hod = ?, password = ?
+                SET full_name = ?, email = ?, role = ?, department = ?, assigned_hod = ?, can_access_stores = ?, password = ?
             `;
-            params = [full_name, email, role, department, assignedHodId, hashedPassword];
+            params = [full_name, email, role, department, assignedHodId, can_access_stores ? 1 : 0, hashedPassword];
         }
 
         query += ` WHERE id = ?`;
@@ -4133,6 +4140,12 @@ setupQuotesAndAdjudications(app, db, authenticate, authorize);
 // ============================================
 const formsRouter = require('./routes/forms');
 app.use('/api/forms', formsRouter);
+
+// ============================================
+// STORES ROUTES (Issue Slips & Picking Slips)
+// ============================================
+const storesRouter = require('./routes/stores');
+app.use('/api/stores', storesRouter);
 
 // ============================================
 // SEARCH ROUTES (Global Search) - Disabled (route file not available)

@@ -8,6 +8,8 @@ const EFTRequisition = require('./EFTRequisition');
 const ExpenseClaim = require('./ExpenseClaim');
 const FormApproval = require('./FormApproval');
 const PettyCashRequisition = require('./PettyCashRequisition');
+const IssueSlip = require('./IssueSlip');
+const PickingSlip = require('./PickingSlip');
 
 module.exports = {
   User,
@@ -19,5 +21,7 @@ module.exports = {
   EFTRequisition,
   ExpenseClaim,
   FormApproval,
-  PettyCashRequisition
+  PettyCashRequisition,
+  IssueSlip,
+  PickingSlip
 };

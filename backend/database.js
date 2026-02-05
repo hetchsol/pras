@@ -177,6 +177,74 @@ const createTables = () => {
     )
   `).run();
 
+  // Issue Slips table (Stores module)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS issue_slips (
+      id TEXT PRIMARY KEY,
+      slip_number TEXT UNIQUE,
+      issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      issued_to TEXT NOT NULL,
+      department TEXT,
+      delivery_location TEXT,
+      delivery_date DATETIME,
+      delivered_by TEXT,
+      reference_number TEXT,
+      remarks TEXT,
+      initiator_id INTEGER NOT NULL,
+      initiator_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending_hod',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (initiator_id) REFERENCES users(id)
+    )
+  `).run();
+
+  // Issue Slip Items table
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS issue_slip_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slip_id TEXT NOT NULL,
+      item_code TEXT,
+      item_name TEXT NOT NULL,
+      description TEXT,
+      quantity REAL NOT NULL,
+      unit TEXT DEFAULT 'pcs',
+      FOREIGN KEY (slip_id) REFERENCES issue_slips(id) ON DELETE CASCADE
+    )
+  `).run();
+
+  // Picking Slips table (Stores module)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS picking_slips (
+      id TEXT PRIMARY KEY,
+      slip_number TEXT UNIQUE,
+      pick_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      picked_by TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      department TEXT,
+      reference_number TEXT,
+      remarks TEXT,
+      initiator_id INTEGER NOT NULL,
+      initiator_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'completed',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (initiator_id) REFERENCES users(id)
+    )
+  `).run();
+
+  // Picking Slip Items table
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS picking_slip_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slip_id TEXT NOT NULL,
+      item_code TEXT,
+      item_name TEXT NOT NULL,
+      description TEXT,
+      quantity REAL NOT NULL,
+      unit TEXT DEFAULT 'pcs',
+      FOREIGN KEY (slip_id) REFERENCES picking_slips(id) ON DELETE CASCADE
+    )
+  `).run();
+
   console.log('✅ Database tables created successfully');
 };
 
