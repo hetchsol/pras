@@ -517,8 +517,18 @@ app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) 
 
 app.put('/api/admin/users/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { full_name, email, role, department, is_hod } = req.body;
-    await db.User.findByIdAndUpdate(req.params.id, { full_name, email, role, department, is_hod });
+    const { username, full_name, email, role, department, is_hod, assigned_hod, can_access_stores, password } = req.body;
+    const updateData = { full_name, email, role, department, is_hod };
+
+    if (username) updateData.username = username;
+    if (assigned_hod !== undefined) updateData.assigned_hod = assigned_hod || null;
+    if (can_access_stores !== undefined) updateData.can_access_stores = can_access_stores ? true : false;
+
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    await db.User.findByIdAndUpdate(req.params.id, updateData);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
