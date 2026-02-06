@@ -185,7 +185,7 @@ const createApproval = async (approval) => {
 
 // Vendor operations
 const getVendors = async () => {
-  return await Vendor.find().lean();
+  return await Vendor.find().sort({ name: 1 }).lean();
 };
 
 const createVendor = async (vendor) => {

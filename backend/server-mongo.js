@@ -549,7 +549,7 @@ app.delete('/api/admin/users/:id', authenticate, authorize('admin'), async (req,
 
 app.get('/api/admin/vendors', authenticate, async (req, res) => {
   try {
-    const vendors = await db.Vendor.find().lean();
+    const vendors = await db.Vendor.find().sort({ name: 1 }).lean();
     res.json(vendors.map(v => ({ ...v, id: v._id })));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -619,7 +619,7 @@ app.post('/api/admin/vendors/bulk-upload', authenticate, authorize('admin'), asy
 // Client routes
 app.get('/api/admin/clients', authenticate, async (req, res) => {
   try {
-    const clients = await db.Client.find().lean();
+    const clients = await db.Client.find().sort({ name: 1 }).lean();
     res.json(clients.map(c => ({ ...c, id: c._id })));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -689,7 +689,7 @@ app.post('/api/admin/clients/bulk-upload', authenticate, authorize('admin'), asy
 // Public client list (for dropdowns)
 app.get('/api/clients', authenticate, async (req, res) => {
   try {
-    const clients = await db.Client.find().lean();
+    const clients = await db.Client.find().sort({ name: 1 }).lean();
     res.json(clients);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
