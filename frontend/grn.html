@@ -654,7 +654,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAlert(`GRN created successfully! ID: ${data.grn.id}`, 'success');
+                    showAlert(`GRN created successfully! ID: ${data.grn.id} - Pending approval`, 'success');
                     document.getElementById('grnForm').reset();
                     document.getElementById('prInfoBox').style.display = 'none';
                     document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';

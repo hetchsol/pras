@@ -497,8 +497,54 @@ async function generateGRNPDF(grn, items, outputPath) {
         yPos += 20;
       });
 
+      // Approval section
+      yPos += 30;
+      if (yPos > 620) {
+        doc.addPage();
+        yPos = 50;
+      }
+
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('black').text('APPROVAL', 50, yPos);
+      yPos += 20;
+
+      const approval = (grn.approvals && grn.approvals.length > 0) ? grn.approvals[0] : null;
+      const approvalStatus = approval && approval.action !== 'pending' ? approval.action.toUpperCase() : 'PENDING';
+
+      // Approval status box
+      if (approval && approval.action === 'approved') {
+        doc.rect(50, yPos, 500, 60).fill('#E8F5E9').stroke('#4CAF50');
+        doc.fillColor('#0000CC').font('Helvetica-Bold').fontSize(10)
+           .text('Finance Approval: APPROVED', 60, yPos + 8);
+        doc.fillColor('#0000CC').font('Helvetica')
+           .text(`Approved By: ${approval.name || 'N/A'}`, 60, yPos + 24);
+        doc.text(`Date: ${approval.date ? formatDate(approval.date) : 'N/A'}`, 300, yPos + 24);
+        if (approval.comments) {
+          doc.text(`Comments: ${approval.comments}`, 60, yPos + 40, { width: 480 });
+        }
+      } else if (approval && approval.action === 'rejected') {
+        doc.rect(50, yPos, 500, 60).fill('#FFEBEE').stroke('#F44336');
+        doc.fillColor('#C62828').font('Helvetica-Bold').fontSize(10)
+           .text('Finance Approval: REJECTED', 60, yPos + 8);
+        doc.fillColor('#C62828').font('Helvetica')
+           .text(`Rejected By: ${approval.name || 'N/A'}`, 60, yPos + 24);
+        doc.text(`Date: ${approval.date ? formatDate(approval.date) : 'N/A'}`, 300, yPos + 24);
+        if (approval.comments) {
+          doc.text(`Comments: ${approval.comments}`, 60, yPos + 40, { width: 480 });
+        }
+      } else {
+        doc.rect(50, yPos, 500, 40).fill('#FFF8E1').stroke('#FFC107');
+        doc.fillColor('#F57F17').font('Helvetica-Bold').fontSize(10)
+           .text('Finance Approval: PENDING', 60, yPos + 8);
+        if (grn.assigned_approver) {
+          doc.fillColor('#F57F17').font('Helvetica')
+             .text(`Assigned Approver: ${grn.assigned_approver}`, 60, yPos + 24);
+        }
+      }
+
+      doc.fillColor('black');
+      yPos += 75;
+
       // Signature section
-      yPos += 40;
       if (yPos > 650) {
         doc.addPage();
         yPos = 50;

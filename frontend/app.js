@@ -4876,9 +4876,19 @@ function AdminPanel({ data, loadData }) {
   const [resetUserId, setResetUserId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
 
+  // GRN Approver assignment state
+  const [grnApprovers, setGrnApprovers] = useState([]);
+  const [grnApproverForm, setGrnApproverForm] = useState({ initiator_name: '', approver_name: '' });
+
   useEffect(() => {
     loadAdminData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'grn-approvers') {
+      loadGRNApprovers();
+    }
+  }, [activeTab]);
 
   const loadAdminData = async () => {
     setLoading(true);
@@ -4923,6 +4933,50 @@ function AdminPanel({ data, loadData }) {
       alert('Failed to load admin data: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // GRN Approver functions
+  const loadGRNApprovers = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_URL}/admin/grn-approvers`);
+      if (res.ok) {
+        const data = await res.json();
+        setGrnApprovers(data);
+      }
+    } catch (error) {
+      console.error('Error loading GRN approvers:', error);
+    }
+  };
+
+  const handleSaveGRNApprover = async () => {
+    try {
+      if (!grnApproverForm.initiator_name || !grnApproverForm.approver_name) {
+        alert('Both Initiator and Approver are required');
+        return;
+      }
+      const res = await fetchWithAuth(`${API_URL}/admin/grn-approvers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(grnApproverForm)
+      });
+      if (!res.ok) throw new Error('Failed to save assignment');
+      alert('GRN Approver assignment saved');
+      setGrnApproverForm({ initiator_name: '', approver_name: '' });
+      loadGRNApprovers();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDeleteGRNApprover = async (id) => {
+    if (!confirm('Delete this approver assignment?')) return;
+    try {
+      const res = await fetchWithAuth(`${API_URL}/admin/grn-approvers/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      loadGRNApprovers();
+    } catch (error) {
+      alert('Error: ' + error.message);
     }
   };
 
@@ -5239,7 +5293,11 @@ function AdminPanel({ data, loadData }) {
         React.createElement('button', {
           onClick: () => setActiveTab('reroute'),
           className: `px-4 py-2 rounded-lg font-medium ${activeTab === 'reroute' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`
-        }, "Reroute Reqs")
+        }, "Reroute Reqs"),
+        React.createElement('button', {
+          onClick: () => setActiveTab('grn-approvers'),
+          className: `px-4 py-2 rounded-lg font-medium ${activeTab === 'grn-approvers' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`
+        }, "GRN Approvers")
       )
     ),
     activeTab === 'users' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
@@ -5852,6 +5910,61 @@ function AdminPanel({ data, loadData }) {
           )
         )
       )
+    ),
+    activeTab === 'grn-approvers' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "GRN Approver Assignments"),
+      React.createElement('p', { className: "text-sm text-gray-500 mb-4" }, "Assign finance approvers for GRN creators. When a user creates a GRN, it will be routed to their assigned approver."),
+
+      // Add form
+      React.createElement('div', { className: "flex flex-wrap gap-3 mb-6 p-4 bg-gray-50 rounded-lg" },
+        React.createElement('select', {
+          value: grnApproverForm.initiator_name,
+          onChange: (e) => setGrnApproverForm({ ...grnApproverForm, initiator_name: e.target.value }),
+          className: "flex-1 min-w-48 px-3 py-2 border rounded-lg"
+        },
+          React.createElement('option', { value: "" }, "Select Initiator (GRN Creator)"),
+          users.map(u => React.createElement('option', { key: u.id, value: u.full_name }, u.full_name))
+        ),
+        React.createElement('select', {
+          value: grnApproverForm.approver_name,
+          onChange: (e) => setGrnApproverForm({ ...grnApproverForm, approver_name: e.target.value }),
+          className: "flex-1 min-w-48 px-3 py-2 border rounded-lg"
+        },
+          React.createElement('option', { value: "" }, "Select Approver"),
+          users.map(u => React.createElement('option', { key: u.id, value: u.full_name }, u.full_name))
+        ),
+        React.createElement('button', {
+          onClick: handleSaveGRNApprover,
+          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        }, "Save Assignment")
+      ),
+
+      // Table
+      grnApprovers.length === 0
+        ? React.createElement('p', { className: "text-gray-500 text-center py-4" }, "No approver assignments yet. Click the tab to load them or add one above.")
+        : React.createElement('table', { className: "w-full" },
+            React.createElement('thead', { className: "bg-gray-50" },
+              React.createElement('tr', null,
+                React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" }, "Initiator (GRN Creator)"),
+                React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" }, "Assigned Approver"),
+                React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+              )
+            ),
+            React.createElement('tbody', { className: "divide-y divide-gray-200" },
+              grnApprovers.map(a =>
+                React.createElement('tr', { key: a._id, className: "hover:bg-gray-50" },
+                  React.createElement('td', { className: "px-4 py-2" }, a.initiator_name),
+                  React.createElement('td', { className: "px-4 py-2" }, a.approver_name),
+                  React.createElement('td', { className: "px-4 py-2" },
+                    React.createElement('button', {
+                      onClick: () => handleDeleteGRNApprover(a._id),
+                      className: "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
+                    }, "Delete")
+                  )
+                )
+              )
+            )
+          )
     )
   );
 }
@@ -10886,18 +10999,42 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                   React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "PR Ref"),
                   React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Supplier"),
                   React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Received By"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
                   React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Customer"),
                   React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
                   React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
-                grns.map(grn =>
-                  React.createElement('tr', { key: grn.id, className: "hover:bg-gray-50" },
+                grns.map(grn => {
+                  const statusStyles = {
+                    pending_approval: { backgroundColor: '#FEF3C7', color: '#92400E' },
+                    approved: { backgroundColor: '#D1FAE5', color: '#065F46' },
+                    rejected: { backgroundColor: '#FEE2E2', color: '#991B1B' }
+                  };
+                  const statusLabels = {
+                    pending_approval: 'Pending Approval',
+                    approved: 'Approved',
+                    rejected: 'Rejected',
+                    received: 'Received'
+                  };
+                  const style = statusStyles[grn.status] || { backgroundColor: '#E5E7EB', color: '#374151' };
+                  const canApprove = grn.status === 'pending_approval' && (
+                    grn.assigned_approver === (user.full_name || user.name) ||
+                    ['admin', 'finance', 'finance_manager', 'md'].includes(user.role)
+                  );
+
+                  return React.createElement('tr', { key: grn.id, className: "hover:bg-gray-50" },
                     React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-amber-700" }, grn.id),
                     React.createElement('td', { className: "px-4 py-3 text-sm text-blue-600" }, grn.pr_id),
                     React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.supplier || 'N/A'),
                     React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.received_by),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" },
+                      React.createElement('span', {
+                        className: "px-2 py-1 text-xs font-medium rounded",
+                        style: style
+                      }, statusLabels[grn.status] || grn.status)
+                    ),
                     React.createElement('td', { className: "px-4 py-3 text-sm" },
                       grn.customer
                         ? React.createElement('span', {
@@ -10916,6 +11053,10 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                           className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700",
                           style: { backgroundColor: '#d97706' }
                         }, 'View'),
+                        canApprove && React.createElement('button', {
+                          onClick: () => handleView(grn),
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        }, 'Approve'),
                         React.createElement('button', {
                           onClick: () => handlePreviewPDF(grn),
                           className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
@@ -10926,8 +11067,8 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                         }, 'Download')
                       )
                     )
-                  )
-                )
+                  );
+                })
               )
             )
           )
@@ -10941,6 +11082,8 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
 function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
   const [grnData, setGrnData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [approvalComments, setApprovalComments] = useState('');
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     fetchGRNDetails();
@@ -10957,6 +11100,28 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       console.error('Error fetching GRN:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproval = async (action) => {
+    if (!confirm(`Are you sure you want to ${action === 'approved' ? 'approve' : 'reject'} this GRN?`)) return;
+    setApproving(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/grns/${grnProp.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, comments: approvalComments })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to process approval');
+      }
+      alert(`GRN ${action} successfully`);
+      fetchGRNDetails();
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -10996,6 +11161,27 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
     );
   }
 
+  const statusStyles = {
+    pending_approval: { backgroundColor: '#FEF3C7', color: '#92400E' },
+    approved: { backgroundColor: '#D1FAE5', color: '#065F46' },
+    rejected: { backgroundColor: '#FEE2E2', color: '#991B1B' }
+  };
+  const statusLabels = {
+    pending_approval: 'PENDING APPROVAL',
+    approved: 'APPROVED',
+    rejected: 'REJECTED',
+    received: 'RECEIVED'
+  };
+  const badgeStyle = statusStyles[grnData.status] || { backgroundColor: '#E5E7EB', color: '#374151' };
+
+  const userName = user.full_name || user.name;
+  const canApprove = grnData.status === 'pending_approval' && (
+    grnData.assigned_approver === userName ||
+    ['admin', 'finance', 'finance_manager', 'md'].includes(user.role)
+  );
+
+  const approval = (grnData.approvals && grnData.approvals.length > 0) ? grnData.approvals[0] : null;
+
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
       // Header
@@ -11006,8 +11192,8 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         ),
         React.createElement('span', {
           className: "px-3 py-1 text-sm font-medium rounded",
-          style: { backgroundColor: '#D1FAE5', color: '#065F46' }
-        }, 'RECEIVED')
+          style: badgeStyle
+        }, statusLabels[grnData.status] || grnData.status.toUpperCase())
       ),
 
       // Info Grid
@@ -11043,6 +11229,55 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         grnData.invoice_number && React.createElement('div', null,
           React.createElement('span', { className: "text-sm text-gray-500" }, "Invoice #"),
           React.createElement('p', { className: "font-medium" }, grnData.invoice_number)
+        )
+      ),
+
+      // Approval Section
+      React.createElement('div', { className: "mb-6 p-4 rounded-lg border",
+        style: grnData.status === 'approved' ? { backgroundColor: '#F0FDF4', borderColor: '#22C55E' }
+             : grnData.status === 'rejected' ? { backgroundColor: '#FEF2F2', borderColor: '#EF4444' }
+             : { backgroundColor: '#FFFBEB', borderColor: '#F59E0B' }
+      },
+        React.createElement('h3', { className: "font-semibold text-gray-800 mb-2" }, "Finance Approval"),
+        grnData.assigned_approver && React.createElement('p', { className: "text-sm text-gray-600 mb-1" },
+          'Assigned Approver: ' + grnData.assigned_approver
+        ),
+        approval && approval.action !== 'pending' && React.createElement('div', null,
+          React.createElement('p', { className: "text-sm font-medium",
+            style: { color: approval.action === 'approved' ? '#065F46' : '#991B1B' }
+          }, `${approval.action === 'approved' ? 'Approved' : 'Rejected'} by: ${approval.name}`),
+          approval.date && React.createElement('p', { className: "text-sm text-gray-500" },
+            'Date: ' + new Date(approval.date).toLocaleString()
+          ),
+          approval.comments && React.createElement('p', { className: "text-sm text-gray-600 mt-1" },
+            'Comments: ' + approval.comments
+          )
+        ),
+        (!approval || approval.action === 'pending') && React.createElement('p', {
+          className: "text-sm font-medium", style: { color: '#92400E' }
+        }, "Awaiting finance approval"),
+
+        // Approve/Reject buttons for authorized users
+        canApprove && React.createElement('div', { className: "mt-4 pt-4 border-t" },
+          React.createElement('textarea', {
+            placeholder: "Comments (optional)",
+            value: approvalComments,
+            onChange: (e) => setApprovalComments(e.target.value),
+            className: "w-full px-3 py-2 border rounded-lg mb-3",
+            rows: 2
+          }),
+          React.createElement('div', { className: "flex gap-3" },
+            React.createElement('button', {
+              onClick: () => handleApproval('approved'),
+              disabled: approving,
+              className: "px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+            }, approving ? 'Processing...' : 'Approve GRN'),
+            React.createElement('button', {
+              onClick: () => handleApproval('rejected'),
+              disabled: approving,
+              className: "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+            }, approving ? 'Processing...' : 'Reject GRN')
+          )
         )
       ),
 

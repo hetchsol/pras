@@ -25,7 +25,15 @@ const goodsReceiptNoteSchema = new mongoose.Schema({
   remarks: { type: String },
   initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },
-  status: { type: String, default: 'received' },
+  assigned_approver: { type: String },
+  approvals: [{
+    role: { type: String },
+    name: { type: String },
+    action: { type: String },
+    comments: { type: String },
+    date: { type: Date }
+  }],
+  status: { type: String, default: 'pending_approval' },
   items: [grnItemSchema],
   created_at: { type: Date, default: Date.now }
 });

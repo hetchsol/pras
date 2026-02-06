@@ -651,6 +651,51 @@ app.get('/api/admin/reports/summary', authenticate, authorize('admin'), async (r
 });
 
 // ============================================
+// GRN APPROVER ASSIGNMENT ROUTES (Admin)
+// ============================================
+
+// List all GRN approver assignments
+app.get('/api/admin/grn-approvers', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const assignments = await GRNApproverAssignment.find().sort({ created_at: -1 }).lean();
+    res.json(assignments);
+  } catch (error) {
+    console.error('Error fetching GRN approver assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+});
+
+// Create/update a GRN approver assignment
+app.post('/api/admin/grn-approvers', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { initiator_name, approver_name } = req.body;
+    if (!initiator_name || !approver_name) {
+      return res.status(400).json({ error: 'Both initiator_name and approver_name are required' });
+    }
+    const assignment = await GRNApproverAssignment.findOneAndUpdate(
+      { initiator_name },
+      { initiator_name, approver_name },
+      { upsert: true, new: true, runValidators: true }
+    );
+    res.status(201).json({ message: 'Assignment saved', assignment });
+  } catch (error) {
+    console.error('Error saving GRN approver assignment:', error);
+    res.status(500).json({ error: 'Failed to save assignment' });
+  }
+});
+
+// Delete a GRN approver assignment
+app.delete('/api/admin/grn-approvers/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await GRNApproverAssignment.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Assignment deleted' });
+  } catch (error) {
+    console.error('Error deleting GRN approver assignment:', error);
+    res.status(500).json({ error: 'Failed to delete assignment' });
+  }
+});
+
+// ============================================
 // REQUISITION ROUTES
 // ============================================
 
@@ -1493,6 +1538,7 @@ app.get('/api/fx-rates/all', authenticate, async (req, res) => {
 const IssueSlip = require('./models/IssueSlip');
 const PickingSlip = require('./models/PickingSlip');
 const GoodsReceiptNote = require('./models/GoodsReceiptNote');
+const GRNApproverAssignment = require('./models/GRNApproverAssignment');
 
 // Fix: drop old non-sparse unique indexes on slip_number (allows multiple null values)
 (async () => {
@@ -1599,8 +1645,8 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
       if (!grn) {
         return res.status(400).json({ error: `GRN ${reference_number} not found` });
       }
-      if (grn.status !== 'received') {
-        return res.status(400).json({ error: `GRN ${reference_number} is not in received status` });
+      if (grn.status !== 'approved') {
+        return res.status(400).json({ error: `GRN ${reference_number} is not approved` });
       }
 
       // Check customer reservation
@@ -1969,14 +2015,16 @@ app.get('/api/stores/grns', authenticate, async (req, res) => {
       filter = {
         $or: [
           { department: req.user.department },
-          { initiator_id: userId }
+          { initiator_id: userId },
+          { assigned_approver: req.user.full_name }
         ]
       };
     } else {
       filter = {
         $or: [
           { initiator_id: userId },
-          { initiator_name: req.user.full_name }
+          { initiator_name: req.user.full_name },
+          { assigned_approver: req.user.full_name }
         ]
       };
     }
@@ -2046,6 +2094,10 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
       condition_notes: item.condition_notes || ''
     }));
 
+    // Look up approver assignment for this initiator
+    const approverAssignment = await GRNApproverAssignment.findOne({ initiator_name: userName }).lean();
+    const assignedApprover = approverAssignment ? approverAssignment.approver_name : null;
+
     const grn = await GoodsReceiptNote.create({
       id: grnId,
       receipt_date: receipt_date || now,
@@ -2060,14 +2112,61 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
       remarks,
       initiator_id: userId,
       initiator_name: userName,
-      status: 'received',
+      assigned_approver: assignedApprover,
+      approvals: [{ role: 'finance', name: '', action: 'pending' }],
+      status: 'pending_approval',
       items: grnItems
     });
 
-    res.status(201).json({ message: 'GRN created successfully', grn });
+    res.status(201).json({ message: 'GRN created successfully - pending approval', grn });
   } catch (error) {
     console.error('Error creating GRN:', error);
     res.status(500).json({ error: 'Failed to create GRN', details: error.message });
+  }
+});
+
+// Approve/Reject GRN
+app.put('/api/stores/grns/:id/approve', authenticate, async (req, res) => {
+  try {
+    const { action, comments } = req.body;
+    if (!action || !['approved', 'rejected'].includes(action)) {
+      return res.status(400).json({ error: 'Action must be "approved" or "rejected"' });
+    }
+
+    const grn = await GoodsReceiptNote.findOne({ id: req.params.id });
+    if (!grn) {
+      return res.status(404).json({ error: 'GRN not found' });
+    }
+    if (grn.status !== 'pending_approval') {
+      return res.status(400).json({ error: `GRN is already ${grn.status}` });
+    }
+
+    const userName = req.user.full_name || req.user.name;
+
+    // Check if user is the assigned approver or has admin/finance role
+    const userRole = req.user.role;
+    const isAssignedApprover = grn.assigned_approver && grn.assigned_approver === userName;
+    const isPrivilegedRole = ['admin', 'finance', 'finance_manager', 'md'].includes(userRole);
+
+    if (!isAssignedApprover && !isPrivilegedRole) {
+      return res.status(403).json({ error: 'You are not authorized to approve this GRN' });
+    }
+
+    grn.status = action;
+    grn.approvals = [{
+      role: 'finance',
+      name: userName,
+      action: action,
+      comments: comments || '',
+      date: new Date()
+    }];
+
+    await grn.save();
+
+    res.json({ message: `GRN ${action} successfully`, grn });
+  } catch (error) {
+    console.error('Error approving GRN:', error);
+    res.status(500).json({ error: 'Failed to process GRN approval' });
   }
 });
 
@@ -2098,8 +2197,8 @@ app.get('/api/stores/grns/:id/pdf', authenticate, async (req, res) => {
 // Stock Register - computed on the fly
 app.get('/api/stores/stock-register', authenticate, async (req, res) => {
   try {
-    // Get all GRNs
-    const grns = await GoodsReceiptNote.find({ status: 'received' }).lean();
+    // Get all approved GRNs (only approved GRNs count toward stock)
+    const grns = await GoodsReceiptNote.find({ status: 'approved' }).lean();
 
     // Get all approved issue slips
     const issueSlips = await IssueSlip.find({
@@ -2160,7 +2259,7 @@ app.get('/api/stores/stock-register', authenticate, async (req, res) => {
 // GRNs with remaining stock for issue slip creation
 app.get('/api/stores/grns-for-issue', authenticate, async (req, res) => {
   try {
-    const grns = await GoodsReceiptNote.find({ status: 'received' }).sort({ created_at: -1 }).lean();
+    const grns = await GoodsReceiptNote.find({ status: 'approved' }).sort({ created_at: -1 }).lean();
 
     // Get all non-rejected issue slips to calculate issued quantities
     const issueSlips = await IssueSlip.find({
