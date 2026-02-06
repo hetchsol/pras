@@ -1486,6 +1486,385 @@ app.get('/api/fx-rates/all', authenticate, async (req, res) => {
   }
 });
 
+// ============================================
+// STORES ROUTES (Issue Slips & Picking Slips)
+// ============================================
+
+const IssueSlip = require('./models/IssueSlip');
+const PickingSlip = require('./models/PickingSlip');
+
+// Get all issue slips (filtered by user role)
+app.get('/api/stores/issue-slips', authenticate, async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const userId = req.user.id;
+    const userDepartment = req.user.department;
+
+    let filter = {};
+
+    if (userRole === 'admin' || userRole === 'finance' || userRole === 'finance_manager' || userRole === 'md') {
+      // Admin, Finance, MD can see all issue slips
+      filter = {};
+    } else if (userRole === 'hod') {
+      // HODs can see issue slips from their department or pending their approval
+      filter = {
+        $or: [
+          { department: userDepartment },
+          { status: 'pending_hod' }
+        ]
+      };
+    } else {
+      // Regular users can only see their own issue slips
+      filter = {
+        $or: [
+          { initiator_id: userId },
+          { initiator_name: req.user.full_name }
+        ]
+      };
+    }
+
+    const slips = await IssueSlip.find(filter).sort({ created_at: -1 }).lean();
+
+    // Map to match SQLite response format
+    const result = slips.map(s => ({
+      ...s,
+      initiator_full_name: s.initiator_name,
+      initiator_department: s.department
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching issue slips:', error);
+    res.status(500).json({ error: 'Failed to fetch issue slips' });
+  }
+});
+
+// Get single issue slip with items and approvals
+app.get('/api/stores/issue-slips/:id', authenticate, async (req, res) => {
+  try {
+    const slip = await IssueSlip.findOne({ id: req.params.id }).lean();
+
+    if (!slip) {
+      return res.status(404).json({ error: 'Issue slip not found' });
+    }
+
+    slip.initiator_full_name = slip.initiator_name;
+    slip.initiator_department = slip.department;
+
+    res.json(slip);
+  } catch (error) {
+    console.error('Error fetching issue slip:', error);
+    res.status(500).json({ error: 'Failed to fetch issue slip' });
+  }
+});
+
+// Create new issue slip
+app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
+  try {
+    const {
+      issued_to,
+      department,
+      delivery_location,
+      delivery_date,
+      delivered_by,
+      reference_number,
+      remarks,
+      items
+    } = req.body;
+
+    const userId = req.user.id;
+    const userName = req.user.full_name || req.user.name;
+
+    // Generate unique ID (format: KSB-ISS-YYYYMMDDHHMMSS)
+    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+    const slipId = `KSB-ISS-${timestamp}`;
+
+    const slipItems = (items || []).map(item => ({
+      item_code: item.item_code || '',
+      item_name: item.item_name,
+      description: item.description || '',
+      quantity: item.quantity,
+      unit: item.unit || 'pcs'
+    }));
+
+    const slip = await IssueSlip.create({
+      id: slipId,
+      issued_to,
+      department: department || req.user.department,
+      delivery_location,
+      delivery_date: delivery_date || null,
+      delivered_by,
+      reference_number,
+      remarks,
+      initiator_id: userId,
+      initiator_name: userName,
+      status: 'pending_hod',
+      items: slipItems,
+      approvals: [{
+        role: 'hod',
+        name: '',
+        action: 'pending',
+        comments: '',
+        date: new Date()
+      }]
+    });
+
+    res.status(201).json({
+      message: 'Issue slip created successfully',
+      slip
+    });
+  } catch (error) {
+    console.error('Error creating issue slip:', error);
+    res.status(500).json({ error: 'Failed to create issue slip' });
+  }
+});
+
+// HOD action on issue slip
+app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, comments } = req.body;
+    const userName = req.user.full_name || req.user.name;
+
+    if (!['approved', 'rejected'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    const newStatus = action === 'approved' ? 'pending_finance' : 'rejected';
+
+    // Update the HOD approval entry and status
+    const updateOps = {
+      status: newStatus,
+      'approvals.$[hodApproval].name': userName,
+      'approvals.$[hodApproval].action': action,
+      'approvals.$[hodApproval].comments': comments || '',
+      'approvals.$[hodApproval].date': new Date()
+    };
+
+    const slip = await IssueSlip.findOneAndUpdate(
+      { id },
+      { $set: updateOps },
+      { arrayFilters: [{ 'hodApproval.role': 'hod' }], new: true }
+    );
+
+    if (!slip) {
+      return res.status(404).json({ error: 'Issue slip not found' });
+    }
+
+    // If approved, add Finance approval entry
+    if (action === 'approved') {
+      await IssueSlip.findOneAndUpdate(
+        { id },
+        { $push: { approvals: { role: 'finance', name: '', action: 'pending', comments: '', date: new Date() } } }
+      );
+    }
+
+    res.json({ message: `Issue slip ${action} by HOD successfully` });
+  } catch (error) {
+    console.error('Error processing HOD action:', error);
+    res.status(500).json({ error: 'Failed to process action' });
+  }
+});
+
+// Finance action on issue slip
+app.put('/api/stores/issue-slips/:id/finance-action', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, comments } = req.body;
+    const userName = req.user.full_name || req.user.name;
+
+    if (!['approved', 'rejected'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    const newStatus = action === 'approved' ? 'approved' : 'rejected';
+
+    const slip = await IssueSlip.findOneAndUpdate(
+      { id },
+      {
+        $set: {
+          status: newStatus,
+          'approvals.$[finApproval].name': userName,
+          'approvals.$[finApproval].action': action,
+          'approvals.$[finApproval].comments': comments || '',
+          'approvals.$[finApproval].date': new Date()
+        }
+      },
+      { arrayFilters: [{ 'finApproval.role': 'finance' }], new: true }
+    );
+
+    if (!slip) {
+      return res.status(404).json({ error: 'Issue slip not found' });
+    }
+
+    res.json({ message: `Issue slip ${action} by Finance successfully` });
+  } catch (error) {
+    console.error('Error processing Finance action:', error);
+    res.status(500).json({ error: 'Failed to process action' });
+  }
+});
+
+// Generate Issue Slip PDF
+app.get('/api/stores/issue-slips/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const slip = await IssueSlip.findOne({ id: req.params.id }).lean();
+
+    if (!slip) {
+      return res.status(404).json({ error: 'Issue slip not found' });
+    }
+
+    slip.initiator_full_name = slip.initiator_name;
+    slip.initiator_department = slip.department;
+
+    const { generateIssueSlipPDF } = require('./utils/storesPDFGenerator');
+    const outputPath = path.join(__dirname, `${req.params.id}.pdf`);
+
+    await generateIssueSlipPDF(slip, slip.items || [], slip.approvals || [], outputPath);
+
+    res.download(outputPath, `${req.params.id}.pdf`, (err) => {
+      if (err) console.error('Error sending PDF:', err);
+      const fs = require('fs');
+      try { fs.unlinkSync(outputPath); } catch(e) {}
+    });
+  } catch (error) {
+    console.error('Error generating issue slip PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Get all picking slips (filtered by user role)
+app.get('/api/stores/picking-slips', authenticate, async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    let filter = {};
+
+    if (userRole === 'admin' || userRole === 'finance' || userRole === 'finance_manager' || userRole === 'md' || userRole === 'hod') {
+      // Admin, Finance, MD, HOD can see all picking slips
+      filter = {};
+    } else {
+      // Regular users can only see their own picking slips
+      filter = {
+        $or: [
+          { initiator_id: userId },
+          { initiator_name: req.user.full_name }
+        ]
+      };
+    }
+
+    const slips = await PickingSlip.find(filter).sort({ created_at: -1 }).lean();
+
+    const result = slips.map(s => ({
+      ...s,
+      initiator_full_name: s.initiator_name,
+      initiator_department: s.department
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching picking slips:', error);
+    res.status(500).json({ error: 'Failed to fetch picking slips' });
+  }
+});
+
+// Get single picking slip with items
+app.get('/api/stores/picking-slips/:id', authenticate, async (req, res) => {
+  try {
+    const slip = await PickingSlip.findOne({ id: req.params.id }).lean();
+
+    if (!slip) {
+      return res.status(404).json({ error: 'Picking slip not found' });
+    }
+
+    slip.initiator_full_name = slip.initiator_name;
+    slip.initiator_department = slip.department;
+
+    res.json(slip);
+  } catch (error) {
+    console.error('Error fetching picking slip:', error);
+    res.status(500).json({ error: 'Failed to fetch picking slip' });
+  }
+});
+
+// Create new picking slip
+app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
+  try {
+    const {
+      picked_by,
+      destination,
+      department,
+      reference_number,
+      remarks,
+      items
+    } = req.body;
+
+    const userId = req.user.id;
+    const userName = req.user.full_name || req.user.name;
+
+    // Generate unique ID (format: KSB-PKS-YYYYMMDDHHMMSS)
+    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+    const slipId = `KSB-PKS-${timestamp}`;
+
+    const slipItems = (items || []).map(item => ({
+      item_code: item.item_code || '',
+      item_name: item.item_name,
+      description: item.description || '',
+      quantity: item.quantity,
+      unit: item.unit || 'pcs'
+    }));
+
+    const slip = await PickingSlip.create({
+      id: slipId,
+      picked_by,
+      destination,
+      department: department || req.user.department,
+      reference_number,
+      remarks,
+      initiator_id: userId,
+      initiator_name: userName,
+      status: 'completed',
+      items: slipItems
+    });
+
+    res.status(201).json({
+      message: 'Picking slip created successfully',
+      slip
+    });
+  } catch (error) {
+    console.error('Error creating picking slip:', error);
+    res.status(500).json({ error: 'Failed to create picking slip' });
+  }
+});
+
+// Generate Picking Slip PDF
+app.get('/api/stores/picking-slips/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const slip = await PickingSlip.findOne({ id: req.params.id }).lean();
+
+    if (!slip) {
+      return res.status(404).json({ error: 'Picking slip not found' });
+    }
+
+    slip.initiator_full_name = slip.initiator_name;
+    slip.initiator_department = slip.department;
+
+    const { generatePickingSlipPDF } = require('./utils/storesPDFGenerator');
+    const outputPath = path.join(__dirname, `${req.params.id}.pdf`);
+
+    await generatePickingSlipPDF(slip, slip.items || [], outputPath);
+
+    res.download(outputPath, `${req.params.id}.pdf`, (err) => {
+      if (err) console.error('Error sending PDF:', err);
+      const fs = require('fs');
+      try { fs.unlinkSync(outputPath); } catch(e) {}
+    });
+  } catch (error) {
+    console.error('Error generating picking slip PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
 // Catch-all for undefined API routes - return JSON error
 app.all('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: `Route not found: ${req.path}` });
