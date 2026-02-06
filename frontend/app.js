@@ -1298,6 +1298,9 @@ function App() {
         view === 'approve-petty-cash' && React.createElement(ApprovePettyCash, { requisition: selectedReq, user: currentUser, setView }),
         view === 'petty-cash-requisitions' && React.createElement(PettyCashRequisitionsList, { user: currentUser, setView, setSelectedReq }),
         // Stores Module Views
+        view === 'grns' && React.createElement(GoodsReceiptNotesList, { user: currentUser, setView, setSelectedReq }),
+        view === 'view-grn' && React.createElement(ViewGoodsReceiptNote, { grn: selectedReq, user: currentUser, setView }),
+        view === 'stock-register' && React.createElement(StockRegister, { user: currentUser }),
         view === 'issue-slips' && React.createElement(IssueSlipsList, { user: currentUser, setView, setSelectedReq }),
         view === 'approve-issue-slip' && React.createElement(ApproveIssueSlip, { slip: selectedReq, user: currentUser, setView }),
         view === 'picking-slips' && React.createElement(PickingSlipsList, { user: currentUser, setView, setSelectedReq })
@@ -1673,6 +1676,9 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       show: user.can_access_stores || hasAnyRole(user.role, ['admin', 'hod', 'finance']),
       isGroup: true,
       children: [
+        { id: 'grns', label: 'Goods Receipt Notes', icon: '📋', show: true },
+        { id: 'create-grn', label: 'Create GRN', icon: '➕', show: user.can_access_stores, isLink: true, href: 'grn.html' },
+        { id: 'stock-register', label: 'Stock Register', icon: '📊', show: true },
         { id: 'issue-slips', label: 'Issue Slips', icon: '📤', show: true },
         { id: 'create-issue-slip', label: 'Create Issue Slip', icon: '➕', show: user.can_access_stores, isLink: true, href: 'issue-slip.html' },
         { id: 'picking-slips', label: 'Picking Slips', icon: '📥', show: true },
@@ -10776,6 +10782,417 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
                         }, 'Download')
                       )
                     )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - GOODS RECEIPT NOTES LIST
+// ============================================
+function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
+  const [grns, setGrns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGRNs();
+  }, []);
+
+  const fetchGRNs = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/grns`);
+      if (!res.ok) throw new Error('Failed to fetch GRNs');
+      const data = await res.json();
+      setGrns(data);
+    } catch (error) {
+      console.error('Error fetching GRNs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = (grn) => {
+    setSelectedReq(grn);
+    setView('view-grn');
+  };
+
+  const handlePreviewPDF = async (grn) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/grns/${grn.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (grn) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/grns/${grn.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GRN_${grn.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading goods receipt notes... please wait")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Goods Receipt Notes"),
+        React.createElement('div', { className: "flex gap-3" },
+          user.can_access_stores && React.createElement('a', {
+            href: 'grn.html',
+            className: "px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700",
+            style: { backgroundColor: '#d97706' }
+          }, '+ New GRN'),
+          React.createElement('button', {
+            onClick: fetchGRNs,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, 'Refresh')
+        )
+      ),
+
+      grns.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No goods receipt notes found")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "GRN ID"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "PR Ref"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Supplier"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Received By"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Customer"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                grns.map(grn =>
+                  React.createElement('tr', { key: grn.id, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-amber-700" }, grn.id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-blue-600" }, grn.pr_id),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.supplier || 'N/A'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.received_by),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" },
+                      grn.customer
+                        ? React.createElement('span', {
+                            className: "px-2 py-1 text-xs rounded",
+                            style: { backgroundColor: '#FEF3C7', color: '#92400E' }
+                          }, grn.customer)
+                        : 'N/A'
+                    ),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                      new Date(grn.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                        React.createElement('button', {
+                          onClick: () => handleView(grn),
+                          className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700",
+                          style: { backgroundColor: '#d97706' }
+                        }, 'View'),
+                        React.createElement('button', {
+                          onClick: () => handlePreviewPDF(grn),
+                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                        }, 'Preview'),
+                        React.createElement('button', {
+                          onClick: () => handleDownloadPDF(grn),
+                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                        }, 'Download')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - VIEW GOODS RECEIPT NOTE
+// ============================================
+function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
+  const [grnData, setGrnData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGRNDetails();
+  }, []);
+
+  const fetchGRNDetails = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/grns/${grnProp.id}`);
+      if (!res.ok) throw new Error('Failed to fetch GRN');
+      const data = await res.json();
+      setGrnData(data);
+    } catch (error) {
+      console.error('Error fetching GRN:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/grns/${grnProp.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/stores/grns/${grnProp.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GRN_${grnProp.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  if (loading || !grnData) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading GRN details...")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      // Header
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('div', null,
+          React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Goods Receipt Note"),
+          React.createElement('p', { className: "text-sm mt-1", style: { color: '#d97706' } }, grnData.id)
+        ),
+        React.createElement('span', {
+          className: "px-3 py-1 text-sm font-medium rounded",
+          style: { backgroundColor: '#D1FAE5', color: '#065F46' }
+        }, 'RECEIVED')
+      ),
+
+      // Info Grid
+      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg" },
+        React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Receipt Date"),
+          React.createElement('p', { className: "font-medium" }, new Date(grnData.receipt_date || grnData.created_at).toLocaleDateString())
+        ),
+        React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "PR Reference"),
+          React.createElement('p', { className: "font-medium text-blue-600" }, grnData.pr_id)
+        ),
+        React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Supplier"),
+          React.createElement('p', { className: "font-medium" }, grnData.supplier || 'N/A')
+        ),
+        React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Received By"),
+          React.createElement('p', { className: "font-medium" }, grnData.received_by)
+        ),
+        React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Department"),
+          React.createElement('p', { className: "font-medium" }, grnData.department || 'N/A')
+        ),
+        React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Created By"),
+          React.createElement('p', { className: "font-medium" }, grnData.initiator_name)
+        ),
+        grnData.delivery_note_number && React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Delivery Note #"),
+          React.createElement('p', { className: "font-medium" }, grnData.delivery_note_number)
+        ),
+        grnData.invoice_number && React.createElement('div', null,
+          React.createElement('span', { className: "text-sm text-gray-500" }, "Invoice #"),
+          React.createElement('p', { className: "font-medium" }, grnData.invoice_number)
+        )
+      ),
+
+      // Customer Reservation
+      grnData.customer && React.createElement('div', {
+        className: "mb-6 p-4 rounded-lg border",
+        style: { backgroundColor: '#FFFBEB', borderColor: '#F59E0B' }
+      },
+        React.createElement('p', { className: "font-semibold", style: { color: '#92400E' } },
+          'Reserved For Customer: ' + grnData.customer
+        ),
+        React.createElement('p', { className: "text-sm mt-1", style: { color: '#78350F' } },
+          'Items from this GRN can only be issued to this customer.'
+        )
+      ),
+
+      // PR Description
+      grnData.pr_description && React.createElement('div', { className: "mb-6" },
+        React.createElement('h3', { className: "text-sm font-medium text-gray-500 mb-1" }, "PR Description"),
+        React.createElement('p', { className: "text-gray-800" }, grnData.pr_description)
+      ),
+
+      // Items Table
+      React.createElement('div', { className: "mb-6" },
+        React.createElement('h3', { className: "font-semibold text-gray-800 mb-3" }, "Items Received"),
+        React.createElement('div', { className: "overflow-x-auto" },
+          React.createElement('table', { className: "w-full" },
+            React.createElement('thead', { className: "bg-gray-50" },
+              React.createElement('tr', null,
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "#"),
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Code"),
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Qty Ordered"),
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Qty Received"),
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Unit"),
+                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Condition")
+              )
+            ),
+            React.createElement('tbody', { className: "divide-y divide-gray-200" },
+              (grnData.items || []).map((item, idx) =>
+                React.createElement('tr', { key: idx },
+                  React.createElement('td', { className: "px-4 py-3 text-sm" }, idx + 1),
+                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.item_code || '-'),
+                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.description || item.item_name || '-'),
+                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.quantity_ordered || 0),
+                  React.createElement('td', { className: "px-4 py-3 text-sm font-medium" }, item.quantity_received || 0),
+                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.unit || 'pcs'),
+                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.condition_notes || 'Good')
+                )
+              )
+            )
+          )
+        )
+      ),
+
+      // Remarks
+      grnData.remarks && React.createElement('div', { className: "mb-6" },
+        React.createElement('h3', { className: "text-sm font-medium text-gray-500 mb-1" }, "Remarks"),
+        React.createElement('p', { className: "text-gray-800" }, grnData.remarks)
+      ),
+
+      // Action Buttons
+      React.createElement('div', { className: "flex gap-4 mt-6" },
+        React.createElement('button', {
+          onClick: handlePreviewPDF,
+          className: "flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+        }, 'Preview PDF'),
+        React.createElement('button', {
+          onClick: handleDownloadPDF,
+          className: "flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+        }, 'Download PDF'),
+        React.createElement('button', {
+          onClick: () => setView('grns'),
+          className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+        }, 'Back')
+      )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - STOCK REGISTER
+// ============================================
+function StockRegister({ user }) {
+  const [stockItems, setStockItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStockRegister();
+  }, []);
+
+  const fetchStockRegister = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/stock-register`);
+      if (!res.ok) throw new Error('Failed to fetch stock register');
+      const data = await res.json();
+      setStockItems(data);
+    } catch (error) {
+      console.error('Error fetching stock register:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading stock register... please wait")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Stock Register"),
+        React.createElement('button', {
+          onClick: fetchStockRegister,
+          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        }, 'Refresh')
+      ),
+
+      stockItems.length === 0
+        ? React.createElement('div', { className: "text-center py-12" },
+            React.createElement('p', { className: "text-gray-500" }, "No stock data available. Create GRNs to populate the stock register.")
+          )
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Item Code"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Item Name"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Unit"),
+                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Stock In"),
+                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Stock Out"),
+                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Reserved"),
+                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Available")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                stockItems.map((item, idx) =>
+                  React.createElement('tr', { key: idx, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium" }, item.item_code || '-'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, item.item_name),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" }, item.unit),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-right font-medium text-blue-600" }, item.stock_in),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-right font-medium text-orange-600" }, item.stock_out),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-right font-medium", style: { color: '#d97706' } }, item.reserved),
+                    React.createElement('td', {
+                      className: `px-4 py-3 text-sm text-right font-bold ${item.available > 0 ? 'text-green-600' : 'text-red-600'}`
+                    }, item.available)
                   )
                 )
               )

@@ -1492,6 +1492,7 @@ app.get('/api/fx-rates/all', authenticate, async (req, res) => {
 
 const IssueSlip = require('./models/IssueSlip');
 const PickingSlip = require('./models/PickingSlip');
+const GoodsReceiptNote = require('./models/GoodsReceiptNote');
 
 // Fix: drop old non-sparse unique indexes on slip_number (allows multiple null values)
 (async () => {
@@ -1590,6 +1591,62 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     const now = new Date();
     const timestamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 17);
     const slipId = `KSB-ISS-${timestamp}`;
+
+    // === GRN Stock Validation ===
+    if (reference_number) {
+      // Validate GRN exists and is received
+      const grn = await GoodsReceiptNote.findOne({ id: reference_number }).lean();
+      if (!grn) {
+        return res.status(400).json({ error: `GRN ${reference_number} not found` });
+      }
+      if (grn.status !== 'received') {
+        return res.status(400).json({ error: `GRN ${reference_number} is not in received status` });
+      }
+
+      // Check customer reservation
+      if (grn.customer) {
+        if (!customer || customer !== grn.customer) {
+          return res.status(400).json({ error: `GRN ${reference_number} is reserved for customer "${grn.customer}". Issue slip customer must match.` });
+        }
+      }
+
+      // Calculate already-issued quantities from this GRN (pending + approved issue slips)
+      const existingSlips = await IssueSlip.find({
+        reference_number: reference_number,
+        status: { $in: ['pending_hod', 'pending_finance', 'approved'] }
+      }).lean();
+
+      // Build a map of total issued per item_code/description
+      const issuedMap = {};
+      existingSlips.forEach(s => {
+        (s.items || []).forEach(item => {
+          const key = item.item_code || item.description || item.item_name;
+          issuedMap[key] = (issuedMap[key] || 0) + (item.quantity || 0);
+        });
+      });
+
+      // Validate each item against GRN remaining stock
+      for (const item of (items || [])) {
+        const key = item.item_code || item.description || item.item_name;
+        const grnItem = grn.items.find(gi =>
+          (gi.item_code && gi.item_code === item.item_code) ||
+          (gi.description || gi.item_name) === (item.description || item.item_name)
+        );
+
+        if (!grnItem) {
+          return res.status(400).json({ error: `Item "${key}" not found on GRN ${reference_number}` });
+        }
+
+        const alreadyIssued = issuedMap[key] || 0;
+        const remaining = grnItem.quantity_received - alreadyIssued;
+
+        if (item.quantity > remaining) {
+          return res.status(400).json({
+            error: `Insufficient stock for "${key}": requested ${item.quantity}, available ${remaining} (received ${grnItem.quantity_received}, already issued ${alreadyIssued})`
+          });
+        }
+      }
+    }
 
     const slipItems = (items || []).map(item => ({
       item_code: item.item_code || '',
@@ -1880,6 +1937,276 @@ app.get('/api/stores/picking-slips/:id/pdf', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error generating picking slip PDF:', error);
     res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// ============================================
+// GRN (Goods Receipt Notes) ROUTES
+// ============================================
+
+// Get approved PRs for GRN dropdown
+app.get('/api/stores/approved-prs', authenticate, async (req, res) => {
+  try {
+    const Requisition = require('./models/Requisition');
+    const approvedPRs = await Requisition.find({ status: 'approved' }).sort({ created_at: -1 }).lean();
+    res.json(approvedPRs);
+  } catch (error) {
+    console.error('Error fetching approved PRs:', error);
+    res.status(500).json({ error: 'Failed to fetch approved PRs' });
+  }
+});
+
+// Get all GRNs (filtered by user role)
+app.get('/api/stores/grns', authenticate, async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    let filter = {};
+    if (userRole === 'admin' || userRole === 'finance' || userRole === 'finance_manager' || userRole === 'md') {
+      filter = {};
+    } else if (userRole === 'hod') {
+      filter = {
+        $or: [
+          { department: req.user.department },
+          { initiator_id: userId }
+        ]
+      };
+    } else {
+      filter = {
+        $or: [
+          { initiator_id: userId },
+          { initiator_name: req.user.full_name }
+        ]
+      };
+    }
+
+    const grns = await GoodsReceiptNote.find(filter).sort({ created_at: -1 }).lean();
+    res.json(grns);
+  } catch (error) {
+    console.error('Error fetching GRNs:', error);
+    res.status(500).json({ error: 'Failed to fetch GRNs' });
+  }
+});
+
+// Get single GRN
+app.get('/api/stores/grns/:id', authenticate, async (req, res) => {
+  try {
+    const grn = await GoodsReceiptNote.findOne({ id: req.params.id }).lean();
+    if (!grn) {
+      return res.status(404).json({ error: 'GRN not found' });
+    }
+    res.json(grn);
+  } catch (error) {
+    console.error('Error fetching GRN:', error);
+    res.status(500).json({ error: 'Failed to fetch GRN' });
+  }
+});
+
+// Create new GRN
+app.post('/api/stores/grns', authenticate, async (req, res) => {
+  try {
+    const {
+      pr_id, pr_description, supplier, receipt_date,
+      delivery_note_number, invoice_number, received_by,
+      department, customer, remarks, items
+    } = req.body;
+
+    if (!pr_id) {
+      return res.status(400).json({ error: 'PR reference is required' });
+    }
+    if (!received_by) {
+      return res.status(400).json({ error: 'Received By is required' });
+    }
+
+    // Validate PR exists and is approved
+    const Requisition = require('./models/Requisition');
+    const pr = await Requisition.findOne({ id: pr_id }).lean();
+    if (!pr) {
+      return res.status(400).json({ error: `PR ${pr_id} not found` });
+    }
+    if (pr.status !== 'approved') {
+      return res.status(400).json({ error: `PR ${pr_id} is not approved (status: ${pr.status})` });
+    }
+
+    const userId = req.user.id;
+    const userName = req.user.full_name || req.user.name;
+
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 17);
+    const grnId = `KSB-GRN-${timestamp}`;
+
+    const grnItems = (items || []).map(item => ({
+      item_code: item.item_code || '',
+      item_name: item.item_name || item.description || '',
+      description: item.description || '',
+      quantity_ordered: item.quantity_ordered || 0,
+      quantity_received: item.quantity_received || 0,
+      unit: item.unit || 'pcs',
+      condition_notes: item.condition_notes || ''
+    }));
+
+    const grn = await GoodsReceiptNote.create({
+      id: grnId,
+      receipt_date: receipt_date || now,
+      pr_id,
+      pr_description: pr_description || pr.description,
+      supplier: supplier || pr.selected_vendor || '',
+      delivery_note_number,
+      invoice_number,
+      received_by,
+      department: department || req.user.department,
+      customer,
+      remarks,
+      initiator_id: userId,
+      initiator_name: userName,
+      status: 'received',
+      items: grnItems
+    });
+
+    res.status(201).json({ message: 'GRN created successfully', grn });
+  } catch (error) {
+    console.error('Error creating GRN:', error);
+    res.status(500).json({ error: 'Failed to create GRN', details: error.message });
+  }
+});
+
+// Generate GRN PDF
+app.get('/api/stores/grns/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const grn = await GoodsReceiptNote.findOne({ id: req.params.id }).lean();
+    if (!grn) {
+      return res.status(404).json({ error: 'GRN not found' });
+    }
+
+    const { generateGRNPDF } = require('./utils/storesPDFGenerator');
+    const outputPath = path.join(__dirname, `${req.params.id}.pdf`);
+
+    await generateGRNPDF(grn, grn.items || [], outputPath);
+
+    res.download(outputPath, `${req.params.id}.pdf`, (err) => {
+      if (err) console.error('Error sending PDF:', err);
+      const fs = require('fs');
+      try { fs.unlinkSync(outputPath); } catch(e) {}
+    });
+  } catch (error) {
+    console.error('Error generating GRN PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Stock Register - computed on the fly
+app.get('/api/stores/stock-register', authenticate, async (req, res) => {
+  try {
+    // Get all GRNs
+    const grns = await GoodsReceiptNote.find({ status: 'received' }).lean();
+
+    // Get all approved issue slips
+    const issueSlips = await IssueSlip.find({
+      status: { $in: ['pending_hod', 'pending_finance', 'approved'] }
+    }).lean();
+
+    // Build stock map keyed by item identifier
+    const stockMap = {};
+
+    // Stock In from GRNs
+    grns.forEach(grn => {
+      (grn.items || []).forEach(item => {
+        const key = item.item_code || item.description || item.item_name;
+        if (!stockMap[key]) {
+          stockMap[key] = {
+            item_code: item.item_code || '',
+            item_name: item.item_name || item.description || key,
+            unit: item.unit || 'pcs',
+            stock_in: 0,
+            stock_out: 0,
+            reserved: 0
+          };
+        }
+        stockMap[key].stock_in += (item.quantity_received || 0);
+
+        // If GRN has customer reservation, mark as reserved
+        if (grn.customer) {
+          stockMap[key].reserved += (item.quantity_received || 0);
+        }
+      });
+    });
+
+    // Stock Out from approved issue slips
+    issueSlips.forEach(slip => {
+      if (slip.status === 'approved') {
+        (slip.items || []).forEach(item => {
+          const key = item.item_code || item.description || item.item_name;
+          if (stockMap[key]) {
+            stockMap[key].stock_out += (item.quantity || 0);
+          }
+        });
+      }
+    });
+
+    // Calculate available and convert to array
+    const register = Object.values(stockMap).map(item => ({
+      ...item,
+      available: item.stock_in - item.stock_out - item.reserved
+    }));
+
+    res.json(register);
+  } catch (error) {
+    console.error('Error computing stock register:', error);
+    res.status(500).json({ error: 'Failed to compute stock register' });
+  }
+});
+
+// GRNs with remaining stock for issue slip creation
+app.get('/api/stores/grns-for-issue', authenticate, async (req, res) => {
+  try {
+    const grns = await GoodsReceiptNote.find({ status: 'received' }).sort({ created_at: -1 }).lean();
+
+    // Get all non-rejected issue slips to calculate issued quantities
+    const issueSlips = await IssueSlip.find({
+      status: { $in: ['pending_hod', 'pending_finance', 'approved'] }
+    }).lean();
+
+    // Build issued map: grn_id -> { item_key -> quantity_issued }
+    const issuedByGRN = {};
+    issueSlips.forEach(slip => {
+      if (slip.reference_number) {
+        if (!issuedByGRN[slip.reference_number]) {
+          issuedByGRN[slip.reference_number] = {};
+        }
+        (slip.items || []).forEach(item => {
+          const key = item.item_code || item.description || item.item_name;
+          issuedByGRN[slip.reference_number][key] = (issuedByGRN[slip.reference_number][key] || 0) + (item.quantity || 0);
+        });
+      }
+    });
+
+    // Add remaining quantities to each GRN item
+    const result = grns.map(grn => {
+      const issuedMap = issuedByGRN[grn.id] || {};
+      const itemsWithRemaining = (grn.items || []).map(item => {
+        const key = item.item_code || item.description || item.item_name;
+        const issued = issuedMap[key] || 0;
+        return {
+          ...item,
+          quantity_issued: issued,
+          quantity_remaining: (item.quantity_received || 0) - issued
+        };
+      });
+
+      const hasRemaining = itemsWithRemaining.some(i => i.quantity_remaining > 0);
+
+      return {
+        ...grn,
+        items: itemsWithRemaining,
+        has_remaining: hasRemaining
+      };
+    }).filter(grn => grn.has_remaining);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching GRNs for issue:', error);
+    res.status(500).json({ error: 'Failed to fetch GRNs for issue' });
   }
 });
 

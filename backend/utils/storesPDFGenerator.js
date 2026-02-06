@@ -375,7 +375,157 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
   });
 }
 
+// Generate GRN PDF
+async function generateGRNPDF(grn, items, outputPath) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const stream = fs.createWriteStream(outputPath);
+
+      doc.pipe(stream);
+
+      // Header
+      addHeader(doc, 'GOODS RECEIPT NOTE');
+
+      // GRN ID and Status (in blue)
+      const statusText = grn.status.replace(/_/g, ' ').toUpperCase();
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0000CC')
+         .text(`GRN ID: ${grn.id}`, 50, 120);
+      doc.fillColor('#0000CC')
+         .text(`Status: ${statusText}`, 400, 120, { align: 'right' });
+      doc.fillColor('black').moveDown();
+
+      // Draw info section
+      let yPos = 150;
+
+      // Left column
+      doc.font('Helvetica-Bold').text('Receipt Date:', 50, yPos);
+      doc.font('Helvetica').text(formatDate(grn.receipt_date || grn.created_at), 160, yPos);
+
+      doc.font('Helvetica-Bold').text('PR Reference:', 50, yPos + 20);
+      doc.font('Helvetica').text(grn.pr_id || 'N/A', 160, yPos + 20);
+
+      doc.font('Helvetica-Bold').text('Supplier:', 50, yPos + 40);
+      doc.font('Helvetica').text(grn.supplier || 'N/A', 160, yPos + 40);
+
+      doc.font('Helvetica-Bold').text('Department:', 50, yPos + 60);
+      doc.font('Helvetica').text(grn.department || 'N/A', 160, yPos + 60);
+
+      // Right column
+      doc.font('Helvetica-Bold').text('Received By:', 300, yPos);
+      doc.font('Helvetica').text(grn.received_by || 'N/A', 410, yPos);
+
+      doc.font('Helvetica-Bold').text('Delivery Note #:', 300, yPos + 20);
+      doc.font('Helvetica').text(grn.delivery_note_number || 'N/A', 410, yPos + 20);
+
+      doc.font('Helvetica-Bold').text('Invoice #:', 300, yPos + 40);
+      doc.font('Helvetica').text(grn.invoice_number || 'N/A', 410, yPos + 40);
+
+      doc.font('Helvetica-Bold').text('Created By:', 300, yPos + 60);
+      doc.font('Helvetica').text(grn.initiator_name || 'N/A', 410, yPos + 60);
+
+      yPos += 90;
+
+      // Customer reservation (amber highlight if present)
+      if (grn.customer) {
+        doc.rect(50, yPos, 500, 30).fill('#FFF8E1').stroke('#F59E0B');
+        doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(10)
+           .text(`RESERVED FOR CUSTOMER: ${grn.customer}`, 60, yPos + 8, { width: 480 });
+        doc.fillColor('black');
+        yPos += 40;
+      }
+
+      // PR Description
+      if (grn.pr_description) {
+        doc.font('Helvetica-Bold').fontSize(10).text('PR Description:', 50, yPos);
+        doc.font('Helvetica').text(grn.pr_description, 150, yPos, { width: 400 });
+        yPos += 25;
+      }
+
+      // Remarks
+      if (grn.remarks) {
+        doc.font('Helvetica-Bold').text('Remarks:', 50, yPos);
+        doc.font('Helvetica').text(grn.remarks, 120, yPos, { width: 430 });
+        yPos += 30;
+      }
+
+      // Items table
+      yPos += 15;
+      doc.font('Helvetica-Bold').fontSize(12).text('ITEMS RECEIVED', 50, yPos);
+      yPos += 20;
+
+      // Table headers
+      const tableHeaders = ['#', 'Code', 'Description', 'Qty Ordered', 'Qty Received', 'Unit', 'Condition'];
+      const colWidths = [25, 60, 150, 65, 70, 50, 80];
+      let xPos = 50;
+
+      // Draw header row
+      doc.rect(50, yPos, 500, 20).fill('#f0f0f0').stroke();
+      doc.fillColor('black').fontSize(8).font('Helvetica-Bold');
+
+      tableHeaders.forEach((header, i) => {
+        doc.text(header, xPos + 2, yPos + 5, { width: colWidths[i] - 4, align: 'left' });
+        xPos += colWidths[i];
+      });
+      yPos += 20;
+
+      // Draw item rows
+      doc.font('Helvetica').fontSize(8);
+      items.forEach((item, index) => {
+        if (yPos > 680) {
+          doc.addPage();
+          yPos = 50;
+        }
+
+        xPos = 50;
+        doc.rect(50, yPos, 500, 20).stroke();
+
+        const rowData = [
+          (index + 1).toString(),
+          item.item_code || '-',
+          item.description || item.item_name || '-',
+          (item.quantity_ordered || 0).toString(),
+          (item.quantity_received || 0).toString(),
+          item.unit || 'pcs',
+          item.condition_notes || 'Good'
+        ];
+
+        rowData.forEach((data, i) => {
+          doc.text(data, xPos + 2, yPos + 5, { width: colWidths[i] - 4, align: 'left' });
+          xPos += colWidths[i];
+        });
+        yPos += 20;
+      });
+
+      // Signature section
+      yPos += 40;
+      if (yPos > 650) {
+        doc.addPage();
+        yPos = 50;
+      }
+
+      doc.font('Helvetica-Bold').fontSize(10);
+      doc.text('Received By:', 50, yPos);
+      doc.font('Helvetica').text(grn.received_by || 'N/A', 130, yPos);
+      doc.text('_______________________', 50, yPos + 30);
+      doc.font('Helvetica-Bold').text('Signature', 50, yPos + 47);
+
+      doc.font('Helvetica-Bold').text('Verified By:', 300, yPos);
+      doc.font('Helvetica').text('_______________________', 300, yPos + 30);
+      doc.font('Helvetica-Bold').text('Signature', 300, yPos + 47);
+
+      doc.end();
+
+      stream.on('finish', () => resolve(outputPath));
+      stream.on('error', reject);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   generateIssueSlipPDF,
-  generatePickingSlipPDF
+  generatePickingSlipPDF,
+  generateGRNPDF
 };

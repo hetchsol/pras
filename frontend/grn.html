@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goods Receipt Note - Purchase Requisition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .nav-header {
+            max-width: 1000px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .nav-btn-home {
+            background: #fff;
+            color: #d97706;
+            border: 2px solid #d97706;
+        }
+
+        .nav-btn-home:hover {
+            background: #d97706;
+            color: #fff;
+        }
+
+        .nav-btn-back {
+            background: rgba(255,255,255,0.9);
+            color: #555;
+            border: 2px solid #ddd;
+        }
+
+        .nav-btn-back:hover {
+            background: #f0f0f0;
+            border-color: #bbb;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            color: #d97706;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f59e0b;
+            padding-bottom: 5px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        textarea,
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .pr-info-box {
+            background: #FFFBEB;
+            border: 1px solid #F59E0B;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .pr-info-box h3 {
+            color: #92400E;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .pr-info-box .pr-detail {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .pr-info-box .pr-detail span {
+            color: #78350F;
+        }
+
+        .pr-info-box .pr-detail strong {
+            color: #92400E;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f59e0b;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        td input, td select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #d97706;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #34d399;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #f59e0b;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading p {
+            color: white;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .pr-info-box .pr-detail {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <div class="nav-header">
+        <a href="index.html" class="nav-btn nav-btn-home">
+            <span>&#127968;</span> Home
+        </a>
+        <a href="index.html" class="nav-btn nav-btn-back">
+            <span>&#8592;</span> Back
+        </a>
+    </div>
+
+    <div class="container">
+        <h1>Goods Receipt Note</h1>
+
+        <div id="alert" class="alert"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <form id="grnForm">
+            <!-- Source PR Selection -->
+            <div class="form-section">
+                <h2>Source Purchase Requisition</h2>
+                <div class="form-group full-width">
+                    <label for="pr_select">Select Approved PR *</label>
+                    <select id="pr_select" required onchange="handlePRSelect()">
+                        <option value="">-- Select an approved PR --</option>
+                    </select>
+                </div>
+                <div id="prInfoBox" class="pr-info-box">
+                    <h3>PR Details</h3>
+                    <div class="pr-detail">
+                        <div><strong>PR ID:</strong> <span id="prInfoId"></span></div>
+                        <div><strong>Description:</strong> <span id="prInfoDesc"></span></div>
+                        <div><strong>Quantity:</strong> <span id="prInfoQty"></span></div>
+                        <div><strong>Vendor:</strong> <span id="prInfoVendor"></span></div>
+                        <div><strong>Department:</strong> <span id="prInfoDept"></span></div>
+                        <div><strong>Cost:</strong> <span id="prInfoCost"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Receipt Information -->
+            <div class="form-section">
+                <h2>Receipt Information</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="received_by_select">Received By *</label>
+                        <select id="received_by_select" onchange="handleUserSelect('received_by')">
+                            <option value="">-- Select from users --</option>
+                            <option value="__other__">Other (type manually)</option>
+                        </select>
+                        <input type="text" id="received_by" style="display:none; margin-top:5px;" placeholder="Type name of receiver">
+                    </div>
+                    <div class="form-group">
+                        <label for="department">Department</label>
+                        <select id="department">
+                            <option value="">Select Department</option>
+                            <option value="IT">IT</option>
+                            <option value="HR">HR</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Procurement">Procurement</option>
+                            <option value="Executive">Executive</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Marketing">Marketing</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="receipt_date">Receipt Date</label>
+                        <input type="date" id="receipt_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="delivery_note_number">Delivery Note Number</label>
+                        <input type="text" id="delivery_note_number" placeholder="Delivery note reference">
+                    </div>
+                    <div class="form-group">
+                        <label for="invoice_number">Invoice Number</label>
+                        <input type="text" id="invoice_number" placeholder="Invoice reference">
+                    </div>
+                    <div class="form-group">
+                        <label for="customer">Reserved For Customer</label>
+                        <select id="customer">
+                            <option value="">-- No reservation (optional) --</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="remarks">Remarks</label>
+                        <textarea id="remarks" placeholder="Any additional notes about the goods received"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="form-section">
+                <h2>Items Received</h2>
+                <div class="table-container">
+                    <table id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th style="width: 100px;">Item Code</th>
+                                <th>Description</th>
+                                <th style="width: 90px;">Qty Ordered</th>
+                                <th style="width: 90px;">Qty Received *</th>
+                                <th style="width: 80px;">Unit</th>
+                                <th style="width: 140px;">Condition Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: #999; padding: 20px;">
+                                    Select a PR above to populate items
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit GRN</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const API_URL = window.API_URL || 'http://localhost:3001/api';
+        let approvedPRs = [];
+        let usersList = [];
+        let selectedPR = null;
+
+        // Initialize form
+        document.addEventListener('DOMContentLoaded', async function() {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            if (userData.department) {
+                document.getElementById('department').value = userData.department;
+            }
+
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('receipt_date').value = today;
+
+            await Promise.all([loadApprovedPRs(), loadUsers(), loadVendors()]);
+        });
+
+        async function loadApprovedPRs() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/stores/approved-prs`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    approvedPRs = await response.json();
+                    const select = document.getElementById('pr_select');
+                    approvedPRs.forEach(pr => {
+                        const opt = document.createElement('option');
+                        opt.value = pr.id;
+                        const vendor = pr.selected_vendor || 'No vendor';
+                        opt.textContent = `${pr.id} - ${pr.description} (Qty: ${pr.quantity} from ${vendor})`;
+                        opt.dataset.pr = JSON.stringify(pr);
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load approved PRs:', e);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    usersList = await response.json();
+                    populateUserDropdown('received_by_select');
+                }
+            } catch (e) {
+                console.error('Failed to load users:', e);
+            }
+        }
+
+        async function loadVendors() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/vendors`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const vendors = await response.json();
+                    const select = document.getElementById('customer');
+                    vendors.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.name;
+                        opt.textContent = v.name;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load vendors:', e);
+            }
+        }
+
+        function populateUserDropdown(selectId) {
+            const select = document.getElementById(selectId);
+            usersList.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.full_name;
+                opt.textContent = `${u.full_name} (${u.department || ''})`;
+                select.insertBefore(opt, select.lastElementChild);
+            });
+        }
+
+        function handleUserSelect(fieldId) {
+            const select = document.getElementById(fieldId + '_select');
+            const input = document.getElementById(fieldId);
+            if (select.value === '__other__') {
+                input.style.display = 'block';
+                input.required = true;
+                input.focus();
+            } else {
+                input.style.display = 'none';
+                input.required = false;
+                input.value = '';
+            }
+        }
+
+        function handlePRSelect() {
+            const select = document.getElementById('pr_select');
+            const prInfoBox = document.getElementById('prInfoBox');
+            const tbody = document.getElementById('itemsTableBody');
+
+            if (!select.value) {
+                prInfoBox.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';
+                selectedPR = null;
+                return;
+            }
+
+            const option = select.options[select.selectedIndex];
+            selectedPR = JSON.parse(option.dataset.pr);
+
+            // Show PR info
+            prInfoBox.style.display = 'block';
+            document.getElementById('prInfoId').textContent = selectedPR.id;
+            document.getElementById('prInfoDesc').textContent = selectedPR.description;
+            document.getElementById('prInfoQty').textContent = selectedPR.quantity;
+            document.getElementById('prInfoVendor').textContent = selectedPR.selected_vendor || 'N/A';
+            document.getElementById('prInfoDept').textContent = selectedPR.department || 'N/A';
+            document.getElementById('prInfoCost').textContent = selectedPR.amount
+                ? `${selectedPR.vendor_currency || 'ZMW'} ${parseFloat(selectedPR.amount).toLocaleString()}`
+                : 'N/A';
+
+            // Populate items table from PR (single-item PR)
+            tbody.innerHTML = '';
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>1</td>
+                <td><input type="text" class="item_code" value="" placeholder="Code"></td>
+                <td><input type="text" class="description" value="${escapeHtml(selectedPR.description)}" readonly style="background:#f5f5f5;"></td>
+                <td><input type="number" class="quantity_ordered" value="${selectedPR.quantity}" readonly style="background:#f5f5f5;"></td>
+                <td><input type="number" class="quantity_received" min="0" step="1" value="${selectedPR.quantity}" required></td>
+                <td>
+                    <select class="unit">
+                        <option value="pcs">pcs</option>
+                        <option value="kg">kg</option>
+                        <option value="ltr">ltr</option>
+                        <option value="box">box</option>
+                        <option value="set">set</option>
+                        <option value="roll">roll</option>
+                        <option value="pack">pack</option>
+                    </select>
+                </td>
+                <td><input type="text" class="condition_notes" placeholder="e.g. Good, Damaged"></td>
+            `;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        document.getElementById('grnForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!selectedPR) {
+                showAlert('Please select a source PR', 'error');
+                return;
+            }
+
+            const receivedBySelect = document.getElementById('received_by_select').value;
+            const receivedBy = (receivedBySelect && receivedBySelect !== '__other__') ? receivedBySelect : document.getElementById('received_by').value.trim();
+            if (!receivedBy) {
+                showAlert('Please select or enter who received the goods', 'error');
+                return;
+            }
+
+            const rows = document.getElementById('itemsTableBody').rows;
+            if (rows.length === 0) {
+                showAlert('No items found. Please select a PR first.', 'error');
+                return;
+            }
+
+            const items = [];
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const qtyReceived = parseFloat(row.querySelector('.quantity_received').value);
+                if (isNaN(qtyReceived) || qtyReceived < 0) {
+                    showAlert(`Please enter a valid quantity received for row ${i + 1}`, 'error');
+                    return;
+                }
+                items.push({
+                    item_code: row.querySelector('.item_code').value.trim(),
+                    item_name: row.querySelector('.description').value.trim(),
+                    description: row.querySelector('.description').value.trim(),
+                    quantity_ordered: parseFloat(row.querySelector('.quantity_ordered').value) || 0,
+                    quantity_received: qtyReceived,
+                    unit: row.querySelector('.unit').value,
+                    condition_notes: row.querySelector('.condition_notes').value.trim()
+                });
+            }
+
+            const grnData = {
+                pr_id: selectedPR.id,
+                pr_description: selectedPR.description,
+                supplier: selectedPR.selected_vendor || '',
+                receipt_date: document.getElementById('receipt_date').value || null,
+                delivery_note_number: document.getElementById('delivery_note_number').value.trim(),
+                invoice_number: document.getElementById('invoice_number').value.trim(),
+                received_by: receivedBy,
+                department: document.getElementById('department').value,
+                customer: document.getElementById('customer').value,
+                remarks: document.getElementById('remarks').value.trim(),
+                items: items
+            };
+
+            try {
+                showLoading(true);
+                const token = localStorage.getItem('authToken');
+
+                const response = await fetch(`${API_URL}/stores/grns`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(grnData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(`GRN created successfully! ID: ${data.grn.id}`, 'success');
+                    document.getElementById('grnForm').reset();
+                    document.getElementById('prInfoBox').style.display = 'none';
+                    document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';
+                    selectedPR = null;
+                } else {
+                    showAlert(data.error || 'Failed to submit GRN', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('An error occurred while submitting the GRN', 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+
+    </script>
+</body>
+</html>

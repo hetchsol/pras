@@ -136,6 +136,49 @@
             min-height: 60px;
         }
 
+        .grn-info-banner {
+            background: #FFFBEB;
+            border: 1px solid #F59E0B;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 13px;
+        }
+
+        .grn-info-banner .grn-detail {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .grn-info-banner .grn-detail strong {
+            color: #92400E;
+        }
+
+        .grn-info-banner .grn-detail span {
+            color: #78350F;
+        }
+
+        .grn-reservation-warning {
+            background: #FEF3C7;
+            border: 1px solid #F59E0B;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #92400E;
+            font-weight: 600;
+        }
+
+        .avail-badge {
+            display: inline-block;
+            font-size: 11px;
+            color: #059669;
+            margin-left: 5px;
+            font-weight: 600;
+        }
+
         .table-container {
             overflow-x: auto;
             margin-bottom: 20px;
@@ -281,6 +324,9 @@
             .form-grid {
                 grid-template-columns: 1fr;
             }
+            .grn-info-banner .grn-detail {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -305,6 +351,26 @@
         </div>
 
         <form id="issueSlipForm">
+            <!-- GRN Source Selection -->
+            <div class="form-section">
+                <h2>Source GRN (Goods Receipt Note)</h2>
+                <div class="form-group full-width">
+                    <label for="grn_select">Select GRN *</label>
+                    <select id="grn_select" required onchange="handleGRNSelect()">
+                        <option value="">-- Select a GRN with available stock --</option>
+                    </select>
+                </div>
+                <div id="grnInfoBanner" class="grn-info-banner">
+                    <div class="grn-detail">
+                        <div><strong>GRN ID:</strong> <span id="grnInfoId"></span></div>
+                        <div><strong>PR Ref:</strong> <span id="grnInfoPR"></span></div>
+                        <div><strong>Supplier:</strong> <span id="grnInfoSupplier"></span></div>
+                        <div><strong>Received By:</strong> <span id="grnInfoReceivedBy"></span></div>
+                    </div>
+                    <div id="grnReservationWarning" class="grn-reservation-warning" style="display:none;"></div>
+                </div>
+            </div>
+
             <!-- Issue Information -->
             <div class="form-section">
                 <h2>Issue Information</h2>
@@ -348,10 +414,6 @@
                         <input type="text" id="delivered_by" style="display:none; margin-top:5px;" placeholder="Type name of delivery person">
                     </div>
                     <div class="form-group">
-                        <label for="reference_number">Reference Number</label>
-                        <input type="text" id="reference_number" placeholder="Optional reference">
-                    </div>
-                    <div class="form-group">
                         <label for="customer">Customer</label>
                         <select id="customer">
                             <option value="">-- Select customer (optional) --</option>
@@ -367,7 +429,7 @@
             <!-- Items -->
             <div class="form-section">
                 <h2>Items to Issue</h2>
-                <button type="button" class="btn btn-add" onclick="addItemRow()">+ Add Item</button>
+                <button type="button" class="btn btn-add" id="addItemBtn" onclick="addItemRow()">+ Add Item</button>
                 <div class="table-container">
                     <table id="itemsTable">
                         <thead>
@@ -375,7 +437,7 @@
                                 <th style="width: 50px;">#</th>
                                 <th style="width: 120px;">Item Code</th>
                                 <th>Description *</th>
-                                <th style="width: 80px;">Qty *</th>
+                                <th style="width: 110px;">Qty *</th>
                                 <th style="width: 80px;">Unit</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
@@ -386,6 +448,9 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Hidden reference_number field (auto-set from GRN) -->
+            <input type="hidden" id="reference_number" value="">
 
             <!-- Actions -->
             <div class="actions">
@@ -401,6 +466,7 @@
         let rowCounter = 0;
 
         let usersList = [];
+        let selectedGRN = null;
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', async function() {
@@ -410,13 +476,37 @@
                 document.getElementById('department').value = userData.department;
             }
 
-            // Load users and vendors for dropdowns
-            await loadUsers();
-            await loadVendors();
+            // Load all dropdowns in parallel
+            await Promise.all([loadGRNs(), loadUsers(), loadVendors()]);
 
-            // Add initial row
-            addItemRow();
+            // Add initial row (only if no GRN selected)
+            if (!selectedGRN) {
+                addItemRow();
+            }
         });
+
+        async function loadGRNs() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/stores/grns-for-issue`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const grns = await response.json();
+                    const select = document.getElementById('grn_select');
+                    grns.forEach(grn => {
+                        const opt = document.createElement('option');
+                        opt.value = grn.id;
+                        const reservedTag = grn.customer ? ` [Reserved: ${grn.customer}]` : '';
+                        opt.textContent = `${grn.id} - ${grn.pr_description || 'N/A'} (from ${grn.supplier || 'N/A'})${reservedTag}`;
+                        opt.dataset.grn = JSON.stringify(grn);
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load GRNs:', e);
+            }
+        }
 
         async function loadUsers() {
             try {
@@ -479,7 +569,99 @@
             }
         }
 
+        function handleGRNSelect() {
+            const select = document.getElementById('grn_select');
+            const banner = document.getElementById('grnInfoBanner');
+            const addBtn = document.getElementById('addItemBtn');
+            const tbody = document.getElementById('itemsTableBody');
+            const customerSelect = document.getElementById('customer');
+
+            if (!select.value) {
+                banner.style.display = 'none';
+                selectedGRN = null;
+                document.getElementById('reference_number').value = '';
+                addBtn.style.display = 'inline-block';
+                customerSelect.disabled = false;
+                // Reset items table
+                tbody.innerHTML = '';
+                rowCounter = 0;
+                addItemRow();
+                return;
+            }
+
+            const option = select.options[select.selectedIndex];
+            selectedGRN = JSON.parse(option.dataset.grn);
+
+            // Set hidden reference_number
+            document.getElementById('reference_number').value = selectedGRN.id;
+
+            // Show GRN info banner
+            banner.style.display = 'block';
+            document.getElementById('grnInfoId').textContent = selectedGRN.id;
+            document.getElementById('grnInfoPR').textContent = selectedGRN.pr_id || 'N/A';
+            document.getElementById('grnInfoSupplier').textContent = selectedGRN.supplier || 'N/A';
+            document.getElementById('grnInfoReceivedBy').textContent = selectedGRN.received_by || 'N/A';
+
+            // Handle customer reservation
+            const reservationWarning = document.getElementById('grnReservationWarning');
+            if (selectedGRN.customer) {
+                reservationWarning.style.display = 'block';
+                reservationWarning.textContent = `This GRN is reserved for customer: ${selectedGRN.customer}. The customer field has been locked.`;
+                customerSelect.value = selectedGRN.customer;
+                customerSelect.disabled = true;
+            } else {
+                reservationWarning.style.display = 'none';
+                customerSelect.disabled = false;
+            }
+
+            // Hide "Add Item" button - items come from GRN
+            addBtn.style.display = 'none';
+
+            // Populate items table from GRN
+            tbody.innerHTML = '';
+            rowCounter = 0;
+
+            const items = (selectedGRN.items || []).filter(item => item.quantity_remaining > 0);
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999; padding: 20px;">No items with remaining stock on this GRN</td></tr>';
+                return;
+            }
+
+            items.forEach((item, idx) => {
+                rowCounter++;
+                const row = tbody.insertRow();
+                const desc = item.description || item.item_name || '';
+                const code = item.item_code || '';
+                const maxQty = item.quantity_remaining;
+                const unit = item.unit || 'pcs';
+
+                row.innerHTML = `
+                    <td>${rowCounter}</td>
+                    <td><input type="text" class="item_code" value="${escapeHtml(code)}" readonly style="background:#f5f5f5;"></td>
+                    <td><input type="text" class="description" value="${escapeHtml(desc)}" readonly style="background:#f5f5f5;"></td>
+                    <td>
+                        <input type="number" class="quantity" min="1" max="${maxQty}" step="1" value="${maxQty}" required>
+                        <span class="avail-badge">Avail: ${maxQty}</span>
+                    </td>
+                    <td>
+                        <select class="unit" disabled style="background:#f5f5f5;">
+                            <option value="${unit}" selected>${unit}</option>
+                        </select>
+                    </td>
+                    <td style="color: #999; font-size: 11px;">From GRN</td>
+                `;
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
         function addItemRow() {
+            // Don't allow manual item addition when GRN is selected
+            if (selectedGRN) return;
+
             rowCounter++;
             const tbody = document.getElementById('itemsTableBody');
             const row = tbody.insertRow();
@@ -505,6 +687,8 @@
         }
 
         function deleteRow(button) {
+            if (selectedGRN) return; // Don't allow deletion of GRN items
+
             if (document.getElementById('itemsTableBody').rows.length > 1) {
                 button.closest('tr').remove();
                 // Renumber rows
@@ -521,6 +705,12 @@
         document.getElementById('issueSlipForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // Validate GRN is selected
+            if (!selectedGRN) {
+                showAlert('Please select a GRN to issue items from', 'error');
+                return;
+            }
+
             const rows = document.getElementById('itemsTableBody').rows;
             if (rows.length === 0) {
                 showAlert('Please add at least one item', 'error');
@@ -531,7 +721,9 @@
             const items = [];
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
-                const description = row.querySelector('.description').value.trim();
+                const descEl = row.querySelector('.description');
+                if (!descEl) continue; // skip placeholder rows
+                const description = descEl.value.trim();
                 const quantity = parseFloat(row.querySelector('.quantity').value);
 
                 if (!description) {
@@ -541,6 +733,13 @@
 
                 if (!quantity || quantity <= 0) {
                     showAlert(`Please enter a valid quantity for row ${i + 1}`, 'error');
+                    return;
+                }
+
+                // Check against max if GRN item
+                const qtyInput = row.querySelector('.quantity');
+                if (qtyInput.max && quantity > parseFloat(qtyInput.max)) {
+                    showAlert(`Quantity for row ${i + 1} exceeds available stock (max: ${qtyInput.max})`, 'error');
                     return;
                 }
 
@@ -563,14 +762,17 @@
             const deliveredBySelect = document.getElementById('delivered_by_select').value;
             const deliveredBy = (deliveredBySelect && deliveredBySelect !== '__other__') ? deliveredBySelect : document.getElementById('delivered_by').value.trim();
 
+            const customerSelect = document.getElementById('customer');
+            const customerValue = customerSelect.disabled ? customerSelect.value : customerSelect.value;
+
             const slipData = {
                 issued_to: issuedTo,
                 department: document.getElementById('department').value,
                 delivery_location: document.getElementById('delivery_location').value.trim(),
                 delivery_date: document.getElementById('delivery_date').value || null,
                 delivered_by: deliveredBy,
-                reference_number: document.getElementById('reference_number').value.trim(),
-                customer: document.getElementById('customer').value,
+                reference_number: document.getElementById('reference_number').value,
+                customer: customerValue,
                 remarks: document.getElementById('remarks').value.trim(),
                 items: items
             };
@@ -594,8 +796,15 @@
                     showAlert('Issue slip submitted successfully! It is now pending HOD approval.', 'success');
                     document.getElementById('issueSlipForm').reset();
                     document.getElementById('itemsTableBody').innerHTML = '';
+                    document.getElementById('grnInfoBanner').style.display = 'none';
+                    document.getElementById('addItemBtn').style.display = 'inline-block';
+                    document.getElementById('customer').disabled = false;
+                    selectedGRN = null;
                     rowCounter = 0;
                     addItemRow();
+                    // Reload GRNs to get updated remaining quantities
+                    document.getElementById('grn_select').innerHTML = '<option value="">-- Select a GRN with available stock --</option>';
+                    await loadGRNs();
                 } else {
                     showAlert(data.error || 'Failed to submit issue slip', 'error');
                 }
