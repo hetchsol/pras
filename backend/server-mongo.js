@@ -574,6 +574,128 @@ app.delete('/api/admin/vendors/:id', authenticate, authorize('admin'), async (re
   }
 });
 
+app.put('/api/admin/vendors/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await db.Vendor.findByIdAndUpdate(req.params.id, req.body);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/vendors/bulk-upload', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided' });
+    }
+
+    const ops = items.map(item => {
+      const filter = item.code ? { code: item.code } : { name: item.name };
+      return {
+        updateOne: {
+          filter,
+          update: { $set: item, $setOnInsert: { created_at: new Date() } },
+          upsert: true
+        }
+      };
+    });
+
+    const result = await db.Vendor.bulkWrite(ops, { ordered: false });
+    const created = result.upsertedCount || 0;
+    const updated = result.modifiedCount || 0;
+    res.json({
+      success: true,
+      message: `Imported ${created} new, updated ${updated} existing vendors (${items.length} total processed)`,
+      created,
+      updated
+    });
+  } catch (error) {
+    console.error('Vendor bulk upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Client routes
+app.get('/api/admin/clients', authenticate, async (req, res) => {
+  try {
+    const clients = await db.Client.find().lean();
+    res.json(clients.map(c => ({ ...c, id: c._id })));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/clients', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const client = await db.Client.create(req.body);
+    res.status(201).json({ success: true, id: client._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/admin/clients/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await db.Client.findByIdAndUpdate(req.params.id, req.body);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/admin/clients/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await db.Client.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/clients/bulk-upload', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided' });
+    }
+
+    const ops = items.map(item => {
+      const filter = item.code ? { code: item.code } : { name: item.name };
+      return {
+        updateOne: {
+          filter,
+          update: { $set: item, $setOnInsert: { created_at: new Date() } },
+          upsert: true
+        }
+      };
+    });
+
+    const result = await db.Client.bulkWrite(ops, { ordered: false });
+    const created = result.upsertedCount || 0;
+    const updated = result.modifiedCount || 0;
+    res.json({
+      success: true,
+      message: `Imported ${created} new, updated ${updated} existing clients (${items.length} total processed)`,
+      created,
+      updated
+    });
+  } catch (error) {
+    console.error('Client bulk upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Public client list (for dropdowns)
+app.get('/api/clients', authenticate, async (req, res) => {
+  try {
+    const clients = await db.Client.find().lean();
+    res.json(clients);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/admin/departments', authenticate, async (req, res) => {
   try {
     const departments = await db.Department.find().lean();

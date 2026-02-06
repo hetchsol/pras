@@ -10,6 +10,7 @@ const FormApproval = require('./FormApproval');
 const PettyCashRequisition = require('./PettyCashRequisition');
 const IssueSlip = require('./IssueSlip');
 const PickingSlip = require('./PickingSlip');
+const Client = require('./Client');
 
 module.exports = {
   User,
@@ -23,5 +24,6 @@ module.exports = {
   FormApproval,
   PettyCashRequisition,
   IssueSlip,
-  PickingSlip
+  PickingSlip,
+  Client
 };

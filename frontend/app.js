@@ -610,6 +610,44 @@ const api = {
     return res.json();
   },
 
+  // Client API
+  getAdminClients: async () => {
+    const res = await fetch(`${API_URL}/admin/clients`, {
+      headers: getHeaders()
+    });
+    if (!res.ok) throw new Error('Failed to fetch clients');
+    return res.json();
+  },
+
+  createAdminClient: async (clientData) => {
+    const res = await fetch(`${API_URL}/admin/clients`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(clientData)
+    });
+    if (!res.ok) throw new Error('Failed to create client');
+    return res.json();
+  },
+
+  updateAdminClient: async (clientId, clientData) => {
+    const res = await fetch(`${API_URL}/admin/clients/${clientId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(clientData)
+    });
+    if (!res.ok) throw new Error('Failed to update client');
+    return res.json();
+  },
+
+  deleteAdminClient: async (clientId) => {
+    const res = await fetch(`${API_URL}/admin/clients/${clientId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!res.ok) throw new Error('Failed to delete client');
+    return res.json();
+  },
+
   getAdminDepartments: async () => {
     const res = await fetch(`${API_URL}/admin/departments`, {
       headers: getHeaders()
@@ -4829,10 +4867,7 @@ function AdminPanel({ data, loadData }) {
     can_access_stores: false
   });
   const [vendorForm, setVendorForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
+    name: '', code: '', email: '', phone: '', address: '', country: '', type: ''
   });
 
   // New state for departments
@@ -4863,6 +4898,17 @@ function AdminPanel({ data, loadData }) {
   // State for vendor bulk upload
   const [showVendorUpload, setShowVendorUpload] = useState(false);
   const [uploadingVendors, setUploadingVendors] = useState(false);
+
+  // Client state
+  const [clients, setClients] = useState([]);
+  const [editingClient, setEditingClient] = useState(null);
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [clientForm, setClientForm] = useState({
+    name: '', code: '', contact_person: '', email: '', phone: '', address: '', country: ''
+  });
+  const [showClientUpload, setShowClientUpload] = useState(false);
+  const [uploadingClients, setUploadingClients] = useState(false);
+
   const [showRerouteModal, setShowRerouteModal] = useState(false);
   const [rerouteReqId, setRerouteReqId] = useState(null);
   const [rerouteForm, setRerouteForm] = useState({
@@ -4894,11 +4940,12 @@ function AdminPanel({ data, loadData }) {
     setLoading(true);
     try {
       // Load each data source independently to prevent one failure from blocking all
-      const [usersResult, vendorsResult, departmentsResult, codesResult] = await Promise.allSettled([
+      const [usersResult, vendorsResult, departmentsResult, codesResult, clientsResult] = await Promise.allSettled([
         api.getAdminUsers(),
         api.getVendors(),
         api.getAdminDepartments(),
-        api.getDepartmentCodes()
+        api.getDepartmentCodes(),
+        api.getAdminClients()
       ]);
 
       if (usersResult.status === 'fulfilled') {
@@ -4927,6 +4974,13 @@ function AdminPanel({ data, loadData }) {
       } else {
         console.error('Failed to load department codes:', codesResult.reason);
         setDepartmentCodes([]);
+      }
+
+      if (clientsResult.status === 'fulfilled') {
+        setClients(clientsResult.value);
+      } else {
+        console.error('Failed to load clients:', clientsResult.reason);
+        setClients([]);
       }
     } catch (error) {
       console.error('Failed to load admin data:', error);
@@ -5031,12 +5085,7 @@ function AdminPanel({ data, loadData }) {
       }
       setShowVendorForm(false);
       setEditingVendor(null);
-      setVendorForm({
-        name: '',
-        email: '',
-        phone: '',
-        address: ''
-      });
+      setVendorForm({ name: '', code: '', email: '', phone: '', address: '', country: '', type: '' });
       loadAdminData();
       if (loadData) loadData();
     } catch (error) {
@@ -5056,12 +5105,70 @@ function AdminPanel({ data, loadData }) {
     }
   };
 
+  // Parse spreadsheet file (XLSX/CSV) to JSON rows using SheetJS
+  const parseSpreadsheet = async (file) => {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  };
+
+  // Map vendor spreadsheet headers to model fields (flexible matching)
+  const mapVendorRow = (row) => {
+    const get = (...keys) => {
+      for (const k of Object.keys(row)) {
+        const lk = k.toLowerCase().trim();
+        for (const pattern of keys) {
+          if (lk.includes(pattern)) return String(row[k] || '').trim();
+        }
+      }
+      return '';
+    };
+    const vendor = {};
+    const name = get('bp name', 'vendor name', 'name');
+    if (!name) return null;
+    vendor.name = name;
+    const code = get('bp code', 'vendor code', 'code');
+    if (code) vendor.code = code;
+    const active = get('active');
+    if (active) vendor.status = active.toLowerCase() === 'yes' || active === '1' ? 'active' : 'inactive';
+    const type = get('type');
+    if (type) vendor.type = type;
+    const currency = get('currency');
+    if (currency) vendor.currency = currency;
+    const country = get('bill-to country', 'country');
+    if (country) vendor.country = country;
+    const city = get('bill-to city', 'city');
+    if (city) vendor.address = city;
+    const taxId = get('tpin', 'tax', 'federal');
+    if (taxId) vendor.tax_id = taxId;
+    const phone = get('telephone', 'phone', 'tel');
+    if (phone) vendor.phone = phone;
+    const email = get('e-mail', 'email');
+    if (email) vendor.email = email;
+    const address = get('address');
+    if (address) vendor.address = address;
+    const contact = get('contact person', 'contact');
+    if (contact) vendor.contact_person = contact;
+    return vendor;
+  };
+
+  // Deduplicate array by key (keep first occurrence)
+  const deduplicateByName = (arr) => {
+    const seen = new Set();
+    return arr.filter(item => {
+      const key = item.name.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   // Vendor bulk upload handler
   const handleVendorFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check file type
     const validTypes = ['.csv', '.xlsx', '.xls'];
     const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!validTypes.includes(fileExt)) {
@@ -5069,73 +5176,157 @@ function AdminPanel({ data, loadData }) {
       return;
     }
 
+    if (typeof XLSX === 'undefined') {
+      alert('SheetJS library not loaded. Please refresh the page and try again.');
+      return;
+    }
+
     setUploadingVendors(true);
 
     try {
-      // For CSV files, parse directly
-      if (fileExt === '.csv') {
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const rows = await parseSpreadsheet(file);
+      const allVendors = rows.map(mapVendorRow).filter(Boolean);
+      const vendors = deduplicateByName(allVendors);
+      const dupeCount = allVendors.length - vendors.length;
 
-        // Find column indices
-        const nameIdx = headers.findIndex(h => h.includes('name') && !h.includes('contact'));
-        const contactIdx = headers.findIndex(h => h.includes('contact'));
-        const emailIdx = headers.findIndex(h => h.includes('email'));
-        const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('tel'));
-        const addressIdx = headers.findIndex(h => h.includes('address'));
+      if (vendors.length === 0) {
+        alert('No valid vendors found in file. Ensure there is a "BP Name", "Vendor Name" or "Name" column.');
+        setUploadingVendors(false);
+        return;
+      }
 
-        if (nameIdx === -1) {
-          alert('CSV must have a "name" column');
-          setUploadingVendors(false);
-          return;
-        }
+      const response = await fetchWithAuth(`${API_URL}/admin/vendors/bulk-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: vendors })
+      });
 
-        const vendors = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-          if (values[nameIdx]) {
-            vendors.push({
-              name: values[nameIdx] || '',
-              contact_person: contactIdx >= 0 ? values[contactIdx] || '' : '',
-              email: emailIdx >= 0 ? values[emailIdx] || '' : '',
-              phone: phoneIdx >= 0 ? values[phoneIdx] || '' : '',
-              address: addressIdx >= 0 ? values[addressIdx] || '' : ''
-            });
-          }
-        }
-
-        if (vendors.length === 0) {
-          alert('No valid vendors found in file');
-          setUploadingVendors(false);
-          return;
-        }
-
-        // Upload to server
-        const response = await fetchWithAuth(`${API_URL}/admin/vendors/bulk-upload`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vendors })
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-          alert(result.message);
-          loadAdminData();
-          setShowVendorUpload(false);
-        } else {
-          alert('Upload failed: ' + (result.error || 'Unknown error'));
-        }
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message + (dupeCount > 0 ? `\n(${dupeCount} duplicate rows removed from file)` : ''));
+        loadAdminData();
+        setShowVendorUpload(false);
       } else {
-        // For Excel files, we need to use a library or ask user to convert to CSV
-        alert('For Excel files, please save as CSV first, or use the CSV format.\n\nRequired columns: name (required), contact_person, email, phone, address');
+        alert('Upload failed: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Upload error:', error);
       alert('Error processing file: ' + error.message);
     } finally {
       setUploadingVendors(false);
-      event.target.value = ''; // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  // Client bulk upload handler
+  const handleClientFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!validTypes.includes(fileExt)) {
+      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+      alert('SheetJS library not loaded. Please refresh the page and try again.');
+      return;
+    }
+
+    setUploadingClients(true);
+
+    try {
+      const rows = await parseSpreadsheet(file);
+      const allClients = rows.map(row => {
+        const get = (...keys) => {
+          for (const k of Object.keys(row)) {
+            const lk = k.toLowerCase().trim();
+            for (const pattern of keys) {
+              if (lk.includes(pattern)) return String(row[k] || '').trim();
+            }
+          }
+          return '';
+        };
+        const name = get('client name', 'customer name', 'customer', 'name');
+        if (!name) return null;
+        const client = { name };
+        const code = get('client code', 'customer code', 'code');
+        if (code) client.code = code;
+        const contact = get('contact');
+        if (contact) client.contact_person = contact;
+        const email = get('email');
+        if (email) client.email = email;
+        const phone = get('phone', 'tel');
+        if (phone) client.phone = phone;
+        const address = get('address');
+        if (address) client.address = address;
+        const country = get('country');
+        if (country) client.country = country;
+        const taxId = get('tpin', 'tax');
+        if (taxId) client.tax_id = taxId;
+        return client;
+      }).filter(Boolean);
+      const clients = deduplicateByName(allClients);
+      const dupeCount = allClients.length - clients.length;
+
+      if (clients.length === 0) {
+        alert('No valid clients found in file. Ensure there is a "Customer", "Name" or "Client Name" column.');
+        setUploadingClients(false);
+        return;
+      }
+
+      const response = await fetchWithAuth(`${API_URL}/admin/clients/bulk-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: clients })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message + (dupeCount > 0 ? `\n(${dupeCount} duplicate rows removed from file)` : ''));
+        loadAdminData();
+        setShowClientUpload(false);
+      } else {
+        alert('Upload failed: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Error processing file: ' + error.message);
+    } finally {
+      setUploadingClients(false);
+      event.target.value = '';
+    }
+  };
+
+  // Client handlers
+  const handleSaveClient = async () => {
+    try {
+      if (editingClient) {
+        await api.updateAdminClient(editingClient.id, clientForm);
+        alert('Client updated successfully');
+      } else {
+        await api.createAdminClient(clientForm);
+        alert('Client created successfully');
+      }
+      setShowClientForm(false);
+      setEditingClient(null);
+      setClientForm({ name: '', code: '', contact_person: '', email: '', phone: '', address: '', country: '' });
+      loadAdminData();
+    } catch (error) {
+      alert('Error saving client: ' + error.message);
+    }
+  };
+
+  const handleDeleteClient = async (clientId) => {
+    if (!confirm('Are you sure you want to delete this client?')) return;
+    try {
+      await api.deleteAdminClient(clientId);
+      alert('Client deleted successfully');
+      loadAdminData();
+    } catch (error) {
+      alert('Error deleting client: ' + error.message);
     }
   };
 
@@ -5297,7 +5488,11 @@ function AdminPanel({ data, loadData }) {
         React.createElement('button', {
           onClick: () => setActiveTab('grn-approvers'),
           className: `px-4 py-2 rounded-lg font-medium ${activeTab === 'grn-approvers' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`
-        }, "GRN Approvers")
+        }, "GRN Approvers"),
+        React.createElement('button', {
+          onClick: () => setActiveTab('clients'),
+          className: `px-4 py-2 rounded-lg font-medium ${activeTab === 'clients' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`
+        }, "Clients")
       )
     ),
     activeTab === 'users' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
@@ -5499,17 +5694,12 @@ function AdminPanel({ data, loadData }) {
           React.createElement('button', {
             onClick: () => setShowVendorUpload(!showVendorUpload),
             className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          }, "Upload CSV"),
+          }, "Upload XLSX/CSV"),
           React.createElement('button', {
             onClick: () => {
               setShowVendorForm(true);
               setEditingVendor(null);
-              setVendorForm({
-                name: '',
-                email: '',
-                phone: '',
-                address: ''
-              });
+              setVendorForm({ name: '', code: '', email: '', phone: '', address: '', country: '', type: '' });
             },
             className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           }, "+ Add Vendor")
@@ -5517,14 +5707,14 @@ function AdminPanel({ data, loadData }) {
       ),
       // Vendor Upload Section
       showVendorUpload && React.createElement('div', { className: "mb-6 p-4 bg-green-50 rounded-lg border border-green-200" },
-        React.createElement('h4', { className: "font-semibold mb-3 text-green-800" }, "Bulk Upload Vendors from CSV"),
+        React.createElement('h4', { className: "font-semibold mb-3 text-green-800" }, "Bulk Upload Vendors from XLSX/CSV"),
         React.createElement('p', { className: "text-sm text-green-700 mb-3" },
-          "Upload a CSV file with columns: name (required), contact_person, email, phone, address"
+          "Upload an Excel or CSV file. Columns: Vendor Name (required), Vendor Code, Active, Type, Currency, Country, TPIN, Phone Number"
         ),
         React.createElement('div', { className: "flex items-center gap-4" },
           React.createElement('input', {
             type: "file",
-            accept: ".csv",
+            accept: ".csv,.xlsx,.xls",
             onChange: handleVendorFileUpload,
             disabled: uploadingVendors,
             className: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
@@ -5538,12 +5728,26 @@ function AdminPanel({ data, loadData }) {
       ),
       showVendorForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingVendor ? 'Edit Vendor' : 'New Vendor'),
-        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" },
           React.createElement('input', {
             type: "text",
-            placeholder: "Vendor Name",
+            placeholder: "Vendor Name *",
             value: vendorForm.name,
             onChange: (e) => setVendorForm({ ...vendorForm, name: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Vendor Code",
+            value: vendorForm.code,
+            onChange: (e) => setVendorForm({ ...vendorForm, code: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Type",
+            value: vendorForm.type,
+            onChange: (e) => setVendorForm({ ...vendorForm, type: e.target.value }),
             className: "px-3 py-2 border rounded-lg"
           }),
           React.createElement('input', {
@@ -5562,10 +5766,17 @@ function AdminPanel({ data, loadData }) {
           }),
           React.createElement('input', {
             type: "text",
+            placeholder: "Country",
+            value: vendorForm.country,
+            onChange: (e) => setVendorForm({ ...vendorForm, country: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
             placeholder: "Address",
             value: vendorForm.address,
             onChange: (e) => setVendorForm({ ...vendorForm, address: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "px-3 py-2 border rounded-lg md:col-span-3"
           })
         ),
         React.createElement('div', { className: "flex gap-2 mt-4" },
@@ -5582,33 +5793,43 @@ function AdminPanel({ data, loadData }) {
           }, "Cancel")
         )
       ),
+      React.createElement('p', { className: "text-sm text-gray-500 mb-2" }, `${vendors.length} vendors`),
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
           React.createElement('tr', { className: "border-b" },
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Code"),
             React.createElement('th', { className: "text-left py-2 px-4" }, "Name"),
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Email"),
             React.createElement('th', { className: "text-left py-2 px-4" }, "Phone"),
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Address"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Country"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Status"),
             React.createElement('th', { className: "text-left py-2 px-4" }, "Actions")
           )
         ),
         React.createElement('tbody', null,
           vendors.map(vendor =>
             React.createElement('tr', { key: vendor.id, className: "border-b hover:bg-gray-50" },
+              React.createElement('td', { className: "py-2 px-4 text-sm text-gray-500" }, vendor.code || '-'),
               React.createElement('td', { className: "py-2 px-4 font-semibold" }, vendor.name),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.email),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.phone),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.address),
+              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.phone || '-'),
+              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.country || '-'),
+              React.createElement('td', { className: "py-2 px-4" },
+                React.createElement('span', {
+                  className: `px-2 py-1 text-xs rounded ${vendor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`
+                }, vendor.status || 'active')
+              ),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('div', { className: "flex gap-2" },
                   React.createElement('button', {
                     onClick: () => {
                       setEditingVendor(vendor);
                       setVendorForm({
-                        name: vendor.name,
-                        email: vendor.email,
-                        phone: vendor.phone,
-                        address: vendor.address
+                        name: vendor.name || '',
+                        code: vendor.code || '',
+                        email: vendor.email || '',
+                        phone: vendor.phone || '',
+                        address: vendor.address || '',
+                        country: vendor.country || '',
+                        type: vendor.type || ''
                       });
                       setShowVendorForm(true);
                     },
@@ -5965,6 +6186,171 @@ function AdminPanel({ data, loadData }) {
               )
             )
           )
+    ),
+
+    // Clients Tab
+    activeTab === 'clients' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+        React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Client Management"),
+        React.createElement('div', { className: "flex gap-2" },
+          React.createElement('button', {
+            onClick: () => setShowClientUpload(!showClientUpload),
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, "Upload XLSX/CSV"),
+          React.createElement('button', {
+            onClick: () => {
+              setShowClientForm(true);
+              setEditingClient(null);
+              setClientForm({ name: '', code: '', contact_person: '', email: '', phone: '', address: '', country: '' });
+            },
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, "+ Add Client")
+        )
+      ),
+      // Client Upload Section
+      showClientUpload && React.createElement('div', { className: "mb-6 p-4 bg-green-50 rounded-lg border border-green-200" },
+        React.createElement('h4', { className: "font-semibold mb-3 text-green-800" }, "Bulk Upload Clients from XLSX/CSV"),
+        React.createElement('p', { className: "text-sm text-green-700 mb-3" },
+          "Upload an Excel or CSV file. Columns: Client Name/Name (required), Code, Contact Person, Email, Phone, Address, Country"
+        ),
+        React.createElement('div', { className: "flex items-center gap-4" },
+          React.createElement('input', {
+            type: "file",
+            accept: ".csv,.xlsx,.xls",
+            onChange: handleClientFileUpload,
+            disabled: uploadingClients,
+            className: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+          }),
+          uploadingClients && React.createElement('span', { className: "text-green-600 font-medium" }, "Uploading...")
+        ),
+        React.createElement('button', {
+          onClick: () => setShowClientUpload(false),
+          className: "mt-3 text-sm text-gray-500 hover:text-gray-700"
+        }, "Cancel")
+      ),
+      // Client Form
+      showClientForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
+        React.createElement('h4', { className: "font-semibold mb-4" }, editingClient ? 'Edit Client' : 'New Client'),
+        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" },
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Client Name *",
+            value: clientForm.name,
+            onChange: (e) => setClientForm({ ...clientForm, name: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Client Code",
+            value: clientForm.code,
+            onChange: (e) => setClientForm({ ...clientForm, code: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Contact Person",
+            value: clientForm.contact_person,
+            onChange: (e) => setClientForm({ ...clientForm, contact_person: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "email",
+            placeholder: "Email",
+            value: clientForm.email,
+            onChange: (e) => setClientForm({ ...clientForm, email: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Phone",
+            value: clientForm.phone,
+            onChange: (e) => setClientForm({ ...clientForm, phone: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Country",
+            value: clientForm.country,
+            onChange: (e) => setClientForm({ ...clientForm, country: e.target.value }),
+            className: "px-3 py-2 border rounded-lg"
+          }),
+          React.createElement('input', {
+            type: "text",
+            placeholder: "Address",
+            value: clientForm.address,
+            onChange: (e) => setClientForm({ ...clientForm, address: e.target.value }),
+            className: "px-3 py-2 border rounded-lg md:col-span-3"
+          })
+        ),
+        React.createElement('div', { className: "flex gap-2 mt-4" },
+          React.createElement('button', {
+            onClick: handleSaveClient,
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, "Save Client"),
+          React.createElement('button', {
+            onClick: () => {
+              setShowClientForm(false);
+              setEditingClient(null);
+            },
+            className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+          }, "Cancel")
+        )
+      ),
+      // Client Table
+      React.createElement('p', { className: "text-sm text-gray-500 mb-2" }, `${clients.length} clients`),
+      React.createElement('table', { className: "w-full" },
+        React.createElement('thead', null,
+          React.createElement('tr', { className: "border-b" },
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Name"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Contact"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Email"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Phone"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Country"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Status"),
+            React.createElement('th', { className: "text-left py-2 px-4" }, "Actions")
+          )
+        ),
+        React.createElement('tbody', null,
+          clients.map(client =>
+            React.createElement('tr', { key: client.id, className: "border-b hover:bg-gray-50" },
+              React.createElement('td', { className: "py-2 px-4 font-semibold" }, client.name),
+              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.contact_person || '-'),
+              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.email || '-'),
+              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.phone || '-'),
+              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.country || '-'),
+              React.createElement('td', { className: "py-2 px-4" },
+                React.createElement('span', {
+                  className: `px-2 py-1 text-xs rounded ${client.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`
+                }, client.status || 'active')
+              ),
+              React.createElement('td', { className: "py-2 px-4" },
+                React.createElement('div', { className: "flex gap-2" },
+                  React.createElement('button', {
+                    onClick: () => {
+                      setEditingClient(client);
+                      setClientForm({
+                        name: client.name || '',
+                        code: client.code || '',
+                        contact_person: client.contact_person || '',
+                        email: client.email || '',
+                        phone: client.phone || '',
+                        address: client.address || '',
+                        country: client.country || ''
+                      });
+                      setShowClientForm(true);
+                    },
+                    className: "px-3 py-1 bg-yellow-100 text-yellow-700 text-sm rounded hover:bg-yellow-200"
+                  }, "Edit"),
+                  React.createElement('button', {
+                    onClick: () => handleDeleteClient(client.id),
+                    className: "px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
+                  }, "Delete")
+                )
+              )
+            )
+          )
+        )
+      )
     )
   );
 }
