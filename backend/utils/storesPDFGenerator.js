@@ -64,12 +64,12 @@ function addIssueSlipApprovalSection(doc, approvals, yPosition) {
   yPosition += 15;
   if (hodApproval) {
     doc.font('Helvetica')
-       .text(`Name: ${hodApproval.user_name || 'N/A'}`, 70, yPosition)
+       .text(`Name: ${hodApproval.user_name || hodApproval.name || 'N/A'}`, 70, yPosition)
        .text(`Action: ${hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(hodApproval.timestamp)}`, 370, yPosition);
+       .text(`Date/Time: ${formatDateTime(hodApproval.timestamp || hodApproval.date)}`, 370, yPosition);
     yPosition += 12;
-    if (hodApproval.comment) {
-      doc.text(`Comments: ${hodApproval.comment}`, 70, yPosition, { width: 460 });
+    if (hodApproval.comment || hodApproval.comments) {
+      doc.text(`Comments: ${hodApproval.comment || hodApproval.comments}`, 70, yPosition, { width: 460 });
     }
   } else {
     doc.font('Helvetica').text('Pending', 70, yPosition);
@@ -84,12 +84,12 @@ function addIssueSlipApprovalSection(doc, approvals, yPosition) {
   yPosition += 15;
   if (financeApproval) {
     doc.font('Helvetica')
-       .text(`Name: ${financeApproval.user_name || 'N/A'}`, 70, yPosition)
+       .text(`Name: ${financeApproval.user_name || financeApproval.name || 'N/A'}`, 70, yPosition)
        .text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(financeApproval.timestamp)}`, 370, yPosition);
+       .text(`Date/Time: ${formatDateTime(financeApproval.timestamp || financeApproval.date)}`, 370, yPosition);
     yPosition += 12;
-    if (financeApproval.comment) {
-      doc.text(`Comments: ${financeApproval.comment}`, 70, yPosition, { width: 460 });
+    if (financeApproval.comment || financeApproval.comments) {
+      doc.text(`Comments: ${financeApproval.comment || financeApproval.comments}`, 70, yPosition, { width: 460 });
     }
   } else {
     doc.font('Helvetica').text('Pending', 70, yPosition);
@@ -207,7 +207,24 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
         doc.addPage();
         yPos = 50;
       }
-      addIssueSlipApprovalSection(doc, approvals, yPos);
+      yPos = addIssueSlipApprovalSection(doc, approvals, yPos);
+
+      // Collected By section
+      if (yPos > 650) {
+        doc.addPage();
+        yPos = 50;
+      }
+      yPos += 10;
+      doc.font('Helvetica-Bold').fontSize(10);
+      doc.text('Collected By:', 50, yPos);
+      doc.font('Helvetica').text('_______________________', 50, yPos + 25);
+      doc.font('Helvetica-Bold').text('Name', 50, yPos + 42);
+
+      doc.text('Signature:', 250, yPos);
+      doc.font('Helvetica').text('_______________________', 250, yPos + 25);
+
+      doc.font('Helvetica-Bold').text('Date:', 430, yPos);
+      doc.font('Helvetica').text('_______________', 430, yPos + 25);
 
       doc.end();
 
