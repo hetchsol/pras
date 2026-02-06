@@ -356,7 +356,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id || user.id, username: user.username, role: user.role },
+      { id: user._id || user.id, username: user.username, role: user.role, full_name: user.full_name, department: user.department },
       process.env.JWT_SECRET || 'default-secret',
       { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
@@ -376,7 +376,8 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         department: user.department,
         employee_number: user.employee_number || '',
-        is_hod: user.is_hod
+        is_hod: user.is_hod,
+        can_access_stores: user.can_access_stores || false
       }
     });
   } catch (error) {
@@ -411,7 +412,9 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
       email: user.email,
       role: user.role,
       department: user.department,
-      is_hod: user.is_hod
+      is_hod: user.is_hod,
+      employee_number: user.employee_number,
+      can_access_stores: user.can_access_stores || false
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
