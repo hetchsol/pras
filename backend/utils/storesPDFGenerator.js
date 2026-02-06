@@ -112,12 +112,13 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       // Header
       addHeader(doc, 'ISSUE SLIP');
 
-      // Slip ID and Status
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .text(`Slip ID: ${slip.id}`, 50, 120)
-         .text(`Status: ${slip.status.replace(/_/g, ' ').toUpperCase()}`, 400, 120, { align: 'right' })
-         .moveDown();
+      // Slip ID and Status (in blue)
+      const statusText = slip.status.replace(/_/g, ' ').toUpperCase();
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0000CC')
+         .text(`Slip ID: ${slip.id}`, 50, 120);
+      doc.fillColor(statusText === 'APPROVED' ? '#0000CC' : 'black')
+         .text(`Status: ${statusText}`, 400, 120, { align: 'right' });
+      doc.fillColor('black').moveDown();
 
       // Draw info section
       let yPos = 150;
@@ -148,8 +149,14 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       doc.font('Helvetica-Bold').text('Created By:', 300, yPos + 60);
       doc.font('Helvetica').text(slip.initiator_name || 'N/A', 400, yPos + 60);
 
+      // Customer
+      if (slip.customer) {
+        doc.font('Helvetica-Bold').text('Customer:', 50, yPos + 80);
+        doc.font('Helvetica').text(slip.customer, 150, yPos + 80);
+      }
+
       // Remarks
-      yPos += 90;
+      yPos += slip.customer ? 110 : 90;
       if (slip.remarks) {
         doc.font('Helvetica-Bold').text('Remarks:', 50, yPos);
         doc.font('Helvetica').text(slip.remarks, 120, yPos, { width: 430 });
@@ -249,12 +256,13 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       // Header
       addHeader(doc, 'PICKING SLIP');
 
-      // Slip ID and Status
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .text(`Slip ID: ${slip.id}`, 50, 120)
-         .text(`Status: ${slip.status.replace(/_/g, ' ').toUpperCase()}`, 400, 120, { align: 'right' })
-         .moveDown();
+      // Slip ID and Status (in blue)
+      const statusText2 = slip.status.replace(/_/g, ' ').toUpperCase();
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0000CC')
+         .text(`Slip ID: ${slip.id}`, 50, 120);
+      doc.fillColor(statusText2 === 'COMPLETED' ? '#0000CC' : 'black')
+         .text(`Status: ${statusText2}`, 400, 120, { align: 'right' });
+      doc.fillColor('black').moveDown();
 
       // Draw info section
       let yPos = 150;
@@ -282,8 +290,14 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       doc.font('Helvetica-Bold').text('Created By:', 300, yPos + 60);
       doc.font('Helvetica').text(slip.initiator_name || 'N/A', 400, yPos + 60);
 
+      // Customer
+      if (slip.customer) {
+        doc.font('Helvetica-Bold').text('Customer:', 50, yPos + 60);
+        doc.font('Helvetica').text(slip.customer, 150, yPos + 60);
+      }
+
       // Remarks
-      yPos += 90;
+      yPos += slip.customer ? 100 : 90;
       if (slip.remarks) {
         doc.font('Helvetica-Bold').text('Remarks:', 50, yPos);
         doc.font('Helvetica').text(slip.remarks, 120, yPos, { width: 430 });

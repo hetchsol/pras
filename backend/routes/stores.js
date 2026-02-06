@@ -22,6 +22,7 @@ const createStoresTables = () => {
       delivery_date DATETIME,
       delivered_by TEXT,
       reference_number TEXT,
+      customer TEXT,
       remarks TEXT,
       initiator_id INTEGER NOT NULL,
       initiator_name TEXT NOT NULL,
@@ -55,6 +56,7 @@ const createStoresTables = () => {
       destination TEXT NOT NULL,
       department TEXT,
       reference_number TEXT,
+      customer TEXT,
       remarks TEXT,
       initiator_id INTEGER NOT NULL,
       initiator_name TEXT NOT NULL,
@@ -81,6 +83,14 @@ const createStoresTables = () => {
 
 // Initialize tables
 createStoresTables();
+
+// Add customer column to existing tables if not present
+try {
+  db.prepare(`ALTER TABLE issue_slips ADD COLUMN customer TEXT`).run();
+} catch (e) { /* column already exists */ }
+try {
+  db.prepare(`ALTER TABLE picking_slips ADD COLUMN customer TEXT`).run();
+} catch (e) { /* column already exists */ }
 
 // ============================================
 // ISSUE SLIPS ROUTES
@@ -195,6 +205,7 @@ router.post('/issue-slips', authenticateToken, (req, res) => {
       delivery_date,
       delivered_by,
       reference_number,
+      customer,
       remarks,
       items
     } = req.body;
@@ -210,14 +221,14 @@ router.post('/issue-slips', authenticateToken, (req, res) => {
     const insertSlip = db.prepare(`
       INSERT INTO issue_slips (
         id, issued_to, department, delivery_location,
-        delivery_date, delivered_by, reference_number, remarks,
+        delivery_date, delivered_by, reference_number, customer, remarks,
         initiator_id, initiator_name, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `);
 
     insertSlip.run(
       slipId, issued_to, department || req.user.department, delivery_location,
-      delivery_date || null, delivered_by, reference_number, remarks,
+      delivery_date || null, delivered_by, reference_number, customer || null, remarks,
       userId, userName, 'pending_hod'
     );
 
@@ -469,8 +480,10 @@ router.post('/picking-slips', authenticateToken, (req, res) => {
     const {
       picked_by,
       destination,
+      delivery_location,
       department,
       reference_number,
+      customer,
       remarks,
       items
     } = req.body;
@@ -486,12 +499,12 @@ router.post('/picking-slips', authenticateToken, (req, res) => {
     db.prepare(`
       INSERT INTO picking_slips (
         id, picked_by, destination, department,
-        reference_number, remarks,
+        reference_number, customer, remarks,
         initiator_id, initiator_name, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).run(
       slipId, picked_by, destination, department || req.user.department,
-      reference_number, remarks,
+      reference_number, customer || null, remarks,
       userId, userName, 'completed'
     );
 

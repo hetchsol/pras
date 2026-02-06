@@ -18,6 +18,7 @@ const issueSlipSchema = new mongoose.Schema({
   delivery_date: { type: Date },
   delivered_by: { type: String },
   reference_number: { type: String },
+  customer: { type: String },
   remarks: { type: String },
   initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },

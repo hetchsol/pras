@@ -1578,6 +1578,7 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
       delivery_date,
       delivered_by,
       reference_number,
+      customer,
       remarks,
       items
     } = req.body;
@@ -1606,6 +1607,7 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
       delivery_date: delivery_date || null,
       delivered_by,
       reference_number,
+      customer,
       remarks,
       initiator_id: userId,
       initiator_name: userName,
@@ -1807,6 +1809,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
       delivery_location,
       department,
       reference_number,
+      customer,
       remarks,
       items
     } = req.body;
@@ -1834,6 +1837,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
       delivery_location,
       department: department || req.user.department,
       reference_number,
+      customer,
       remarks,
       initiator_id: userId,
       initiator_name: userName,

@@ -17,6 +17,7 @@ const pickingSlipSchema = new mongoose.Schema({
   delivery_location: { type: String },
   department: { type: String },
   reference_number: { type: String },
+  customer: { type: String },
   remarks: { type: String },
   initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },

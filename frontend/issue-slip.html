@@ -290,9 +290,9 @@
         <a href="index.html" class="nav-btn nav-btn-home">
             <span>&#127968;</span> Home
         </a>
-        <button onclick="goBack()" class="nav-btn nav-btn-back">
+        <a href="index.html" class="nav-btn nav-btn-back">
             <span>&#8592;</span> Back
-        </button>
+        </a>
     </div>
 
     <div class="container">
@@ -351,6 +351,12 @@
                         <label for="reference_number">Reference Number</label>
                         <input type="text" id="reference_number" placeholder="Optional reference">
                     </div>
+                    <div class="form-group">
+                        <label for="customer">Customer</label>
+                        <select id="customer">
+                            <option value="">-- Select customer (optional) --</option>
+                        </select>
+                    </div>
                     <div class="form-group full-width">
                         <label for="remarks">Remarks</label>
                         <textarea id="remarks" placeholder="Any additional notes or remarks"></textarea>
@@ -404,8 +410,9 @@
                 document.getElementById('department').value = userData.department;
             }
 
-            // Load users for dropdowns
+            // Load users and vendors for dropdowns
             await loadUsers();
+            await loadVendors();
 
             // Add initial row
             addItemRow();
@@ -424,6 +431,27 @@
                 }
             } catch (e) {
                 console.error('Failed to load users:', e);
+            }
+        }
+
+        async function loadVendors() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/vendors`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const vendors = await response.json();
+                    const select = document.getElementById('customer');
+                    vendors.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.name;
+                        opt.textContent = v.name;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load vendors:', e);
             }
         }
 
@@ -542,6 +570,7 @@
                 delivery_date: document.getElementById('delivery_date').value || null,
                 delivered_by: deliveredBy,
                 reference_number: document.getElementById('reference_number').value.trim(),
+                customer: document.getElementById('customer').value,
                 remarks: document.getElementById('remarks').value.trim(),
                 items: items
             };
@@ -563,9 +592,10 @@
 
                 if (response.ok) {
                     showAlert('Issue slip submitted successfully! It is now pending HOD approval.', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 2000);
+                    document.getElementById('issueSlipForm').reset();
+                    document.getElementById('itemsTableBody').innerHTML = '';
+                    rowCounter = 0;
+                    addItemRow();
                 } else {
                     showAlert(data.error || 'Failed to submit issue slip', 'error');
                 }
@@ -592,9 +622,6 @@
             document.getElementById('loading').style.display = show ? 'flex' : 'none';
         }
 
-        function goBack() {
-            window.history.back();
-        }
     </script>
 </body>
 </html>
