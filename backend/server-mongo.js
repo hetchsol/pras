@@ -1804,6 +1804,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
     const {
       picked_by,
       destination,
+      delivery_location,
       department,
       reference_number,
       remarks,
@@ -1830,6 +1831,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
       id: slipId,
       picked_by,
       destination,
+      delivery_location,
       department: department || req.user.department,
       reference_number,
       remarks,

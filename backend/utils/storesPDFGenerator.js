@@ -59,41 +59,43 @@ function addIssueSlipApprovalSection(doc, approvals, yPosition) {
   const financeApproval = approvals.find(a => a.role === 'finance' && a.action !== 'pending');
 
   // HOD Approval
-  doc.fontSize(10).font('Helvetica-Bold');
+  doc.fontSize(10).font('Helvetica-Bold').fillColor('black');
   doc.text('HEAD OF DEPARTMENT:', 70, yPosition);
   yPosition += 15;
   if (hodApproval) {
-    doc.font('Helvetica')
-       .text(`Name: ${hodApproval.user_name || hodApproval.name || 'N/A'}`, 70, yPosition)
-       .text(`Action: ${hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(hodApproval.timestamp || hodApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#0000CC')
+       .text(`Name: ${hodApproval.user_name || hodApproval.name || 'N/A'}`, 70, yPosition);
+    doc.fillColor('black').text(`Action: ${hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition);
+    doc.fillColor('#0000CC').text(`Date/Time: ${formatDateTime(hodApproval.timestamp || hodApproval.date)}`, 370, yPosition);
     yPosition += 12;
     if (hodApproval.comment || hodApproval.comments) {
-      doc.text(`Comments: ${hodApproval.comment || hodApproval.comments}`, 70, yPosition, { width: 460 });
+      doc.fillColor('black').text(`Comments: ${hodApproval.comment || hodApproval.comments}`, 70, yPosition, { width: 460 });
     }
   } else {
-    doc.font('Helvetica').text('Pending', 70, yPosition);
+    doc.font('Helvetica').fillColor('black').text('Pending', 70, yPosition);
   }
   yPosition += 25;
+  doc.fillColor('black');
   doc.moveTo(70, yPosition).lineTo(530, yPosition).stroke();
   yPosition += 15;
 
   // Finance Approval
-  doc.font('Helvetica-Bold');
+  doc.font('Helvetica-Bold').fillColor('black');
   doc.text('FINANCE:', 70, yPosition);
   yPosition += 15;
   if (financeApproval) {
-    doc.font('Helvetica')
-       .text(`Name: ${financeApproval.user_name || financeApproval.name || 'N/A'}`, 70, yPosition)
-       .text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(financeApproval.timestamp || financeApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#0000CC')
+       .text(`Name: ${financeApproval.user_name || financeApproval.name || 'N/A'}`, 70, yPosition);
+    doc.fillColor('black').text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition);
+    doc.fillColor('#0000CC').text(`Date/Time: ${formatDateTime(financeApproval.timestamp || financeApproval.date)}`, 370, yPosition);
     yPosition += 12;
     if (financeApproval.comment || financeApproval.comments) {
-      doc.text(`Comments: ${financeApproval.comment || financeApproval.comments}`, 70, yPosition, { width: 460 });
+      doc.fillColor('black').text(`Comments: ${financeApproval.comment || financeApproval.comments}`, 70, yPosition, { width: 460 });
     }
   } else {
-    doc.font('Helvetica').text('Pending', 70, yPosition);
+    doc.font('Helvetica').fillColor('black').text('Pending', 70, yPosition);
   }
+  doc.fillColor('black');
 
   return yPosition + 40;
 }
@@ -160,8 +162,8 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       yPos += 20;
 
       // Table headers
-      const tableHeaders = ['#', 'Item Code', 'Item Name', 'Description', 'Qty', 'Unit'];
-      const colWidths = [30, 70, 120, 150, 50, 60];
+      const tableHeaders = ['#', 'Item Code', 'Description', 'Qty', 'Unit'];
+      const colWidths = [30, 80, 260, 60, 70];
       let xPos = 50;
 
       // Draw header row
@@ -188,8 +190,7 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
         const rowData = [
           (index + 1).toString(),
           item.item_code || '-',
-          item.item_name || '-',
-          item.description || '-',
+          item.description || item.item_name || '-',
           item.quantity.toString(),
           item.unit || 'pcs'
         ];
@@ -272,14 +273,17 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       doc.font('Helvetica-Bold').text('Destination:', 300, yPos);
       doc.font('Helvetica').text(slip.destination || 'N/A', 400, yPos);
 
-      doc.font('Helvetica-Bold').text('Reference No:', 300, yPos + 20);
-      doc.font('Helvetica').text(slip.reference_number || 'N/A', 400, yPos + 20);
+      doc.font('Helvetica-Bold').text('Delivery Location:', 300, yPos + 20);
+      doc.font('Helvetica').text(slip.delivery_location || 'N/A', 400, yPos + 20);
 
-      doc.font('Helvetica-Bold').text('Created By:', 300, yPos + 40);
-      doc.font('Helvetica').text(slip.initiator_name || 'N/A', 400, yPos + 40);
+      doc.font('Helvetica-Bold').text('Reference No:', 300, yPos + 40);
+      doc.font('Helvetica').text(slip.reference_number || 'N/A', 400, yPos + 40);
+
+      doc.font('Helvetica-Bold').text('Created By:', 300, yPos + 60);
+      doc.font('Helvetica').text(slip.initiator_name || 'N/A', 400, yPos + 60);
 
       // Remarks
-      yPos += 70;
+      yPos += 90;
       if (slip.remarks) {
         doc.font('Helvetica-Bold').text('Remarks:', 50, yPos);
         doc.font('Helvetica').text(slip.remarks, 120, yPos, { width: 430 });
@@ -292,17 +296,17 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       yPos += 20;
 
       // Table headers
-      const tableHeaders = ['#', 'Item Code', 'Item Name', 'Description', 'Qty', 'Unit'];
-      const colWidths = [30, 70, 120, 150, 50, 60];
+      const tableHeaders2 = ['#', 'Item Code', 'Description', 'Qty', 'Unit'];
+      const colWidths2 = [30, 80, 260, 60, 70];
       let xPos = 50;
 
       // Draw header row
       doc.rect(50, yPos, 500, 20).fill('#f0f0f0').stroke();
       doc.fillColor('black').fontSize(9).font('Helvetica-Bold');
 
-      tableHeaders.forEach((header, i) => {
-        doc.text(header, xPos + 3, yPos + 5, { width: colWidths[i] - 6, align: 'left' });
-        xPos += colWidths[i];
+      tableHeaders2.forEach((header, i) => {
+        doc.text(header, xPos + 3, yPos + 5, { width: colWidths2[i] - 6, align: 'left' });
+        xPos += colWidths2[i];
       });
       yPos += 20;
 
@@ -320,15 +324,14 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
         const rowData = [
           (index + 1).toString(),
           item.item_code || '-',
-          item.item_name || '-',
-          item.description || '-',
+          item.description || item.item_name || '-',
           item.quantity.toString(),
           item.unit || 'pcs'
         ];
 
         rowData.forEach((data, i) => {
-          doc.text(data, xPos + 3, yPos + 5, { width: colWidths[i] - 6, align: 'left' });
-          xPos += colWidths[i];
+          doc.text(data, xPos + 3, yPos + 5, { width: colWidths2[i] - 6, align: 'left' });
+          xPos += colWidths2[i];
         });
         yPos += 20;
       });

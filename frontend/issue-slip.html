@@ -311,7 +311,11 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="issued_to">Issued To *</label>
-                        <input type="text" id="issued_to" required placeholder="Name of recipient">
+                        <select id="issued_to_select" onchange="handleUserSelect('issued_to')">
+                            <option value="">-- Select from users --</option>
+                            <option value="__other__">Other (type manually)</option>
+                        </select>
+                        <input type="text" id="issued_to" style="display:none; margin-top:5px;" placeholder="Type name of recipient">
                     </div>
                     <div class="form-group">
                         <label for="department">Department</label>
@@ -337,7 +341,11 @@
                     </div>
                     <div class="form-group">
                         <label for="delivered_by">Delivered By</label>
-                        <input type="text" id="delivered_by" placeholder="Name of delivery person">
+                        <select id="delivered_by_select" onchange="handleUserSelect('delivered_by')">
+                            <option value="">-- Select from users --</option>
+                            <option value="__other__">Other (type manually)</option>
+                        </select>
+                        <input type="text" id="delivered_by" style="display:none; margin-top:5px;" placeholder="Type name of delivery person">
                     </div>
                     <div class="form-group">
                         <label for="reference_number">Reference Number</label>
@@ -360,8 +368,7 @@
                             <tr>
                                 <th style="width: 50px;">#</th>
                                 <th style="width: 120px;">Item Code</th>
-                                <th style="width: 200px;">Item Name *</th>
-                                <th>Description</th>
+                                <th>Description *</th>
                                 <th style="width: 80px;">Qty *</th>
                                 <th style="width: 80px;">Unit</th>
                                 <th style="width: 60px;">Action</th>
@@ -387,17 +394,62 @@
         const API_URL = window.API_URL || 'http://localhost:3001/api';
         let rowCounter = 0;
 
+        let usersList = [];
+
         // Initialize form
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Load user data for default department
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             if (userData.department) {
                 document.getElementById('department').value = userData.department;
             }
 
+            // Load users for dropdowns
+            await loadUsers();
+
             // Add initial row
             addItemRow();
         });
+
+        async function loadUsers() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    usersList = await response.json();
+                    populateUserDropdown('issued_to_select');
+                    populateUserDropdown('delivered_by_select');
+                }
+            } catch (e) {
+                console.error('Failed to load users:', e);
+            }
+        }
+
+        function populateUserDropdown(selectId) {
+            const select = document.getElementById(selectId);
+            usersList.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.full_name;
+                opt.textContent = `${u.full_name} (${u.department || ''})`;
+                select.insertBefore(opt, select.lastElementChild);
+            });
+        }
+
+        function handleUserSelect(fieldId) {
+            const select = document.getElementById(fieldId + '_select');
+            const input = document.getElementById(fieldId);
+            if (select.value === '__other__') {
+                input.style.display = 'block';
+                input.required = true;
+                input.focus();
+            } else {
+                input.style.display = 'none';
+                input.required = false;
+                input.value = '';
+            }
+        }
 
         function addItemRow() {
             rowCounter++;
@@ -407,8 +459,7 @@
             row.innerHTML = `
                 <td>${rowCounter}</td>
                 <td><input type="text" class="item_code" placeholder="Code"></td>
-                <td><input type="text" class="item_name" required placeholder="Item name"></td>
-                <td><input type="text" class="description" placeholder="Description"></td>
+                <td><input type="text" class="description" required placeholder="Item description"></td>
                 <td><input type="number" class="quantity" min="1" step="1" value="1" required></td>
                 <td>
                     <select class="unit">
@@ -452,11 +503,11 @@
             const items = [];
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
-                const itemName = row.querySelector('.item_name').value.trim();
+                const description = row.querySelector('.description').value.trim();
                 const quantity = parseFloat(row.querySelector('.quantity').value);
 
-                if (!itemName) {
-                    showAlert(`Please enter an item name for row ${i + 1}`, 'error');
+                if (!description) {
+                    showAlert(`Please enter a description for row ${i + 1}`, 'error');
                     return;
                 }
 
@@ -467,25 +518,29 @@
 
                 items.push({
                     item_code: row.querySelector('.item_code').value.trim(),
-                    item_name: itemName,
-                    description: row.querySelector('.description').value.trim(),
+                    item_name: description,
+                    description: description,
                     quantity: quantity,
                     unit: row.querySelector('.unit').value
                 });
             }
 
-            const issuedTo = document.getElementById('issued_to').value.trim();
+            const issuedToSelect = document.getElementById('issued_to_select').value;
+            const issuedTo = (issuedToSelect && issuedToSelect !== '__other__') ? issuedToSelect : document.getElementById('issued_to').value.trim();
             if (!issuedTo) {
                 showAlert('Please enter who items are issued to', 'error');
                 return;
             }
+
+            const deliveredBySelect = document.getElementById('delivered_by_select').value;
+            const deliveredBy = (deliveredBySelect && deliveredBySelect !== '__other__') ? deliveredBySelect : document.getElementById('delivered_by').value.trim();
 
             const slipData = {
                 issued_to: issuedTo,
                 department: document.getElementById('department').value,
                 delivery_location: document.getElementById('delivery_location').value.trim(),
                 delivery_date: document.getElementById('delivery_date').value || null,
-                delivered_by: document.getElementById('delivered_by').value.trim(),
+                delivered_by: deliveredBy,
                 reference_number: document.getElementById('reference_number').value.trim(),
                 remarks: document.getElementById('remarks').value.trim(),
                 items: items
