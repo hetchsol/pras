@@ -5,6 +5,10 @@
  */
 
 const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+
+const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
 
 /**
  * Generate Requisition Summary PDF Report
@@ -15,10 +19,15 @@ const PDFDocument = require('pdfkit');
 function generateRequisitionSummaryPDF(requisitions, filters = {}) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
+    // Logo
+    if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 30, { width: 100 });
+    }
+
     // Header
     doc.fontSize(18)
         .fillColor('#0066CC')
-        .text('PURCHASE REQUISITION SUMMARY REPORT', { align: 'center' })
+        .text('PURCHASE REQUISITION SUMMARY REPORT', 160, 35, { align: 'center' })
         .moveDown();
 
     doc.fontSize(10)
@@ -164,10 +173,15 @@ function generateRequisitionSummaryPDF(requisitions, filters = {}) {
 function generateBudgetReportPDF(budgets, fiscalYear) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
+    // Logo
+    if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 30, { width: 100 });
+    }
+
     // Header
     doc.fontSize(18)
         .fillColor('#FF6600')
-        .text(`BUDGET REPORT - FISCAL YEAR ${fiscalYear}`, { align: 'center' })
+        .text(`BUDGET REPORT - FISCAL YEAR ${fiscalYear}`, 160, 35, { align: 'center' })
         .moveDown();
 
     doc.fontSize(10)
@@ -295,10 +309,15 @@ function generateBudgetReportPDF(budgets, fiscalYear) {
 function generateDepartmentalSpendingPDF(department, requisitions, budgetInfo) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
+    // Logo
+    if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 30, { width: 100 });
+    }
+
     // Header
     doc.fontSize(18)
         .fillColor('#0066CC')
-        .text(`DEPARTMENTAL SPENDING REPORT`, { align: 'center' })
+        .text(`DEPARTMENTAL SPENDING REPORT`, 160, 35, { align: 'center' })
         .fontSize(14)
         .text(department, { align: 'center' })
         .moveDown();

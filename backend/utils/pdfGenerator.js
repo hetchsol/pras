@@ -25,9 +25,15 @@ const generateRequisitionPDF = (requisition, items, callback) => {
             callback(err, null);
         });
 
+        // Add logo
+        const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+        if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, 50, 30, { width: 100 });
+        }
+
         // Add company header
         doc.fontSize(20)
-           .text('APPROVED PURCHASE REQUISITION', { align: 'center' })
+           .text('APPROVED PURCHASE REQUISITION', 160, 35, { align: 'center' })
            .moveDown(0.5);
 
         doc.fontSize(12)
