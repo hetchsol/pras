@@ -10,7 +10,7 @@ const issueSlipItemSchema = new mongoose.Schema({
 
 const issueSlipSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },  // KSB-ISS-timestamp
-  slip_number: { type: String, unique: true },
+  slip_number: { type: String, unique: true, sparse: true },
   issue_date: { type: Date, default: Date.now },
   issued_to: { type: String, required: true },
   department: { type: String },

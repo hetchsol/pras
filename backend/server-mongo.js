@@ -1493,6 +1493,16 @@ app.get('/api/fx-rates/all', authenticate, async (req, res) => {
 const IssueSlip = require('./models/IssueSlip');
 const PickingSlip = require('./models/PickingSlip');
 
+// Fix: drop old non-sparse unique indexes on slip_number (allows multiple null values)
+(async () => {
+  try {
+    await IssueSlip.collection.dropIndex('slip_number_1').catch(() => {});
+    await PickingSlip.collection.dropIndex('slip_number_1').catch(() => {});
+    await IssueSlip.syncIndexes();
+    await PickingSlip.syncIndexes();
+  } catch (e) { /* indexes may not exist yet */ }
+})();
+
 // Get all issue slips (filtered by user role)
 app.get('/api/stores/issue-slips', authenticate, async (req, res) => {
   try {
@@ -1575,8 +1585,9 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     const userId = req.user.id;
     const userName = req.user.full_name || req.user.name;
 
-    // Generate unique ID (format: KSB-ISS-YYYYMMDDHHMMSS)
-    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+    // Generate unique ID with milliseconds to avoid collisions
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 17);
     const slipId = `KSB-ISS-${timestamp}`;
 
     const slipItems = (items || []).map(item => ({
@@ -1615,7 +1626,7 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating issue slip:', error);
-    res.status(500).json({ error: 'Failed to create issue slip' });
+    res.status(500).json({ error: 'Failed to create issue slip', details: error.message });
   }
 });
 
@@ -1802,8 +1813,9 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
     const userId = req.user.id;
     const userName = req.user.full_name || req.user.name;
 
-    // Generate unique ID (format: KSB-PKS-YYYYMMDDHHMMSS)
-    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+    // Generate unique ID with milliseconds to avoid collisions
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 17);
     const slipId = `KSB-PKS-${timestamp}`;
 
     const slipItems = (items || []).map(item => ({
@@ -1833,7 +1845,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating picking slip:', error);
-    res.status(500).json({ error: 'Failed to create picking slip' });
+    res.status(500).json({ error: 'Failed to create picking slip', details: error.message });
   }
 });
 

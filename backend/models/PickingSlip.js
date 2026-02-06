@@ -10,7 +10,7 @@ const pickingSlipItemSchema = new mongoose.Schema({
 
 const pickingSlipSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },  // KSB-PKS-timestamp
-  slip_number: { type: String, unique: true },
+  slip_number: { type: String, unique: true, sparse: true },
   pick_date: { type: Date, default: Date.now },
   picked_by: { type: String, required: true },
   destination: { type: String, required: true },
