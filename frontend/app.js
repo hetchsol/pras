@@ -11882,10 +11882,6 @@ function StockItems({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.item_description || !form.unit) {
-      alert('Description and Unit are required');
-      return;
-    }
     try {
       const url = editingItem
         ? `${API_URL}/stores/stock-items/${editingItem._id}`
@@ -11989,8 +11985,8 @@ function StockItems({ user }) {
         body: JSON.stringify({ items: unique })
       });
 
-      if (!res.ok) throw new Error('Upload failed');
       const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Upload failed');
       alert(`Imported ${result.imported} items (${result.upserted} new, ${result.modified} updated)`);
       setShowUpload(false);
       fetchItems();
@@ -12069,23 +12065,21 @@ function StockItems({ user }) {
             })
           ),
           React.createElement('div', null,
-            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Description *"),
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Description"),
             React.createElement('input', {
               type: 'text',
               value: form.item_description,
               onChange: (e) => setForm({ ...form, item_description: e.target.value }),
-              required: true,
               className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
               placeholder: "Item description"
             })
           ),
           React.createElement('div', null,
-            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Unit *"),
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Unit"),
             React.createElement('input', {
               type: 'text',
               value: form.unit,
               onChange: (e) => setForm({ ...form, unit: e.target.value }),
-              required: true,
               className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
               placeholder: "e.g. EA, KG, LTR"
             })

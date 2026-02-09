@@ -2467,20 +2467,42 @@ app.post('/api/stores/stock-items/bulk-upload', authenticate, async (req, res) =
       return res.status(400).json({ error: 'No items provided' });
     }
 
-    const ops = items.map(item => ({
-      updateOne: {
-        filter: { item_number: item.item_number },
-        update: { $set: item },
-        upsert: true
-      }
-    }));
+    // Separate items with and without item_number
+    const withNumber = items.filter(i => i.item_number && i.item_number.trim());
+    const withoutNumber = items.filter(i => !i.item_number || !i.item_number.trim());
 
-    const result = await StockItem.bulkWrite(ops);
+    let upsertedCount = 0;
+    let modifiedCount = 0;
+
+    // Upsert items that have an item_number
+    if (withNumber.length > 0) {
+      const ops = withNumber.map(item => ({
+        updateOne: {
+          filter: { item_number: item.item_number.trim() },
+          update: { $set: { ...item, item_number: item.item_number.trim() } },
+          upsert: true
+        }
+      }));
+      const result = await StockItem.bulkWrite(ops);
+      upsertedCount = result.upsertedCount;
+      modifiedCount = result.modifiedCount;
+    }
+
+    // Insert items without item_number directly
+    if (withoutNumber.length > 0) {
+      const cleaned = withoutNumber.map(i => {
+        const { item_number, ...rest } = i;
+        return rest;
+      });
+      await StockItem.insertMany(cleaned);
+      upsertedCount += cleaned.length;
+    }
+
     res.json({
       success: true,
       imported: items.length,
-      upserted: result.upsertedCount,
-      modified: result.modifiedCount
+      upserted: upsertedCount,
+      modified: modifiedCount
     });
   } catch (error) {
     console.error('Error bulk uploading stock items:', error);
