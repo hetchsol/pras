@@ -1661,6 +1661,7 @@ const IssueSlip = require('./models/IssueSlip');
 const PickingSlip = require('./models/PickingSlip');
 const GoodsReceiptNote = require('./models/GoodsReceiptNote');
 const GRNApproverAssignment = require('./models/GRNApproverAssignment');
+const StockItem = require('./models/StockItem');
 
 // Fix: drop old non-sparse unique indexes on slip_number (allows multiple null values)
 (async () => {
@@ -2428,6 +2429,86 @@ app.get('/api/stores/grns-for-issue', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching GRNs for issue:', error);
     res.status(500).json({ error: 'Failed to fetch GRNs for issue' });
+  }
+});
+
+// ============================================
+// STOCK ITEMS MASTER CATALOG
+// ============================================
+
+// List all stock items (sorted A-Z by description)
+app.get('/api/stores/stock-items', authenticate, async (req, res) => {
+  try {
+    const items = await StockItem.find().sort({ item_description: 1 }).lean();
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching stock items:', error);
+    res.status(500).json({ error: 'Failed to fetch stock items' });
+  }
+});
+
+// Create a stock item
+app.post('/api/stores/stock-items', authenticate, async (req, res) => {
+  try {
+    const item = new StockItem(req.body);
+    const saved = await item.save();
+    res.json({ success: true, item: saved });
+  } catch (error) {
+    console.error('Error creating stock item:', error);
+    res.status(500).json({ error: error.message || 'Failed to create stock item' });
+  }
+});
+
+// Bulk upload stock items (upsert on item_number) - must be before :id route
+app.post('/api/stores/stock-items/bulk-upload', authenticate, async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided' });
+    }
+
+    const ops = items.map(item => ({
+      updateOne: {
+        filter: { item_number: item.item_number },
+        update: { $set: item },
+        upsert: true
+      }
+    }));
+
+    const result = await StockItem.bulkWrite(ops);
+    res.json({
+      success: true,
+      imported: items.length,
+      upserted: result.upsertedCount,
+      modified: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error bulk uploading stock items:', error);
+    res.status(500).json({ error: 'Failed to bulk upload stock items' });
+  }
+});
+
+// Update a stock item
+app.put('/api/stores/stock-items/:id', authenticate, async (req, res) => {
+  try {
+    const updated = await StockItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Stock item not found' });
+    res.json({ success: true, item: updated });
+  } catch (error) {
+    console.error('Error updating stock item:', error);
+    res.status(500).json({ error: error.message || 'Failed to update stock item' });
+  }
+});
+
+// Delete a stock item
+app.delete('/api/stores/stock-items/:id', authenticate, async (req, res) => {
+  try {
+    const deleted = await StockItem.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Stock item not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting stock item:', error);
+    res.status(500).json({ error: 'Failed to delete stock item' });
   }
 });
 

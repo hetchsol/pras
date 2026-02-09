@@ -1339,6 +1339,7 @@ function App() {
         view === 'grns' && React.createElement(GoodsReceiptNotesList, { user: currentUser, setView, setSelectedReq }),
         view === 'view-grn' && React.createElement(ViewGoodsReceiptNote, { grn: selectedReq, user: currentUser, setView }),
         view === 'stock-register' && React.createElement(StockRegister, { user: currentUser }),
+        view === 'stock-items' && React.createElement(StockItems, { user: currentUser }),
         view === 'issue-slips' && React.createElement(IssueSlipsList, { user: currentUser, setView, setSelectedReq }),
         view === 'approve-issue-slip' && React.createElement(ApproveIssueSlip, { slip: selectedReq, user: currentUser, setView }),
         view === 'picking-slips' && React.createElement(PickingSlipsList, { user: currentUser, setView, setSelectedReq })
@@ -1716,7 +1717,8 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       children: [
         { id: 'grns', label: 'Goods Receipt Notes', icon: '📋', show: true },
         { id: 'create-grn', label: 'Create GRN', icon: '➕', show: user.can_access_stores, isLink: true, href: 'grn.html' },
-        { id: 'stock-register', label: 'Stock Register', icon: '📊', show: true },
+        { id: 'stock-register', label: 'Real-Time Stock Register', icon: '📊', show: true },
+        { id: 'stock-items', label: 'Stock Items', icon: '📦', show: user.can_access_stores || user.role === 'admin' || user.role === 'hod' || user.role === 'finance' },
         { id: 'issue-slips', label: 'Issue Slips', icon: '📤', show: true },
         { id: 'create-issue-slip', label: 'Create Issue Slip', icon: '➕', show: user.can_access_stores, isLink: true, href: 'issue-slip.html' },
         { id: 'picking-slips', label: 'Picking Slips', icon: '📥', show: true },
@@ -11778,7 +11780,7 @@ function StockRegister({ user }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Stock Register"),
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Real-Time Stock Register"),
         React.createElement('button', {
           onClick: fetchStockRegister,
           className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -11814,6 +11816,365 @@ function StockRegister({ user }) {
                     React.createElement('td', {
                       className: `px-4 py-3 text-sm text-right font-bold ${item.available > 0 ? 'text-green-600' : 'text-red-600'}`
                     }, item.available)
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// STORES MODULE - STOCK ITEMS MASTER CATALOG
+// ============================================
+function StockItems({ user }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [form, setForm] = useState({
+    item_number: '',
+    item_description: '',
+    unit: '',
+    packaging_uom: '',
+    preferred_vendor: ''
+  });
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/stock-items`);
+      if (!res.ok) throw new Error('Failed to fetch stock items');
+      const data = await res.json();
+      setItems(data);
+    } catch (error) {
+      console.error('Error fetching stock items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setForm({ item_number: '', item_description: '', unit: '', packaging_uom: '', preferred_vendor: '' });
+    setEditingItem(null);
+    setShowForm(false);
+  };
+
+  const handleEdit = (item) => {
+    setForm({
+      item_number: item.item_number || '',
+      item_description: item.item_description || '',
+      unit: item.unit || '',
+      packaging_uom: item.packaging_uom || '',
+      preferred_vendor: item.preferred_vendor || ''
+    });
+    setEditingItem(item);
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.item_description || !form.unit) {
+      alert('Description and Unit are required');
+      return;
+    }
+    try {
+      const url = editingItem
+        ? `${API_URL}/stores/stock-items/${editingItem._id}`
+        : `${API_URL}/stores/stock-items`;
+      const method = editingItem ? 'PUT' : 'POST';
+      const res = await fetchWithAuth(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save');
+      }
+      resetForm();
+      fetchItems();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (!confirm(`Delete "${item.item_description}"?`)) return;
+    try {
+      const res = await fetchWithAuth(`${API_URL}/stores/stock-items/${item._id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      fetchItems();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const mapStockItemRow = (row) => {
+    const get = (...keys) => {
+      for (const k of Object.keys(row)) {
+        const lk = k.toLowerCase().trim();
+        for (const pattern of keys) {
+          if (lk.includes(pattern)) return String(row[k] || '').trim();
+        }
+      }
+      return '';
+    };
+    const item = {};
+    const desc = get('description', 'item description', 'item name');
+    if (!desc) return null;
+    item.item_description = desc;
+    const num = get('item number', 'item no', 'item#', 'item code', 'itemno', 'itemnumber');
+    if (num) item.item_number = num;
+    const unit = get('unit', 'uom');
+    if (unit) item.unit = unit;
+    else item.unit = 'EA';
+    const pkg = get('packaging', 'packaginguom', 'packaging uom', 'pack');
+    if (pkg) item.packaging_uom = pkg;
+    const vendor = get('vendor', 'preferred vendor', 'supplier');
+    if (vendor) item.preferred_vendor = vendor;
+    return item;
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!validTypes.includes(fileExt)) {
+      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+      alert('SheetJS library not loaded. Please refresh the page and try again.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      const mapped = rows.map(mapStockItemRow).filter(Boolean);
+      // Deduplicate by item_number (keep first)
+      const seen = new Set();
+      const unique = mapped.filter(item => {
+        if (!item.item_number) return true;
+        const key = item.item_number.toLowerCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      if (unique.length === 0) {
+        alert('No valid items found in file. Ensure columns include "Description" and optionally "Item Number", "Unit", etc.');
+        return;
+      }
+
+      const res = await fetchWithAuth(`${API_URL}/stores/stock-items/bulk-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: unique })
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const result = await res.json();
+      alert(`Imported ${result.imported} items (${result.upserted} new, ${result.modified} updated)`);
+      setShowUpload(false);
+      fetchItems();
+    } catch (error) {
+      alert('Upload failed: ' + error.message);
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const filteredItems = items.filter(item => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (item.item_number || '').toLowerCase().includes(term) ||
+           (item.item_description || '').toLowerCase().includes(term) ||
+           (item.unit || '').toLowerCase().includes(term) ||
+           (item.preferred_vendor || '').toLowerCase().includes(term);
+  });
+
+  if (loading) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-600" }, "Loading stock items... please wait")
+    );
+  }
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+      // Header
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Stock Items Master Catalog"),
+        React.createElement('div', { className: "flex gap-2" },
+          React.createElement('button', {
+            onClick: () => setShowUpload(!showUpload),
+            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          }, showUpload ? 'Hide Upload' : 'Upload XLSX'),
+          React.createElement('button', {
+            onClick: () => { resetForm(); setShowForm(!showForm); },
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, showForm ? 'Cancel' : 'Add Item'),
+          React.createElement('button', {
+            onClick: fetchItems,
+            className: "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+          }, 'Refresh')
+        )
+      ),
+
+      // Upload section
+      showUpload && React.createElement('div', { className: "mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" },
+        React.createElement('h3', { className: "font-semibold text-green-800 mb-2" }, "Bulk Upload Stock Items"),
+        React.createElement('p', { className: "text-sm text-green-700 mb-3" },
+          "Upload an Excel/CSV file with columns: Item Number, Description (required), Unit, Packaging UoM, Preferred Vendor. Items with matching item numbers will be updated."
+        ),
+        React.createElement('input', {
+          type: 'file',
+          accept: '.csv,.xlsx,.xls',
+          onChange: handleFileUpload,
+          disabled: uploading,
+          className: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
+        }),
+        uploading && React.createElement('p', { className: "text-sm text-green-600 mt-2" }, "Uploading... please wait")
+      ),
+
+      // Add/Edit form
+      showForm && React.createElement('form', { onSubmit: handleSubmit, className: "mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" },
+        React.createElement('h3', { className: "font-semibold text-blue-800 mb-3" }, editingItem ? 'Edit Stock Item' : 'Add New Stock Item'),
+        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" },
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Item Number"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.item_number,
+              onChange: (e) => setForm({ ...form, item_number: e.target.value }),
+              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              placeholder: "e.g. ITM-001"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Description *"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.item_description,
+              onChange: (e) => setForm({ ...form, item_description: e.target.value }),
+              required: true,
+              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              placeholder: "Item description"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Unit *"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.unit,
+              onChange: (e) => setForm({ ...form, unit: e.target.value }),
+              required: true,
+              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              placeholder: "e.g. EA, KG, LTR"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Packaging UoM"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.packaging_uom,
+              onChange: (e) => setForm({ ...form, packaging_uom: e.target.value }),
+              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              placeholder: "e.g. Box of 12, Carton"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Preferred Vendor"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.preferred_vendor,
+              onChange: (e) => setForm({ ...form, preferred_vendor: e.target.value }),
+              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              placeholder: "Vendor name"
+            })
+          )
+        ),
+        React.createElement('div', { className: "mt-4 flex gap-2" },
+          React.createElement('button', {
+            type: 'submit',
+            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          }, editingItem ? 'Update Item' : 'Add Item'),
+          React.createElement('button', {
+            type: 'button',
+            onClick: resetForm,
+            className: "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+          }, 'Cancel')
+        )
+      ),
+
+      // Search
+      React.createElement('div', { className: "mb-4" },
+        React.createElement('input', {
+          type: 'text',
+          placeholder: 'Search items...',
+          value: searchTerm,
+          onChange: (e) => setSearchTerm(e.target.value),
+          className: "w-full md:w-80 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        })
+      ),
+
+      // Summary
+      React.createElement('p', { className: "text-sm text-gray-500 mb-4" },
+        `Showing ${filteredItems.length} of ${items.length} items`
+      ),
+
+      // Table
+      filteredItems.length === 0
+        ? React.createElement('p', { className: "text-gray-500 text-center py-8" }, "No stock items found. Add items manually or upload a spreadsheet.")
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "min-w-full divide-y divide-gray-200" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Item Number"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Unit"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Packaging UoM"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Preferred Vendor"),
+                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                )
+              ),
+              React.createElement('tbody', { className: "bg-white divide-y divide-gray-200" },
+                filteredItems.map((item, idx) =>
+                  React.createElement('tr', { key: item._id || idx, className: "hover:bg-gray-50" },
+                    React.createElement('td', { className: "px-4 py-3 text-sm font-mono text-gray-700" }, item.item_number || '-'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-900" }, item.item_description),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-600" }, item.unit),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-600" }, item.packaging_uom || '-'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-600" }, item.preferred_vendor || '-'),
+                    React.createElement('td', { className: "px-4 py-3 text-sm" },
+                      React.createElement('div', { className: "flex gap-2" },
+                        React.createElement('button', {
+                          onClick: () => handleEdit(item),
+                          className: "text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        }, 'Edit'),
+                        React.createElement('button', {
+                          onClick: () => handleDelete(item),
+                          className: "text-red-600 hover:text-red-800 text-sm font-medium"
+                        }, 'Delete')
+                      )
+                    )
                   )
                 )
               )
