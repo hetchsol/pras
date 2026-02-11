@@ -142,14 +142,18 @@ const createRequisition = async (req) => {
     id: req.id,
     description: req.description,
     quantity: req.quantity,
-    estimated_cost: req.estimatedCost || req.estimated_cost,
-    amount: req.amount,
-    justification: req.justification,
+    estimated_cost: req.estimatedCost || req.estimated_cost || 0,
+    amount: req.amount || 0,
+    justification: req.justification || '',
     department: req.department,
     urgency: req.urgency,
     initiator_id: req.initiatorId || req.initiator_id,
     initiator_name: req.initiatorName || req.initiator_name,
-    status: req.status
+    status: req.status,
+    items: req.items || [],
+    tax_type: req.tax_type || null,
+    delivery_location: req.delivery_location || 'Office',
+    required_date: req.required_date || null
   });
   const saved = await requisition.save();
   return { lastInsertRowid: saved._id, changes: 1 };

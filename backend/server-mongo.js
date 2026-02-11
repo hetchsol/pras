@@ -891,7 +891,7 @@ app.get('/api/requisitions/:id', authenticate, async (req, res) => {
 // Create requisition (handles both simple and full format)
 const createRequisitionHandler = async (req, res) => {
   try {
-    const { description, quantity, estimatedCost, amount, justification, urgency, items, delivery_location, required_date } = req.body;
+    const { description, quantity, estimatedCost, amount, justification, urgency, items, delivery_location, required_date, tax_type } = req.body;
     const user = await db.getUserById(req.user.id);
     const department = req.body.department || user?.department || 'General';
 
@@ -914,18 +914,25 @@ const createRequisitionHandler = async (req, res) => {
       desc = items.map(i => i.item_name).join(', ');
     }
 
+    // Extract justification from items specifications if not provided directly
+    const reqJustification = justification || (items && items.length > 0 ? items[0].specifications : '') || '';
+
     await db.createRequisition({
       id: reqId,
       description: desc,
       quantity: totalQuantity,
       estimatedCost: totalAmount,
       amount: totalAmount,
-      justification: justification || '',
+      justification: reqJustification,
       department,
       urgency: urgency || 'standard',
       initiatorId: req.user.id,
       initiatorName: user?.full_name || req.user.username,
-      status: 'pending_hod'
+      status: 'pending_hod',
+      items: items || [],
+      tax_type: tax_type || null,
+      delivery_location: delivery_location || 'Office',
+      required_date: required_date || null
     });
 
     res.status(201).json({ success: true, id: reqId, req_number: reqId, message: 'Requisition created' });
