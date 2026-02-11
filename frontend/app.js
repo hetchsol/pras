@@ -3633,7 +3633,7 @@ function CreateRequisition({ user, setView, loadData }) {
     taxType: user.role === 'procurement' ? 'VAT' : null // Only for procurement
   });
   const [lineItems, setLineItems] = useState([
-    { item_name: '', quantity: 1, unit_price: '' }
+    { item_code: '', item_name: '', quantity: 1, unit_price: '' }
   ]);
   const [loading, setLoading] = useState(false);
   const [hodUsers, setHodUsers] = useState([]);
@@ -3687,7 +3687,7 @@ function CreateRequisition({ user, setView, loadData }) {
       alert('Maximum of 15 line items allowed');
       return;
     }
-    setLineItems([...lineItems, { item_name: '', quantity: 1, unit_price: '' }]);
+    setLineItems([...lineItems, { item_code: '', item_name: '', quantity: 1, unit_price: '' }]);
   };
 
   // Calculate totals for display
@@ -3738,6 +3738,7 @@ function CreateRequisition({ user, setView, loadData }) {
         const qty = parseFloat(item.quantity) || 0;
         const price = parseFloat(item.unit_price) || 0;
         return {
+          item_code: item.item_code || null,
           item_name: item.item_name,
           quantity: qty,
           unit_price: price,
@@ -3810,6 +3811,7 @@ function CreateRequisition({ user, setView, loadData }) {
         const qty = parseFloat(item.quantity) || 0;
         const price = parseFloat(item.unit_price) || 0;
         return {
+          item_code: item.item_code || null,
           item_name: item.item_name,
           quantity: qty,
           unit_price: price,
@@ -3923,14 +3925,27 @@ function CreateRequisition({ user, setView, loadData }) {
                     'Remove'
                   )
                 ),
-                React.createElement('div', { className: "grid grid-cols-3 gap-3" },
+                React.createElement('div', { className: "grid grid-cols-4 gap-3" },
                   React.createElement('div', null,
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
+                      "Item Code"
+                    ),
+                    React.createElement('input', {
+                      type: "text",
+                      value: item.item_code,
+                      onChange: (e) => updateLineItem(index, 'item_code', e.target.value),
+                      className: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+                      placeholder: "e.g., ITM-001"
+                    })
+                  ),
+                  React.createElement('div', { className: "col-span-1" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       "Item Description *"
                     ),
                     React.createElement('input', {
                       type: "text",
                       value: item.item_name,
+                      maxLength: 128,
                       onChange: (e) => updateLineItem(index, 'item_name', e.target.value),
                       className: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
                       placeholder: "e.g., Office Supplies"

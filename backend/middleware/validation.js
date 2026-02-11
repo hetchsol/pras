@@ -40,9 +40,14 @@ const validateCreateRequisition = [
     .isInt({ min: 1 }).withMessage('Valid user ID is required'),
   body('items')
     .isArray({ min: 1 }).withMessage('At least one item is required'),
+  body('items.*.item_code')
+    .optional()
+    .trim()
+    .isLength({ max: 50 }).withMessage('Item code must not exceed 50 characters'),
   body('items.*.item_name')
     .trim()
-    .notEmpty().withMessage('Item name is required'),
+    .notEmpty().withMessage('Item name is required')
+    .isLength({ max: 128 }).withMessage('Item description must not exceed 128 characters'),
   body('items.*.quantity')
     .isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
   handleValidationErrors

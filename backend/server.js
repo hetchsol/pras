@@ -136,6 +136,11 @@ function initializeDatabase() {
             // Ignore error if column already exists
         });
 
+        // Add item_code column to existing requisition_items table if not exists
+        db.run(`ALTER TABLE requisition_items ADD COLUMN item_code TEXT`, (err) => {
+            // Ignore error if column already exists
+        });
+
         // Requisitions table
         db.run(`CREATE TABLE IF NOT EXISTS requisitions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,6 +167,7 @@ function initializeDatabase() {
         db.run(`CREATE TABLE IF NOT EXISTS requisition_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             requisition_id INTEGER NOT NULL,
+            item_code TEXT,
             item_name TEXT NOT NULL,
             quantity INTEGER NOT NULL,
             unit_price REAL DEFAULT 0,
@@ -632,12 +638,12 @@ app.post('/api/requisitions', authenticate, authorize('initiator', 'admin'), val
                 // Insert items
                 if (items && items.length > 0) {
                     const stmt = db.prepare(`
-                        INSERT INTO requisition_items (requisition_id, item_name, quantity, specifications)
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO requisition_items (requisition_id, item_code, item_name, quantity, specifications)
+                        VALUES (?, ?, ?, ?, ?)
                     `);
 
                     items.forEach(item => {
-                        stmt.run([requisitionId, item.item_name, item.quantity, item.specifications]);
+                        stmt.run([requisitionId, item.item_code || null, item.item_name, item.quantity, item.specifications]);
                     });
 
                     stmt.finalize();
@@ -1644,7 +1650,8 @@ app.get('/api/purchase-orders/:id/pdf', authenticate, (req, res, next) => {
                         doc.fillColor('#000000')
                            .fontSize(8)
                            .font('Helvetica-Bold')
-                           .text('Item Description', 58, currentY + 7, { width: 240 })
+                           .text('Item Code', 58, currentY + 7, { width: 60 })
+                           .text('Item Description', 120, currentY + 7, { width: 185 })
                            .text('Qty', 310, currentY + 7, { width: 35, align: 'center' })
                            .text(`Unit Price (${currency})`, 355, currentY + 7, { width: 85, align: 'right' })
                            .text(`Amount (${currency})`, 455, currentY + 7, { width: 80, align: 'right' });
@@ -1672,7 +1679,8 @@ app.get('/api/purchase-orders/:id/pdf', authenticate, (req, res, next) => {
                                 doc.fillColor('#000000')
                                    .fontSize(8)
                                    .font('Helvetica')
-                                   .text(item.item_name || 'Item Description', 58, currentY + 8, { width: 240 })
+                                   .text(item.item_code || '-', 58, currentY + 8, { width: 60 })
+                                   .text(item.item_name || 'Item Description', 120, currentY + 8, { width: 185 })
                                    .text((item.quantity || 0).toString(), 310, currentY + 8, { width: 35, align: 'center' })
                                    .text(itemUnitPrice.toFixed(2), 355, currentY + 8, { width: 85, align: 'right' })
                                    .text(itemTotal.toFixed(2), 455, currentY + 8, { width: 80, align: 'right' });
@@ -1694,7 +1702,8 @@ app.get('/api/purchase-orders/:id/pdf', authenticate, (req, res, next) => {
                             doc.fillColor('#000000')
                                .fontSize(8)
                                .font('Helvetica')
-                               .text(po.description || 'Item Description', 58, currentY + 8, { width: 240 })
+                               .text('-', 58, currentY + 8, { width: 60 })
+                               .text(po.description || 'Item Description', 120, currentY + 8, { width: 185 })
                                .text(quantity.toString(), 310, currentY + 8, { width: 35, align: 'center' })
                                .text(unitPrice.toFixed(2), 355, currentY + 8, { width: 85, align: 'right' })
                                .text(subtotal.toFixed(2), 455, currentY + 8, { width: 80, align: 'right' });
@@ -2204,12 +2213,12 @@ app.post('/api/requisitions/simple', authenticate, authorize('initiator', 'admin
                 // Insert items
                 if (items && items.length > 0) {
                     const stmt = db.prepare(`
-                        INSERT INTO requisition_items (requisition_id, item_name, quantity, specifications)
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO requisition_items (requisition_id, item_code, item_name, quantity, specifications)
+                        VALUES (?, ?, ?, ?, ?)
                     `);
 
                     items.forEach(item => {
-                        stmt.run([requisitionId, item.item_name, item.quantity, item.specifications]);
+                        stmt.run([requisitionId, item.item_code || null, item.item_name, item.quantity, item.specifications]);
                     });
 
                     stmt.finalize();
@@ -2307,7 +2316,7 @@ app.post('/api/requisitions/:id/redirect', authenticate, authorize('admin'), (re
 app.post('/api/requisitions/:id/items', authenticate, authorize('initiator', 'admin', 'procurement'), (req, res, next) => {
     try {
         const reqId = req.params.id;
-        const { item_name, quantity, specifications, unit_price, vendor_id, currency } = req.body;
+        const { item_code, item_name, quantity, specifications, unit_price, vendor_id, currency } = req.body;
 
         // Validation
         if (!item_name || !quantity) {
@@ -2338,9 +2347,9 @@ app.post('/api/requisitions/:id/items', authenticate, authorize('initiator', 'ad
             const amount_in_zmw = total_price * rateToZMW;
 
             db.run(`
-                INSERT INTO requisition_items (requisition_id, item_name, quantity, unit_price, total_price, specifications, vendor_id, currency, fx_rate_used, amount_in_zmw)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [reqId, item_name, quantity, unit_price || 0, total_price, specifications, vendor_id, itemCurrency, rateToZMW, amount_in_zmw], function(err) {
+                INSERT INTO requisition_items (requisition_id, item_code, item_name, quantity, unit_price, total_price, specifications, vendor_id, currency, fx_rate_used, amount_in_zmw)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [reqId, item_code || null, item_name, quantity, unit_price || 0, total_price, specifications, vendor_id, itemCurrency, rateToZMW, amount_in_zmw], function(err) {
                 if (err) {
                     logError(err, { context: 'add_item', requisition_id: reqId });
                     return next(new AppError('Failed to add item', 500));
@@ -2405,7 +2414,8 @@ app.put('/api/requisitions/:id/items/:item_id', authenticate, authorize('initiat
 
             db.run(`
                 UPDATE requisition_items
-                SET item_name = COALESCE(?, item_name),
+                SET item_code = COALESCE(?, item_code),
+                    item_name = COALESCE(?, item_name),
                     quantity = COALESCE(?, quantity),
                     unit_price = COALESCE(?, unit_price),
                     total_price = ?,
@@ -2415,7 +2425,7 @@ app.put('/api/requisitions/:id/items/:item_id', authenticate, authorize('initiat
                     fx_rate_used = ?,
                     amount_in_zmw = ?
                 WHERE id = ? AND requisition_id = ?
-            `, [item_name, quantity, unit_price, total_price, specifications, vendor_id, itemCurrency, rateToZMW, amount_in_zmw, item_id, reqId], function(err) {
+            `, [item_code, item_name, quantity, unit_price, total_price, specifications, vendor_id, itemCurrency, rateToZMW, amount_in_zmw, item_id, reqId], function(err) {
                 if (err) {
                     logError(err, { context: 'update_item', item_id });
                     return next(new AppError('Failed to update item', 500));
