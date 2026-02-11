@@ -3925,8 +3925,8 @@ function CreateRequisition({ user, setView, loadData }) {
                     'Remove'
                   )
                 ),
-                React.createElement('div', { className: "grid grid-cols-4 gap-3" },
-                  React.createElement('div', null,
+                React.createElement('div', { className: "grid grid-cols-12 gap-3" },
+                  React.createElement('div', { className: "col-span-2" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       "Item Code"
                     ),
@@ -3938,7 +3938,7 @@ function CreateRequisition({ user, setView, loadData }) {
                       placeholder: "e.g., ITM-001"
                     })
                   ),
-                  React.createElement('div', { className: "col-span-1" },
+                  React.createElement('div', { className: "col-span-5" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       "Item Description *"
                     ),
@@ -3951,9 +3951,9 @@ function CreateRequisition({ user, setView, loadData }) {
                       placeholder: "e.g., Office Supplies"
                     })
                   ),
-                  React.createElement('div', null,
+                  React.createElement('div', { className: "col-span-2" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
-                      "Quantity *"
+                      "Qty *"
                     ),
                     React.createElement('input', {
                       type: "number",
@@ -3964,7 +3964,7 @@ function CreateRequisition({ user, setView, loadData }) {
                       placeholder: "Qty"
                     })
                   ),
-                  React.createElement('div', null,
+                  React.createElement('div', { className: "col-span-3" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       hasRole(user.role, 'initiator') ? "Unit Price (ZMW)" : "Unit Price (ZMW) *"
                     ),

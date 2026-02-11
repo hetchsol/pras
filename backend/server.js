@@ -1650,8 +1650,8 @@ app.get('/api/purchase-orders/:id/pdf', authenticate, (req, res, next) => {
                         doc.fillColor('#000000')
                            .fontSize(8)
                            .font('Helvetica-Bold')
-                           .text('Item Code', 58, currentY + 7, { width: 60 })
-                           .text('Item Description', 120, currentY + 7, { width: 185 })
+                           .text('Item Code', 58, currentY + 7, { width: 50 })
+                           .text('Item Description', 110, currentY + 7, { width: 195 })
                            .text('Qty', 310, currentY + 7, { width: 35, align: 'center' })
                            .text(`Unit Price (${currency})`, 355, currentY + 7, { width: 85, align: 'right' })
                            .text(`Amount (${currency})`, 455, currentY + 7, { width: 80, align: 'right' });
@@ -1679,8 +1679,8 @@ app.get('/api/purchase-orders/:id/pdf', authenticate, (req, res, next) => {
                                 doc.fillColor('#000000')
                                    .fontSize(8)
                                    .font('Helvetica')
-                                   .text(item.item_code || '-', 58, currentY + 8, { width: 60 })
-                                   .text(item.item_name || 'Item Description', 120, currentY + 8, { width: 185 })
+                                   .text(item.item_code || '-', 58, currentY + 8, { width: 50 })
+                                   .text(item.item_name || 'Item Description', 110, currentY + 8, { width: 195 })
                                    .text((item.quantity || 0).toString(), 310, currentY + 8, { width: 35, align: 'center' })
                                    .text(itemUnitPrice.toFixed(2), 355, currentY + 8, { width: 85, align: 'right' })
                                    .text(itemTotal.toFixed(2), 455, currentY + 8, { width: 80, align: 'right' });
@@ -1702,8 +1702,8 @@ app.get('/api/purchase-orders/:id/pdf', authenticate, (req, res, next) => {
                             doc.fillColor('#000000')
                                .fontSize(8)
                                .font('Helvetica')
-                               .text('-', 58, currentY + 8, { width: 60 })
-                               .text(po.description || 'Item Description', 120, currentY + 8, { width: 185 })
+                               .text('-', 58, currentY + 8, { width: 50 })
+                               .text(po.description || 'Item Description', 110, currentY + 8, { width: 195 })
                                .text(quantity.toString(), 310, currentY + 8, { width: 35, align: 'center' })
                                .text(unitPrice.toFixed(2), 355, currentY + 8, { width: 85, align: 'right' })
                                .text(subtotal.toFixed(2), 455, currentY + 8, { width: 80, align: 'right' });

@@ -91,12 +91,12 @@ const generateRequisitionPDF = (requisition, items, callback) => {
         // Draw table header
         doc.rect(50, tableTop, 495, 20).fillAndStroke('#CCCCCC', '#000000');
         doc.fillColor('#000000')
-           .text('Item Code', 55, tableTop + 5, { width: 60 })
-           .text('Description', 118, tableTop + 5, { width: 145 })
-           .text('Qty', 268, tableTop + 5, { width: 40 })
-           .text('Unit Price', 313, tableTop + 5, { width: 65 })
-           .text('Total', 383, tableTop + 5, { width: 65 })
-           .text('Vendor', 453, tableTop + 5, { width: 87 });
+           .text('Item Code', 55, tableTop + 5, { width: 50 })
+           .text('Description', 108, tableTop + 5, { width: 180 })
+           .text('Qty', 293, tableTop + 5, { width: 30 })
+           .text('Unit Price', 328, tableTop + 5, { width: 60 })
+           .text('Total', 393, tableTop + 5, { width: 60 })
+           .text('Vendor', 458, tableTop + 5, { width: 82 });
 
         // Draw items and calculate totals
         let yPos = tableTop + 20;
@@ -116,12 +116,12 @@ const generateRequisitionPDF = (requisition, items, callback) => {
             subtotal += itemTotal;
 
             doc.fillColor('#000000')
-               .text(item.item_code || '-', 55, yPos + 5, { width: 60, ellipsis: true })
-               .text(item.item_name || 'N/A', 118, yPos + 5, { width: 145, ellipsis: true })
-               .text((item.quantity || 0).toString(), 268, yPos + 5, { width: 40 })
-               .text(`K${(item.unit_price || 0).toFixed(2)}`, 313, yPos + 5, { width: 65 })
-               .text(`K${itemTotal.toFixed(2)}`, 383, yPos + 5, { width: 65 })
-               .text(item.vendor_name || requisition.approved_vendor || 'TBD', 453, yPos + 5, { width: 87, ellipsis: true });
+               .text(item.item_code || '-', 55, yPos + 5, { width: 50, ellipsis: true })
+               .text(item.item_name || 'N/A', 108, yPos + 5, { width: 180, ellipsis: true })
+               .text((item.quantity || 0).toString(), 293, yPos + 5, { width: 30 })
+               .text(`K${(item.unit_price || 0).toFixed(2)}`, 328, yPos + 5, { width: 60 })
+               .text(`K${itemTotal.toFixed(2)}`, 393, yPos + 5, { width: 60 })
+               .text(item.vendor_name || requisition.approved_vendor || 'TBD', 458, yPos + 5, { width: 82, ellipsis: true });
 
             yPos += 25;
         });
@@ -130,15 +130,15 @@ const generateRequisitionPDF = (requisition, items, callback) => {
         doc.rect(50, yPos, 495, 20).fillAndStroke('#F0F0F0', '#CCCCCC');
         doc.fontSize(10)
            .fillColor('#000000')
-           .text('SUBTOTAL:', 313, yPos + 5, { width: 65 })
-           .text(`K${subtotal.toFixed(2)}`, 383, yPos + 5, { width: 65 });
+           .text('SUBTOTAL:', 328, yPos + 5, { width: 60 })
+           .text(`K${subtotal.toFixed(2)}`, 393, yPos + 5, { width: 60 });
 
         yPos += 20;
 
         const vat = subtotal * 0.16; // 16% VAT
         doc.rect(50, yPos, 495, 20).fillAndStroke('#F0F0F0', '#CCCCCC');
-        doc.text('VAT (16%):', 313, yPos + 5, { width: 65 })
-           .text(`K${vat.toFixed(2)}`, 383, yPos + 5, { width: 65 });
+        doc.text('VAT (16%):', 328, yPos + 5, { width: 60 })
+           .text(`K${vat.toFixed(2)}`, 393, yPos + 5, { width: 60 });
 
         yPos += 20;
 
@@ -147,8 +147,8 @@ const generateRequisitionPDF = (requisition, items, callback) => {
         doc.fontSize(11)
            .font('Helvetica-Bold')
            .fillColor('#000000')
-           .text('GRAND TOTAL:', 313, yPos + 5, { width: 65 })
-           .text(`K${grandTotal.toFixed(2)}`, 383, yPos + 5, { width: 65 });
+           .text('GRAND TOTAL:', 328, yPos + 5, { width: 60 })
+           .text(`K${grandTotal.toFixed(2)}`, 393, yPos + 5, { width: 60 });
 
         yPos += 35;
         doc.font('Helvetica');
