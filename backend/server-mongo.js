@@ -51,6 +51,18 @@ const authorize = (...roles) => {
   };
 };
 
+// Map MongoDB requisition fields to frontend-expected field names
+const mapRequisitionFields = (req) => {
+  if (!req) return req;
+  return {
+    ...req,
+    created_by: req.initiator_id,
+    created_by_name: req.initiator_name,
+    req_number: req.id,
+    created_by_department: req.department
+  };
+};
+
 // Helper function to get department filter based on user role
 // Finance, MD, Admin see everything; HODs see their department's forms; Others see only their own
 const getDepartmentFilter = async (user) => {
@@ -737,7 +749,7 @@ app.put('/api/admin/budgets/:department', authenticate, authorize('admin'), asyn
 app.get('/api/admin/pending-requisitions', authenticate, authorize('admin'), async (req, res) => {
   try {
     const requisitions = await db.Requisition.find({ status: { $regex: /pending/i } }).lean();
-    res.json(requisitions);
+    res.json(requisitions.map(mapRequisitionFields));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -829,7 +841,7 @@ app.get('/api/requisitions', authenticate, async (req, res) => {
     // Finance, MD, Admin, Procurement can see all requisitions
     if (['finance', 'md', 'admin', 'procurement'].includes(userRole)) {
       const requisitions = await db.getRequisitions();
-      return res.json(requisitions);
+      return res.json(requisitions.map(mapRequisitionFields));
     }
 
     // Get full user details
@@ -857,7 +869,7 @@ app.get('/api/requisitions', authenticate, async (req, res) => {
       };
 
       const requisitions = await db.Requisition.find(filter).sort({ created_at: -1 }).lean();
-      return res.json(requisitions);
+      return res.json(requisitions.map(mapRequisitionFields));
     }
 
     // Initiators see only their own requisitions
@@ -869,7 +881,7 @@ app.get('/api/requisitions', authenticate, async (req, res) => {
       ]
     };
     const requisitions = await db.Requisition.find(filter).sort({ created_at: -1 }).lean();
-    res.json(requisitions);
+    res.json(requisitions.map(mapRequisitionFields));
   } catch (error) {
     console.error('Error fetching requisitions:', error);
     res.status(500).json({ error: 'Server error' });
@@ -882,7 +894,7 @@ app.get('/api/requisitions/:id', authenticate, async (req, res) => {
     if (!requisition) {
       return res.status(404).json({ error: 'Requisition not found' });
     }
-    res.json(requisition);
+    res.json(mapRequisitionFields(requisition));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1608,8 +1620,8 @@ app.put('/api/forms/petty-cash-requisitions/:id/approve', authenticate, async (r
 // Simple requisitions list
 app.get('/api/requisitions/simple', authenticate, async (req, res) => {
   try {
-    const requisitions = await db.Requisition.find().select('id description status department created_at').lean();
-    res.json(requisitions);
+    const requisitions = await db.Requisition.find().select('id description status department created_at initiator_id initiator_name').lean();
+    res.json(requisitions.map(mapRequisitionFields));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
