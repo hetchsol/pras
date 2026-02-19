@@ -22,7 +22,8 @@ function formatDateTime(dateString) {
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    second: '2-digit'
   });
 }
 
@@ -63,10 +64,10 @@ function addIssueSlipApprovalSection(doc, approvals, yPosition) {
   doc.text('HEAD OF DEPARTMENT:', 70, yPosition);
   yPosition += 15;
   if (hodApproval) {
-    doc.font('Helvetica').fillColor('#0000CC')
-       .text(`Name: ${hodApproval.user_name || hodApproval.name || 'N/A'}`, 70, yPosition);
-    doc.fillColor('black').text(`Action: ${hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition);
-    doc.fillColor('#0000CC').text(`Date/Time: ${formatDateTime(hodApproval.timestamp || hodApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#000000')
+       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(hodApproval.user_name || hodApproval.name || 'N/A');
+    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A');
+    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(hodApproval.timestamp || hodApproval.date));
     yPosition += 12;
     if (hodApproval.comment || hodApproval.comments) {
       doc.fillColor('black').text(`Comments: ${hodApproval.comment || hodApproval.comments}`, 70, yPosition, { width: 460 });
@@ -84,10 +85,10 @@ function addIssueSlipApprovalSection(doc, approvals, yPosition) {
   doc.text('FINANCE MANAGER:', 70, yPosition);
   yPosition += 15;
   if (financeApproval) {
-    doc.font('Helvetica').fillColor('#0000CC')
-       .text(`Name: ${financeApproval.user_name || financeApproval.name || 'N/A'}`, 70, yPosition);
-    doc.fillColor('black').text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition);
-    doc.fillColor('#0000CC').text(`Date/Time: ${formatDateTime(financeApproval.timestamp || financeApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#000000')
+       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(financeApproval.user_name || financeApproval.name || 'N/A');
+    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A');
+    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(financeApproval.timestamp || financeApproval.date));
     yPosition += 12;
     if (financeApproval.comment || financeApproval.comments) {
       doc.fillColor('black').text(`Comments: ${financeApproval.comment || financeApproval.comments}`, 70, yPosition, { width: 460 });
@@ -112,12 +113,12 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       // Header
       addHeader(doc, 'ISSUE SLIP');
 
-      // Slip ID and Status (in blue)
+      // Slip ID and Status (labels black, values blue)
       const statusText = slip.status.replace(/_/g, ' ').toUpperCase();
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0000CC')
-         .text(`Slip ID: ${slip.id}`, 50, 120);
-      doc.fillColor(statusText === 'APPROVED' ? '#0000CC' : 'black')
-         .text(`Status: ${statusText}`, 400, 120, { align: 'right' });
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Slip ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(slip.id);
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(statusText);
       doc.fillColor('black').moveDown();
 
       // Draw info section
@@ -256,12 +257,12 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       // Header
       addHeader(doc, 'PICKING SLIP');
 
-      // Slip ID and Status (in blue)
+      // Slip ID and Status (labels black, values blue)
       const statusText2 = slip.status.replace(/_/g, ' ').toUpperCase();
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0000CC')
-         .text(`Slip ID: ${slip.id}`, 50, 120);
-      doc.fillColor(statusText2 === 'COMPLETED' ? '#0000CC' : 'black')
-         .text(`Status: ${statusText2}`, 400, 120, { align: 'right' });
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Slip ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(slip.id);
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(statusText2);
       doc.fillColor('black').moveDown();
 
       // Draw info section
@@ -387,12 +388,12 @@ async function generateGRNPDF(grn, items, outputPath) {
       // Header
       addHeader(doc, 'GOODS RECEIPT NOTE');
 
-      // GRN ID and Status (in blue)
+      // GRN ID and Status (labels black, values blue)
       const statusText = grn.status.replace(/_/g, ' ').toUpperCase();
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0000CC')
-         .text(`GRN ID: ${grn.id}`, 50, 120);
-      doc.fillColor('#0000CC')
-         .text(`Status: ${statusText}`, 400, 120, { align: 'right' });
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('GRN ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(grn.id);
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(statusText);
       doc.fillColor('black').moveDown();
 
       // Draw info section
