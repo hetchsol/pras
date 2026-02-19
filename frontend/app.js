@@ -14,7 +14,11 @@ const getRefreshToken = () => localStorage.getItem('refreshToken');
 // Helper to get user data from localStorage
 const getUserData = () => {
   const userData = localStorage.getItem('userData');
-  return userData ? JSON.parse(userData) : null;
+  if (!userData) return null;
+  const user = JSON.parse(userData);
+  // Normalize role to lowercase for consistent frontend checks
+  if (user && user.role) user.role = user.role.toLowerCase();
+  return user;
 };
 
 // Helper to set auth token
@@ -24,7 +28,11 @@ const setAuthToken = (token) => localStorage.setItem('authToken', token);
 const setRefreshToken = (token) => localStorage.setItem('refreshToken', token);
 
 // Helper to set user data
-const setUserData = (user) => localStorage.setItem('userData', JSON.stringify(user));
+const setUserData = (user) => {
+  // Normalize role to lowercase for consistent frontend checks
+  if (user && user.role) user = { ...user, role: user.role.toLowerCase() };
+  localStorage.setItem('userData', JSON.stringify(user));
+};
 
 // Helper to clear all auth data
 const clearAuthToken = () => {
@@ -1359,7 +1367,9 @@ function LoginScreen({ setCurrentUser, setView }) {
     setError('');
     try {
       const response = await api.login(username, password);
-      setCurrentUser(response.user);
+      const user = response.user;
+      if (user && user.role) user.role = user.role.toLowerCase();
+      setCurrentUser(user);
       setView('dashboard');
     } catch (err) {
       setError('Invalid username or password. Make sure backend server is running.');
@@ -4279,8 +4289,8 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   };
 
   const handleApprove = async () => {
-    // For procurement role, use the enhanced handler
-    if (user.role === 'procurement') {
+    // For procurement role (or admin at procurement stage), use the enhanced handler
+    if (user.role === 'procurement' || (user.role === 'admin' && req.status === 'pending_procurement')) {
       return handleProcurementApprove();
     }
 
@@ -4310,6 +4320,22 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         } else {
           endpoint = `${API_URL}/requisitions/${req.id}/md-approve`;
           successMessage = 'Requisition fully approved!';
+        }
+      } else if (user.role === 'admin') {
+        // Admin can approve at any stage based on requisition's current status
+        if (req.status === 'pending_hod') {
+          endpoint = `${API_URL}/requisitions/${req.id}/hod-approve`;
+          successMessage = 'Requisition approved (HOD stage) and sent to Procurement';
+        } else if (req.status === 'pending_finance') {
+          endpoint = `${API_URL}/requisitions/${req.id}/finance-approve`;
+          successMessage = 'Requisition approved (Finance stage) and sent to MD';
+        } else if (req.status === 'pending_md') {
+          endpoint = `${API_URL}/requisitions/${req.id}/md-approve`;
+          successMessage = 'Requisition fully approved!';
+        } else {
+          alert('No approval action available for current status');
+          setLoading(false);
+          return;
         }
       } else {
         alert('Invalid role for approval');
@@ -4390,6 +4416,21 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           } else {
             endpoint = `${API_URL}/requisitions/${req.id}/md-approve`;
           }
+        } else if (user.role === 'admin') {
+          // Admin can reject at any stage based on requisition's current status
+          if (req.status === 'pending_hod') {
+            endpoint = `${API_URL}/requisitions/${req.id}/hod-approve`;
+          } else if (req.status === 'pending_finance') {
+            endpoint = `${API_URL}/requisitions/${req.id}/finance-approve`;
+          } else if (req.status === 'pending_md') {
+            endpoint = `${API_URL}/requisitions/${req.id}/md-approve`;
+          }
+        }
+
+        if (!endpoint) {
+          alert('No rejection action available for current status');
+          setLoading(false);
+          return;
         }
 
         const response = await fetch(endpoint, {
