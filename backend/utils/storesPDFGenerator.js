@@ -46,7 +46,7 @@ function addHeader(doc, title) {
 }
 
 // Helper function to add APPROVED/DECLINED stamp (no border, bold text)
-function addStatusStamp(doc, status) {
+function addStatusStamp(doc, status, stampY) {
   const s = (status || '').toLowerCase().replace(/_/g, ' ');
   let stampText, stampColor;
 
@@ -62,8 +62,8 @@ function addStatusStamp(doc, status) {
 
   doc.save();
   doc.fontSize(40).font('Helvetica-Bold')
-     .fillColor(stampColor).fillOpacity(0.3)
-     .text(stampText, 350, 680);
+     .fillColor(stampColor).fillOpacity(0.7)
+     .text(stampText, 320, stampY);
   doc.restore();
   doc.fillOpacity(1).fillColor('#000000');
 }
@@ -148,9 +148,6 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       doc.fillColor('#000000').text('Status:', 420, 120);
       doc.fillColor('#0000CC').text(statusText, 460, 120);
       doc.fillColor('#000000').moveDown();
-
-      // Add status stamp
-      addStatusStamp(doc, slip.status);
 
       // Draw info section
       let yPos = 150;
@@ -266,6 +263,9 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       doc.font('Helvetica-Bold').text('Date:', 430, yPos);
       doc.font('Helvetica').text('_______________', 430, yPos + 25);
 
+      // Add status stamp next to signature area
+      addStatusStamp(doc, slip.status, yPos + 10);
+
       doc.end();
 
       stream.on('finish', () => resolve(outputPath));
@@ -296,9 +296,6 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       doc.fillColor('#000000').text('Status:', 420, 120);
       doc.fillColor('#0000CC').text(statusText2, 460, 120);
       doc.fillColor('#000000').moveDown();
-
-      // Add status stamp
-      addStatusStamp(doc, slip.status);
 
       // Draw info section
       let yPos = 150;
@@ -401,6 +398,9 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       doc.font('Helvetica-Bold').text('Received By:', 300, yPos);
       doc.text('_______________________', 300, yPos + 30);
 
+      // Add status stamp next to signature area
+      addStatusStamp(doc, slip.status, yPos + 10);
+
       doc.end();
 
       stream.on('finish', () => resolve(outputPath));
@@ -431,9 +431,6 @@ async function generateGRNPDF(grn, items, outputPath) {
       doc.fillColor('#000000').text('Status:', 420, 120);
       doc.fillColor('#0000CC').text(statusText, 460, 120);
       doc.fillColor('#000000').moveDown();
-
-      // Add status stamp
-      addStatusStamp(doc, grn.status);
 
       // Draw info section
       let yPos = 150;
@@ -599,6 +596,9 @@ async function generateGRNPDF(grn, items, outputPath) {
       doc.font('Helvetica-Bold').text('Verified By:', 300, yPos);
       doc.font('Helvetica').text('_______________________', 300, yPos + 30);
       doc.font('Helvetica-Bold').text('Signature', 300, yPos + 47);
+
+      // Add status stamp next to signature area
+      addStatusStamp(doc, grn.status, yPos + 10);
 
       doc.end();
 

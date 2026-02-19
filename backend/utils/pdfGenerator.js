@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Helper function to add APPROVED/DECLINED stamp (no border, bold text)
-function addStatusStamp(doc, status) {
+function addStatusStamp(doc, status, stampY) {
   const s = (status || '').toLowerCase().replace(/_/g, ' ');
   let stampText, stampColor;
 
@@ -19,8 +19,8 @@ function addStatusStamp(doc, status) {
 
   doc.save();
   doc.fontSize(40).font('Helvetica-Bold')
-     .fillColor(stampColor).fillOpacity(0.3)
-     .text(stampText, 350, 680);
+     .fillColor(stampColor).fillOpacity(0.7)
+     .text(stampText, 320, stampY);
   doc.restore();
   doc.fillOpacity(1).fillColor('#000000');
 }
@@ -71,9 +71,6 @@ const generateRequisitionPDF = (requisition, items, callback) => {
            .text(`Document No: ${requisition.req_number}`, { align: 'center' })
            .fillColor('#000000')
            .moveDown(1);
-
-        // Add status stamp
-        addStatusStamp(doc, requisition.status);
 
         // Add requisition details box
         const boxTop = doc.y;
@@ -203,6 +200,9 @@ const generateRequisitionPDF = (requisition, items, callback) => {
                .text(`Comments: ${requisition.procurement_comments || 'No comments'}`)
                .moveDown(1);
         }
+
+        // Add status stamp near footer area
+        addStatusStamp(doc, requisition.status, doc.y + 20);
 
         // Add footer
         const pageHeight = doc.page.height;
