@@ -2,6 +2,30 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
+// Helper function to add APPROVED/DECLINED stamp (no border, bold text)
+function addStatusStamp(doc, status) {
+  const s = (status || '').toLowerCase().replace(/_/g, ' ');
+  let stampText, stampColor;
+
+  if (s.includes('approved') || s === 'completed') {
+    stampText = 'APPROVED';
+    stampColor = '#008000';
+  } else if (s.includes('rejected') || s.includes('declined')) {
+    stampText = 'DECLINED';
+    stampColor = '#CC0000';
+  } else {
+    return;
+  }
+
+  doc.save();
+  doc.rotate(-30, { origin: [300, 300] });
+  doc.fontSize(52).font('Helvetica-Bold')
+     .fillColor(stampColor).fillOpacity(0.3)
+     .text(stampText, 175, 280, { width: 250, align: 'center' });
+  doc.restore();
+  doc.fillOpacity(1).fillColor('#000000');
+}
+
 /**
  * Generate PDF for approved requisition
  */
@@ -48,6 +72,9 @@ const generateRequisitionPDF = (requisition, items, callback) => {
            .text(`Document No: ${requisition.req_number}`, { align: 'center' })
            .fillColor('#000000')
            .moveDown(1);
+
+        // Add status stamp
+        addStatusStamp(doc, requisition.status);
 
         // Add requisition details box
         const boxTop = doc.y;

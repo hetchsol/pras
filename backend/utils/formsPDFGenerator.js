@@ -50,6 +50,30 @@ function formatDateTime(dateString) {
   });
 }
 
+// Helper function to add APPROVED/DECLINED stamp (no border, bold text)
+function addStatusStamp(doc, status) {
+  const s = (status || '').toLowerCase().replace(/_/g, ' ');
+  let stampText, stampColor;
+
+  if (s.includes('approved') || s === 'completed') {
+    stampText = 'APPROVED';
+    stampColor = '#008000';
+  } else if (s.includes('rejected') || s.includes('declined')) {
+    stampText = 'DECLINED';
+    stampColor = '#CC0000';
+  } else {
+    return;
+  }
+
+  doc.save();
+  doc.rotate(-30, { origin: [300, 300] });
+  doc.fontSize(52).font('Helvetica-Bold')
+     .fillColor(stampColor).fillOpacity(0.3)
+     .text(stampText, 175, 280, { width: 250, align: 'center' });
+  doc.restore();
+  doc.fillOpacity(1).fillColor('#000000');
+}
+
 // Helper function to add approval workflow section
 function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
@@ -70,14 +94,17 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.text('HEAD OF DEPARTMENT:', 70, yPosition);
   yPosition += 15;
   if (hodApproval) {
-    doc.font('Helvetica').fillColor('#000000')
-       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(hodApproval.name || 'N/A');
-    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A');
-    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(hodApproval.date));
+    doc.font('Helvetica').fillColor('#000000').text('Name:', 70, yPosition);
+    doc.fillColor('#0000CC').text(hodApproval.name || 'N/A', 108, yPosition);
+    doc.fillColor('#000000').text('Action:', 250, yPosition);
+    doc.fillColor('#0000CC').text(hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A', 290, yPosition);
+    doc.fillColor('#000000').text('Date/Time:', 370, yPosition);
+    doc.fillColor('#0000CC').text(formatDateTime(hodApproval.date), 428, yPosition);
     yPosition += 12;
     doc.fillColor('#000000');
     if (hodApproval.comments) {
-      doc.text(`Comments: ${hodApproval.comments}`, 70, yPosition, { width: 460 });
+      doc.text('Comments:', 70, yPosition);
+      doc.text(hodApproval.comments, 125, yPosition, { width: 405 });
     }
   } else {
     doc.font('Helvetica').fillColor('#000000').text('Pending', 70, yPosition);
@@ -92,14 +119,17 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.text('FINANCE MANAGER:', 70, yPosition);
   yPosition += 15;
   if (financeApproval) {
-    doc.font('Helvetica').fillColor('#000000')
-       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(financeApproval.name || 'N/A');
-    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A');
-    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(financeApproval.date));
+    doc.font('Helvetica').fillColor('#000000').text('Name:', 70, yPosition);
+    doc.fillColor('#0000CC').text(financeApproval.name || 'N/A', 108, yPosition);
+    doc.fillColor('#000000').text('Action:', 250, yPosition);
+    doc.fillColor('#0000CC').text(financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A', 292, yPosition);
+    doc.fillColor('#000000').text('Date/Time:', 370, yPosition);
+    doc.fillColor('#0000CC').text(formatDateTime(financeApproval.date), 430, yPosition);
     yPosition += 12;
     doc.fillColor('#000000');
     if (financeApproval.comments) {
-      doc.text(`Comments: ${financeApproval.comments}`, 70, yPosition, { width: 460 });
+      doc.text('Comments:', 70, yPosition);
+      doc.text(financeApproval.comments, 130, yPosition, { width: 400 });
     }
   } else {
     doc.font('Helvetica').fillColor('#000000').text('Pending', 70, yPosition);
@@ -114,14 +144,17 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.text('MANAGING DIRECTOR:', 70, yPosition);
   yPosition += 15;
   if (mdApproval) {
-    doc.font('Helvetica').fillColor('#000000')
-       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(mdApproval.name || 'N/A');
-    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(mdApproval.action ? mdApproval.action.toUpperCase() : 'N/A');
-    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(mdApproval.date));
+    doc.font('Helvetica').fillColor('#000000').text('Name:', 70, yPosition);
+    doc.fillColor('#0000CC').text(mdApproval.name || 'N/A', 108, yPosition);
+    doc.fillColor('#000000').text('Action:', 250, yPosition);
+    doc.fillColor('#0000CC').text(mdApproval.action ? mdApproval.action.toUpperCase() : 'N/A', 292, yPosition);
+    doc.fillColor('#000000').text('Date/Time:', 370, yPosition);
+    doc.fillColor('#0000CC').text(formatDateTime(mdApproval.date), 430, yPosition);
     yPosition += 12;
     doc.fillColor('#000000');
     if (mdApproval.comments) {
-      doc.text(`Comments: ${mdApproval.comments}`, 70, yPosition, { width: 460 });
+      doc.text('Comments:', 70, yPosition);
+      doc.text(mdApproval.comments, 130, yPosition, { width: 400 });
     }
   } else {
     doc.font('Helvetica').fillColor('#000000').text('Pending', 70, yPosition);
@@ -149,12 +182,15 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       addHeader(doc, 'EXPENSE CLAIM FORM');
 
       // Claim ID and Status
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .fillColor('#000000').text('Claim ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(claim.id)
-      doc.fontSize(10).font('Helvetica-Bold')
-         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(claim.status.replace(/_/g, ' ').toUpperCase())
-         .moveDown();
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.fillColor('#000000').text('Claim ID:', 50, 120);
+      doc.fillColor('#0000CC').text(claim.id, 110, 120);
+      doc.fillColor('#000000').text('Status:', 420, 120);
+      doc.fillColor('#0000CC').text(claim.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
+      doc.fillColor('#000000').moveDown();
+
+      // Add status stamp
+      addStatusStamp(doc, claim.status);
 
       // Employee Information
       let yPos = 150;
@@ -291,12 +327,15 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       addHeader(doc, 'EFT / CHEQUE REQUISITION FORM');
 
       // EFT ID and Status
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .fillColor('#000000').text('EFT ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(eft.id)
-      doc.fontSize(10).font('Helvetica-Bold')
-         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(eft.status.replace(/_/g, ' ').toUpperCase())
-         .moveDown();
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.fillColor('#000000').text('EFT ID:', 50, 120);
+      doc.fillColor('#0000CC').text(eft.id, 95, 120);
+      doc.fillColor('#000000').text('Status:', 420, 120);
+      doc.fillColor('#0000CC').text(eft.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
+      doc.fillColor('#000000').moveDown();
+
+      // Add status stamp
+      addStatusStamp(doc, eft.status);
 
       // Form Details
       let yPos = 150;
@@ -388,12 +427,15 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       addHeader(doc, 'PETTY CASH REQUISITION FORM');
 
       // PC ID and Status
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .fillColor('#000000').text('Requisition ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(pc.id)
-      doc.fontSize(10).font('Helvetica-Bold')
-         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(pc.status.replace(/_/g, ' ').toUpperCase())
-         .moveDown();
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.fillColor('#000000').text('Requisition ID:', 50, 120);
+      doc.fillColor('#0000CC').text(pc.id, 140, 120);
+      doc.fillColor('#000000').text('Status:', 420, 120);
+      doc.fillColor('#0000CC').text(pc.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
+      doc.fillColor('#000000').moveDown();
+
+      // Add status stamp
+      addStatusStamp(doc, pc.status);
 
       // Form Details
       let yPos = 150;
