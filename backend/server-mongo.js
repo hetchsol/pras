@@ -830,6 +830,76 @@ app.delete('/api/admin/grn-approvers/:id', authenticate, authorize('admin'), asy
 });
 
 // ============================================
+// REQUISITION REROUTING
+// ============================================
+
+// Get all users for rerouting (dropdown options)
+app.get('/api/admin/reroute-users', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { role } = req.query;
+    const filter = {};
+    if (role) filter.role = role;
+
+    const users = await db.User.find(filter)
+      .select('full_name role department')
+      .sort({ full_name: 1 })
+      .lean();
+
+    // Map _id to id for frontend compatibility
+    res.json(users.map(u => ({ id: u._id, full_name: u.full_name, role: u.role, department: u.department })));
+  } catch (error) {
+    console.error('Error fetching reroute users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Reroute requisition to another approver
+app.post('/api/admin/reroute/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    const { to_user_id, reason, new_status } = req.body;
+
+    if (!to_user_id || !reason) {
+      return res.status(400).json({ error: 'Target user and reason are required' });
+    }
+
+    // Get target user info
+    const targetUser = await db.User.findById(to_user_id).select('full_name role department').lean();
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+
+    // Build update
+    const update = { updated_at: new Date(), assigned_to: to_user_id, assigned_role: targetUser.role };
+    if (new_status) update.status = new_status;
+    if (targetUser.role === 'hod') update.assigned_hod_id = to_user_id;
+
+    const result = await db.Requisition.findOneAndUpdate({ id: reqId }, update, { new: true });
+    if (!result) {
+      return res.status(404).json({ error: 'Requisition not found' });
+    }
+
+    // Log the reroute action in approvals
+    await db.createApproval({
+      requisition_id: reqId,
+      role: 'admin',
+      user_name: req.user.full_name || 'Admin',
+      action: 'rerouted',
+      comment: `Rerouted to ${targetUser.full_name} (${targetUser.role}). Reason: ${reason}`
+    });
+
+    res.json({
+      success: true,
+      message: `Requisition rerouted to ${targetUser.full_name}`,
+      target_user: { id: targetUser._id, full_name: targetUser.full_name, role: targetUser.role, department: targetUser.department }
+    });
+  } catch (error) {
+    console.error('Error rerouting requisition:', error);
+    res.status(500).json({ error: 'Failed to reroute requisition' });
+  }
+});
+
+// ============================================
 // REQUISITION ROUTES
 // ============================================
 

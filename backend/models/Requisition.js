@@ -34,7 +34,11 @@ const requisitionSchema = new mongoose.Schema({
   tax_type: { type: String },
   delivery_location: { type: String, default: 'Office' },
   required_date: { type: String },
-  created_at: { type: Date, default: Date.now }
+  assigned_to: { type: mongoose.Schema.Types.Mixed },
+  assigned_role: { type: String },
+  assigned_hod_id: { type: mongoose.Schema.Types.Mixed },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Requisition', requisitionSchema);
