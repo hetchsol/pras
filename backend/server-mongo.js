@@ -81,9 +81,16 @@ const getDepartmentFilter = async (user) => {
 
   // HODs see forms from users in their department who have them as supervisor
   if (userRole === 'hod' || fullUser.is_hod === 1) {
+    // Build name variants to handle "Lastname Firstname" vs "Firstname Lastname" format
+    const nameParts = fullUser.full_name.trim().split(/\s+/);
+    const nameVariants = [fullUser.full_name];
+    if (nameParts.length >= 2) {
+      nameVariants.push(nameParts.reverse().join(' '));
+    }
+
     // Get all users who have this HOD as their supervisor
     const subordinates = await db.User.find({
-      supervisor_name: fullUser.full_name
+      supervisor_name: { $in: nameVariants }
     }).select('_id full_name username');
 
     const subordinateIds = subordinates.map(u => u._id);
@@ -919,9 +926,16 @@ app.get('/api/requisitions', authenticate, async (req, res) => {
 
     // HODs see requisitions from their department
     if (userRole === 'hod' || fullUser?.is_hod === 1) {
+      // Build name variants to handle "Lastname Firstname" vs "Firstname Lastname" format
+      const nameParts = fullUser.full_name.trim().split(/\s+/);
+      const nameVariants = [fullUser.full_name];
+      if (nameParts.length >= 2) {
+        nameVariants.push(nameParts.reverse().join(' '));
+      }
+
       // Get subordinates
       const subordinates = await db.User.find({
-        supervisor_name: fullUser.full_name
+        supervisor_name: { $in: nameVariants }
       }).select('_id full_name username');
 
       const subordinateIds = subordinates.map(u => u._id);
