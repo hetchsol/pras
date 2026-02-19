@@ -18,10 +18,9 @@ function addStatusStamp(doc, status) {
   }
 
   doc.save();
-  doc.rotate(-30, { origin: [300, 300] });
-  doc.fontSize(52).font('Helvetica-Bold')
+  doc.fontSize(40).font('Helvetica-Bold')
      .fillColor(stampColor).fillOpacity(0.3)
-     .text(stampText, 175, 280, { width: 250, align: 'center' });
+     .text(stampText, 350, 680);
   doc.restore();
   doc.fillOpacity(1).fillColor('#000000');
 }
