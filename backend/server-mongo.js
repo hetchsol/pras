@@ -906,6 +906,147 @@ app.post('/api/admin/reroute/:id', authenticate, authorize('admin'), async (req,
   }
 });
 
+// Admin override - skip stage or reassign department
+app.put('/api/requisitions/:id/admin-override', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    const { action, new_status, new_department, comment } = req.body;
+
+    if (!action || !['skip_stage', 'reassign_department'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be skip_stage or reassign_department' });
+    }
+
+    if (action === 'skip_stage') {
+      if (!new_status || !comment) {
+        return res.status(400).json({ error: 'new_status and comment are required for skip_stage' });
+      }
+
+      const result = await db.Requisition.findOneAndUpdate(
+        { id: reqId },
+        { status: new_status, updated_at: new Date() },
+        { new: true }
+      );
+
+      if (!result) {
+        return res.status(404).json({ error: 'Requisition not found' });
+      }
+
+      await db.createApproval({
+        requisition_id: reqId,
+        role: 'admin',
+        user_name: req.user.full_name || 'Admin',
+        action: 'admin_skip_stage',
+        comment: `Admin skipped stage to ${new_status}: ${comment}`
+      });
+
+      res.json({ success: true, message: `Successfully moved to ${new_status}`, status: new_status });
+
+    } else if (action === 'reassign_department') {
+      if (!new_department) {
+        return res.status(400).json({ error: 'new_department is required for reassign_department' });
+      }
+
+      const result = await db.Requisition.findOneAndUpdate(
+        { id: reqId },
+        { department: new_department, updated_at: new Date() },
+        { new: true }
+      );
+
+      if (!result) {
+        return res.status(404).json({ error: 'Requisition not found' });
+      }
+
+      await db.createApproval({
+        requisition_id: reqId,
+        role: 'admin',
+        user_name: req.user.full_name || 'Admin',
+        action: 'admin_reassign_dept',
+        comment: `Admin reassigned to department: ${new_department}`
+      });
+
+      res.json({ success: true, message: `Successfully reassigned to ${new_department}`, department: new_department });
+    }
+  } catch (error) {
+    console.error('Error in admin override:', error);
+    res.status(500).json({ error: 'Failed to perform admin override' });
+  }
+});
+
+// Admin override for EFT requisitions
+app.put('/api/forms/eft-requisitions/:id/admin-override', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { action, new_status, new_department, comment } = req.body;
+
+    if (action === 'skip_stage') {
+      if (!new_status || !comment) return res.status(400).json({ error: 'new_status and comment are required' });
+      const result = await db.EFTRequisition.findOneAndUpdate({ id: req.params.id }, { status: new_status }, { new: true });
+      if (!result) return res.status(404).json({ error: 'EFT requisition not found' });
+      await db.createFormApproval({ form_type: 'eft', form_id: req.params.id, role: 'admin', user_name: req.user.full_name || 'Admin', action: 'admin_skip_stage', comment: `Admin skipped stage to ${new_status}: ${comment}` });
+      res.json({ success: true, message: `Successfully moved to ${new_status}` });
+    } else if (action === 'reassign_department') {
+      if (!new_department) return res.status(400).json({ error: 'new_department is required' });
+      const result = await db.EFTRequisition.findOneAndUpdate({ id: req.params.id }, { department: new_department }, { new: true });
+      if (!result) return res.status(404).json({ error: 'EFT requisition not found' });
+      res.json({ success: true, message: `Successfully reassigned to ${new_department}` });
+    } else {
+      res.status(400).json({ error: 'Invalid action' });
+    }
+  } catch (error) {
+    console.error('Error in EFT admin override:', error);
+    res.status(500).json({ error: 'Failed to perform admin override' });
+  }
+});
+
+// Admin override for petty cash requisitions
+app.put('/api/forms/petty-cash-requisitions/:id/admin-override', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { action, new_status, new_department, comment } = req.body;
+
+    if (action === 'skip_stage') {
+      if (!new_status || !comment) return res.status(400).json({ error: 'new_status and comment are required' });
+      const result = await db.PettyCashRequisition.findOneAndUpdate({ id: req.params.id }, { status: new_status }, { new: true });
+      if (!result) return res.status(404).json({ error: 'Petty cash requisition not found' });
+      await db.createFormApproval({ form_type: 'petty_cash', form_id: req.params.id, role: 'admin', user_name: req.user.full_name || 'Admin', action: 'admin_skip_stage', comment: `Admin skipped stage to ${new_status}: ${comment}` });
+      res.json({ success: true, message: `Successfully moved to ${new_status}` });
+    } else if (action === 'reassign_department') {
+      if (!new_department) return res.status(400).json({ error: 'new_department is required' });
+      const result = await db.PettyCashRequisition.findOneAndUpdate({ id: req.params.id }, { department: new_department }, { new: true });
+      if (!result) return res.status(404).json({ error: 'Petty cash requisition not found' });
+      res.json({ success: true, message: `Successfully reassigned to ${new_department}` });
+    } else {
+      res.status(400).json({ error: 'Invalid action' });
+    }
+  } catch (error) {
+    console.error('Error in petty cash admin override:', error);
+    res.status(500).json({ error: 'Failed to perform admin override' });
+  }
+});
+
+// Admin override for expense claims
+app.put('/api/forms/expense-claims/:id/admin-override', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { action, new_status, new_department, comment } = req.body;
+
+    if (action === 'skip_stage') {
+      if (!new_status || !comment) return res.status(400).json({ error: 'new_status and comment are required' });
+      const result = await db.ExpenseClaim.findOneAndUpdate({ id: req.params.id }, { status: new_status }, { new: true });
+      if (!result) return res.status(404).json({ error: 'Expense claim not found' });
+      await db.createFormApproval({ form_type: 'expense_claim', form_id: req.params.id, role: 'admin', user_name: req.user.full_name || 'Admin', action: 'admin_skip_stage', comment: `Admin skipped stage to ${new_status}: ${comment}` });
+      res.json({ success: true, message: `Successfully moved to ${new_status}` });
+    } else if (action === 'reassign_department') {
+      if (!new_department) return res.status(400).json({ error: 'new_department is required' });
+      const result = await db.ExpenseClaim.findOneAndUpdate({ id: req.params.id }, { department: new_department }, { new: true });
+      if (!result) return res.status(404).json({ error: 'Expense claim not found' });
+      res.json({ success: true, message: `Successfully reassigned to ${new_department}` });
+    } else {
+      res.status(400).json({ error: 'Invalid action' });
+    }
+  } catch (error) {
+    console.error('Error in expense claim admin override:', error);
+    res.status(500).json({ error: 'Failed to perform admin override' });
+  }
+});
+
 // ============================================
 // REQUISITION ROUTES
 // ============================================
