@@ -70,10 +70,10 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.text('HEAD OF DEPARTMENT:', 70, yPosition);
   yPosition += 15;
   if (hodApproval) {
-    doc.font('Helvetica').fillColor('#0000CC')
-       .text(`Name: ${hodApproval.name || 'N/A'}`, 70, yPosition)
-       .text(`Action: ${hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(hodApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#000000')
+       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(hodApproval.name || 'N/A');
+    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(hodApproval.action ? hodApproval.action.toUpperCase() : 'N/A');
+    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(hodApproval.date));
     yPosition += 12;
     doc.fillColor('#000000');
     if (hodApproval.comments) {
@@ -92,10 +92,10 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.text('FINANCE MANAGER:', 70, yPosition);
   yPosition += 15;
   if (financeApproval) {
-    doc.font('Helvetica').fillColor('#0000CC')
-       .text(`Name: ${financeApproval.name || 'N/A'}`, 70, yPosition)
-       .text(`Action: ${financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(financeApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#000000')
+       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(financeApproval.name || 'N/A');
+    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(financeApproval.action ? financeApproval.action.toUpperCase() : 'N/A');
+    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(financeApproval.date));
     yPosition += 12;
     doc.fillColor('#000000');
     if (financeApproval.comments) {
@@ -114,10 +114,10 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.text('MANAGING DIRECTOR:', 70, yPosition);
   yPosition += 15;
   if (mdApproval) {
-    doc.font('Helvetica').fillColor('#0000CC')
-       .text(`Name: ${mdApproval.name || 'N/A'}`, 70, yPosition)
-       .text(`Action: ${mdApproval.action ? mdApproval.action.toUpperCase() : 'N/A'}`, 250, yPosition)
-       .text(`Date/Time: ${formatDateTime(mdApproval.date)}`, 370, yPosition);
+    doc.font('Helvetica').fillColor('#000000')
+       .text('Name: ', 70, yPosition, { continued: true }).fillColor('#0000CC').text(mdApproval.name || 'N/A');
+    doc.fillColor('#000000').text('Action: ', 250, yPosition, { continued: true }).fillColor('#0000CC').text(mdApproval.action ? mdApproval.action.toUpperCase() : 'N/A');
+    doc.fillColor('#000000').text('Date/Time: ', 370, yPosition, { continued: true }).fillColor('#0000CC').text(formatDateTime(mdApproval.date));
     yPosition += 12;
     doc.fillColor('#000000');
     if (mdApproval.comments) {
@@ -151,8 +151,9 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       // Claim ID and Status
       doc.fontSize(10)
          .font('Helvetica-Bold')
-         .fillColor('#0000CC').text(`Claim ID: ${claim.id}`, 50, 120)
-         .fillColor('#000000').text(`Status: ${claim.status.replace(/_/g, ' ').toUpperCase()}`, 400, 120, { align: 'right' })
+         .fillColor('#000000').text('Claim ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(claim.id)
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(claim.status.replace(/_/g, ' ').toUpperCase())
          .moveDown();
 
       // Employee Information
@@ -292,8 +293,9 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       // EFT ID and Status
       doc.fontSize(10)
          .font('Helvetica-Bold')
-         .fillColor('#0000CC').text(`EFT ID: ${eft.id}`, 50, 120)
-         .fillColor('#000000').text(`Status: ${eft.status.replace(/_/g, ' ').toUpperCase()}`, 400, 120, { align: 'right' })
+         .fillColor('#000000').text('EFT ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(eft.id)
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(eft.status.replace(/_/g, ' ').toUpperCase())
          .moveDown();
 
       // Form Details
@@ -388,8 +390,9 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       // PC ID and Status
       doc.fontSize(10)
          .font('Helvetica-Bold')
-         .fillColor('#0000CC').text(`Requisition ID: ${pc.id}`, 50, 120)
-         .fillColor('#000000').text(`Status: ${pc.status.replace(/_/g, ' ').toUpperCase()}`, 400, 120, { align: 'right' })
+         .fillColor('#000000').text('Requisition ID: ', 50, 120, { continued: true }).fillColor('#0000CC').text(pc.id)
+      doc.fontSize(10).font('Helvetica-Bold')
+         .fillColor('#000000').text('Status: ', 400, 120, { continued: true, align: 'right' }).fillColor('#0000CC').text(pc.status.replace(/_/g, ' ').toUpperCase())
          .moveDown();
 
       // Form Details
