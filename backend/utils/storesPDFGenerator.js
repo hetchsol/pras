@@ -38,7 +38,7 @@ function addHeader(doc, title) {
   // Add company name and title
   doc.fontSize(20)
      .font('Helvetica-Bold')
-     .text('KINGS SEED & BOOKSHOP', 160, 40, { align: 'center' })
+     .text('KSB ZAMBIA LIMITED', 160, 40, { align: 'center' })
      .fontSize(16)
      .text(title, 160, 65, { align: 'center' })
      .moveDown(2);
@@ -81,7 +81,7 @@ function addIssueSlipApprovalSection(doc, approvals, yPosition) {
 
   // Finance Approval
   doc.font('Helvetica-Bold').fillColor('black');
-  doc.text('FINANCE:', 70, yPosition);
+  doc.text('FINANCE MANAGER:', 70, yPosition);
   yPosition += 15;
   if (financeApproval) {
     doc.font('Helvetica').fillColor('#0000CC')

@@ -37,7 +37,7 @@ const generateRequisitionPDF = (requisition, items, callback) => {
            .moveDown(0.5);
 
         doc.fontSize(12)
-           .text('KSB Systems Ltd', { align: 'center' })
+           .text('KSB Zambia Limited', { align: 'center' })
            .fontSize(10)
            .text('Purchase Requisition Approval System (PRAS)', { align: 'center' })
            .moveDown(0.5);
