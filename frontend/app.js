@@ -1786,6 +1786,22 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       }, "System")
     ),
 
+    // Home Button
+    React.createElement('div', { className: "px-4 pt-4" },
+      React.createElement('button', {
+        onClick: () => setView('dashboard'),
+        className: "w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-all",
+        style: {
+          color: view === 'dashboard' ? 'white' : 'var(--color-primary)',
+          backgroundColor: view === 'dashboard' ? 'var(--color-primary)' : 'var(--bg-secondary)',
+          border: view === 'dashboard' ? 'none' : '1px solid var(--border-color)'
+        }
+      },
+        React.createElement('span', { className: "text-lg" }, '\u{1F3E0}'),
+        React.createElement('span', null, 'Home')
+      )
+    ),
+
     // Global Search Bar
     React.createElement('div', { className: "px-4 pb-4" },
       React.createElement(GlobalSearch, { setView, setSelectedReq })
