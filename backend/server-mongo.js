@@ -1074,11 +1074,12 @@ app.post('/api/admin/fix-approval-names', authenticate, authorize('admin'), asyn
       return null;
     }
 
+    const IssueSlipModel = require('./models/IssueSlip');
     const collections = [
       { name: 'ExpenseClaims', model: db.ExpenseClaim },
       { name: 'EFTRequisitions', model: db.EFTRequisition },
       { name: 'PettyCashRequisitions', model: db.PettyCashRequisition },
-      { name: 'IssueSlips', model: db.IssueSlip }
+      { name: 'IssueSlips', model: IssueSlipModel }
     ];
 
     let totalFixed = 0;
