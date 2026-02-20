@@ -66,9 +66,9 @@ function addStatusStamp(doc, status, stampY) {
   }
 
   doc.save();
-  doc.fontSize(40).font('Helvetica-Bold')
-     .fillColor(stampColor).fillOpacity(0.7)
-     .text(stampText, 350, 720);
+  doc.fontSize(20).font('Helvetica-Bold')
+     .fillColor(stampColor).fillOpacity(0.8)
+     .text(stampText, 50, 138, { width: 500, align: 'center' });
   doc.restore();
   doc.fillOpacity(1).fillColor('#000000');
 }
@@ -188,6 +188,9 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       doc.fillColor('#0000CC').text(claim.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
       doc.fillColor('#000000').moveDown();
 
+      // Add status stamp below ID/Status line
+      addStatusStamp(doc, claim.status);
+
       // Employee Information
       let yPos = 150;
       doc.font('Helvetica-Bold').fontSize(12).text('EMPLOYEE INFORMATION', 50, yPos);
@@ -300,9 +303,6 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       // Signatures
       addSignatureSection(doc, approvals, yPos);
 
-      // Add status stamp next to signature area
-      addStatusStamp(doc, claim.status, yPos + 40);
-
       doc.end();
 
       stream.on('finish', () => resolve(outputPath));
@@ -332,6 +332,9 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       doc.fillColor('#000000').text('Status:', 420, 120);
       doc.fillColor('#0000CC').text(eft.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
       doc.fillColor('#000000').moveDown();
+
+      // Add status stamp below ID/Status line
+      addStatusStamp(doc, eft.status);
 
       // Form Details
       let yPos = 150;
@@ -395,9 +398,6 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       doc.text('_______________________', 70, yPos + 50);
       doc.font('Helvetica-Bold').text('Signature & Date', 70, yPos + 65);
 
-      // Add status stamp next to signature area
-      addStatusStamp(doc, eft.status, yPos + 40);
-
       yPos += 120;
 
       // Signatures
@@ -432,6 +432,9 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       doc.fillColor('#000000').text('Status:', 420, 120);
       doc.fillColor('#0000CC').text(pc.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
       doc.fillColor('#000000').moveDown();
+
+      // Add status stamp below ID/Status line
+      addStatusStamp(doc, pc.status);
 
       // Form Details
       let yPos = 150;
@@ -505,9 +508,6 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       doc.text(`Date: ${formatDate(pc.created_at)}`, 50, yPos + 30);
       doc.text('_______________________', 50, yPos + 50);
       doc.font('Helvetica-Bold').text('Signature & Date', 50, yPos + 65);
-
-      // Add status stamp next to signature area
-      addStatusStamp(doc, pc.status, yPos + 40);
 
       yPos += 120;
 

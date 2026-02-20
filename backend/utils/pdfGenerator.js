@@ -72,6 +72,9 @@ const generateRequisitionPDF = (requisition, items, callback) => {
            .fillColor('#000000')
            .moveDown(1);
 
+        // Add status stamp below header
+        addStatusStamp(doc, requisition.status);
+
         // Add requisition details box
         const boxTop = doc.y;
         doc.rect(50, boxTop, 495, 140)
@@ -200,9 +203,6 @@ const generateRequisitionPDF = (requisition, items, callback) => {
                .text(`Comments: ${requisition.procurement_comments || 'No comments'}`)
                .moveDown(1);
         }
-
-        // Add status stamp near footer area
-        addStatusStamp(doc, requisition.status, doc.y + 20);
 
         // Add footer
         const pageHeight = doc.page.height;
