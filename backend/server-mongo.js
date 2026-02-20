@@ -1049,6 +1049,101 @@ app.put('/api/forms/expense-claims/:id/admin-override', authenticate, authorize(
 });
 
 // ============================================
+// FIX APPROVAL NAMES (one-time migration)
+// ============================================
+app.post('/api/admin/fix-approval-names', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const users = await db.User.find({}).lean();
+    const usersByRole = {};
+    users.forEach(u => {
+      const role = (u.role || '').toLowerCase();
+      if (!usersByRole[role]) usersByRole[role] = [];
+      usersByRole[role].push(u);
+    });
+
+    function findApproverName(approval, document) {
+      const role = (approval.role || '').toLowerCase();
+      const candidates = usersByRole[role] || [];
+      if (candidates.length === 1) return candidates[0].full_name;
+      if (candidates.length > 1) {
+        const dept = (document.department || document.initiator_department || '').toLowerCase();
+        const deptMatch = candidates.find(u => (u.department || '').toLowerCase() === dept);
+        if (deptMatch) return deptMatch.full_name;
+        return candidates[0].full_name;
+      }
+      return null;
+    }
+
+    const collections = [
+      { name: 'ExpenseClaims', model: db.ExpenseClaim },
+      { name: 'EFTRequisitions', model: db.EFTRequisition },
+      { name: 'PettyCashRequisitions', model: db.PettyCashRequisition },
+      { name: 'IssueSlips', model: db.IssueSlip }
+    ];
+
+    let totalFixed = 0;
+    const details = [];
+
+    for (const { name, model } of collections) {
+      const docs = await model.find({ approvals: { $exists: true, $ne: [] } });
+      let fixed = 0;
+      for (const doc of docs) {
+        let modified = false;
+        if (doc.approvals && doc.approvals.length > 0) {
+          for (let i = 0; i < doc.approvals.length; i++) {
+            const approval = doc.approvals[i];
+            if (!approval.name || approval.name === 'undefined' || approval.name === 'null') {
+              const resolvedName = findApproverName(approval, doc);
+              if (resolvedName) {
+                details.push(`${name} [${doc.id || doc._id}] ${approval.role}: -> ${resolvedName}`);
+                doc.approvals[i].name = resolvedName;
+                modified = true;
+                fixed++;
+              }
+            }
+          }
+        }
+        if (modified) {
+          doc.markModified('approvals');
+          await doc.save();
+        }
+      }
+      totalFixed += fixed;
+    }
+
+    // Also fix GRNs
+    const GoodsReceiptNote = require('./models/GoodsReceiptNote');
+    const grns = await GoodsReceiptNote.find({ approvals: { $exists: true, $ne: [] } });
+    for (const grn of grns) {
+      let modified = false;
+      if (grn.approvals && grn.approvals.length > 0) {
+        for (let i = 0; i < grn.approvals.length; i++) {
+          const approval = grn.approvals[i];
+          if (!approval.name || approval.name === 'undefined' || approval.name === 'null') {
+            const resolvedName = findApproverName(approval, grn);
+            if (resolvedName) {
+              details.push(`GRN [${grn.id || grn._id}] ${approval.role}: -> ${resolvedName}`);
+              grn.approvals[i].name = resolvedName;
+              modified = true;
+              totalFixed++;
+            }
+          }
+        }
+      }
+      if (modified) {
+        grn.markModified('approvals');
+        await grn.save();
+      }
+    }
+
+    res.json({ success: true, totalFixed, details });
+  } catch (error) {
+    console.error('Fix approval names error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // REQUISITION ROUTES
 // ============================================
 
