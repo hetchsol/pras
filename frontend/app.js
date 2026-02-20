@@ -2506,7 +2506,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         requestBody = {
           approved: action === 'approve',
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment
         };
       }
@@ -7560,7 +7560,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
         body: JSON.stringify({
           approved: true,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment || 'Approved'
         })
       });
@@ -7594,7 +7594,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
         body: JSON.stringify({
           approved: false,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment
         })
       });
@@ -7735,7 +7735,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         body: JSON.stringify({
           approved: true,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment || 'Approved'
         })
       });
@@ -7769,7 +7769,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         body: JSON.stringify({
           approved: false,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment
         })
       });
@@ -7911,7 +7911,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
         body: JSON.stringify({
           approved: true,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment || 'Approved'
         })
       });
@@ -7945,7 +7945,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
         body: JSON.stringify({
           approved: false,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: comment
         })
       });
@@ -8115,7 +8115,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
         body: JSON.stringify({
           approved: true,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: 'Approved'
         })
       });
@@ -8137,7 +8137,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
         body: JSON.stringify({
           approved: false,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: reason
         })
       });
@@ -8321,7 +8321,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
         body: JSON.stringify({
           approved: true,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: 'Approved'
         })
       });
@@ -8343,7 +8343,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
         body: JSON.stringify({
           approved: false,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: reason
         })
       });
@@ -8527,7 +8527,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
         body: JSON.stringify({
           approved: true,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: 'Approved'
         })
       });
@@ -8549,7 +8549,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
         body: JSON.stringify({
           approved: false,
           approver_role: user.role,
-          approver_name: user.name,
+          approver_name: user.full_name || user.name,
           comments: reason
         })
       });
