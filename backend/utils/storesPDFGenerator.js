@@ -63,7 +63,7 @@ function addStatusStamp(doc, status, stampY) {
   doc.save();
   doc.fontSize(40).font('Helvetica-Bold')
      .fillColor(stampColor).fillOpacity(0.7)
-     .text(stampText, 320, stampY);
+     .text(stampText, 350, 720);
   doc.restore();
   doc.fillOpacity(1).fillColor('#000000');
 }
