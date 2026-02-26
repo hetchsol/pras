@@ -6,6 +6,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database-mongo');
+const { sendStatusNotification } = require('./utils/emailService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1282,6 +1283,18 @@ const createRequisitionHandler = async (req, res) => {
     });
 
     res.status(201).json({ success: true, id: reqId, req_number: reqId, message: 'Requisition created' });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'purchase-requisition',
+      formId: reqId,
+      newStatus: 'pending_hod',
+      department,
+      initiatorId: req.user.id,
+      initiatorName: user?.full_name || req.user.username,
+      description: desc,
+      amount: totalAmount
+    });
   } catch (error) {
     console.error('Create requisition error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1309,6 +1322,26 @@ app.put('/api/requisitions/:id/approve', authenticate, async (req, res) => {
     }
 
     res.json({ success: true, message: `Requisition ${action}` });
+
+    // Fire-and-forget email notification
+    if (nextStatus) {
+      db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
+        if (requisition) {
+          sendStatusNotification({
+            formType: 'purchase-requisition',
+            formId: reqId,
+            newStatus: nextStatus,
+            department: requisition.department,
+            initiatorId: requisition.initiator_id,
+            initiatorName: requisition.initiator_name,
+            description: requisition.description,
+            amount: requisition.amount || requisition.estimatedCost,
+            approverName: req.user.username,
+            comments: comment
+          });
+        }
+      }).catch(() => {});
+    }
   } catch (error) {
     console.error('Approve error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -1365,6 +1398,24 @@ app.put('/api/requisitions/:id/hod-approve', authenticate, async (req, res) => {
     });
 
     res.json({ success: true, message: approve ? 'Approved by HOD' : 'Rejected by HOD' });
+
+    // Fire-and-forget email notification
+    db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
+      if (requisition) {
+        sendStatusNotification({
+          formType: 'purchase-requisition',
+          formId: reqId,
+          newStatus,
+          department: requisition.department,
+          initiatorId: requisition.initiator_id,
+          initiatorName: requisition.initiator_name,
+          description: requisition.description,
+          amount: requisition.amount || requisition.estimatedCost,
+          approverName: req.user.username,
+          comments
+        });
+      }
+    }).catch(() => {});
   } catch (error) {
     console.error('HOD approve error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1389,6 +1440,24 @@ app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) 
     });
 
     res.json({ success: true, message: approve ? 'Approved by Finance' : 'Rejected by Finance' });
+
+    // Fire-and-forget email notification
+    db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
+      if (requisition) {
+        sendStatusNotification({
+          formType: 'purchase-requisition',
+          formId: reqId,
+          newStatus,
+          department: requisition.department,
+          initiatorId: requisition.initiator_id,
+          initiatorName: requisition.initiator_name,
+          description: requisition.description,
+          amount: requisition.amount || requisition.estimatedCost,
+          approverName: req.user.username,
+          comments
+        });
+      }
+    }).catch(() => {});
   } catch (error) {
     console.error('Finance approve error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1413,6 +1482,24 @@ app.put('/api/requisitions/:id/md-approve', authenticate, async (req, res) => {
     });
 
     res.json({ success: true, message: approve ? 'Approved by MD' : 'Rejected by MD' });
+
+    // Fire-and-forget email notification
+    db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
+      if (requisition) {
+        sendStatusNotification({
+          formType: 'purchase-requisition',
+          formId: reqId,
+          newStatus,
+          department: requisition.department,
+          initiatorId: requisition.initiator_id,
+          initiatorName: requisition.initiator_name,
+          description: requisition.description,
+          amount: requisition.amount || requisition.estimatedCost,
+          approverName: req.user.username,
+          comments
+        });
+      }
+    }).catch(() => {});
   } catch (error) {
     console.error('MD approve error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1631,6 +1718,17 @@ app.post('/api/forms/expense-claims', authenticate, async (req, res) => {
     });
 
     res.status(201).json({ success: true, id: claimId, claim_number: claimId });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'expense-claim',
+      formId: claimId,
+      newStatus: 'pending_hod',
+      department: req.body.department || user?.department || 'General',
+      initiatorId: req.user.id,
+      initiatorName: user?.full_name || req.user.username,
+      amount: req.body.total_claim || req.body.amount || 0
+    });
   } catch (error) {
     console.error('Create expense claim error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1665,6 +1763,18 @@ app.post('/api/forms/eft-requisitions', authenticate, async (req, res) => {
     });
 
     res.status(201).json({ success: true, id: eftId, eft_number: eftId });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'eft-requisition',
+      formId: eftId,
+      newStatus: 'pending_hod',
+      department: req.body.department || user?.department || '',
+      initiatorId: req.user.id,
+      initiatorName: user?.full_name || req.user.username,
+      description: req.body.purpose || req.body.description || '',
+      amount: req.body.amount || 0
+    });
   } catch (error) {
     console.error('Create EFT requisition error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1695,6 +1805,18 @@ app.post('/api/forms/petty-cash-requisitions', authenticate, async (req, res) =>
     });
 
     res.status(201).json({ success: true, id: pettyCashId, petty_cash_number: pettyCashId });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'petty-cash',
+      formId: pettyCashId,
+      newStatus: 'pending_hod',
+      department: req.body.department || user?.department || '',
+      initiatorId: req.user.id,
+      initiatorName: user?.full_name || req.user.username,
+      description: req.body.purpose || req.body.description || '',
+      amount: req.body.amount || 0
+    });
   } catch (error) {
     console.error('Create petty cash requisition error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1862,6 +1984,19 @@ app.put('/api/forms/expense-claims/:id/approve', authenticate, async (req, res) 
     await claim.save();
 
     res.json({ success: true, message: `Expense claim ${approved ? 'approved' : 'rejected'}`, claim });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'expense-claim',
+      formId: claim.id,
+      newStatus,
+      department: claim.department,
+      initiatorId: claim.initiator_id,
+      initiatorName: claim.initiator_name,
+      amount: claim.total_claim || claim.amount_due || 0,
+      approverName: approver_name || req.user.username,
+      comments
+    });
   } catch (error) {
     console.error('Error approving expense claim:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1920,6 +2055,20 @@ app.put('/api/forms/eft-requisitions/:id/approve', authenticate, async (req, res
     await eftReq.save();
 
     res.json({ success: true, message: `EFT requisition ${approved ? 'approved' : 'rejected'}`, requisition: eftReq });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'eft-requisition',
+      formId: eftReq.id,
+      newStatus,
+      department: eftReq.department,
+      initiatorId: eftReq.initiator_id,
+      initiatorName: eftReq.initiator_name,
+      description: eftReq.purpose || eftReq.description || '',
+      amount: eftReq.amount || 0,
+      approverName: approver_name || req.user.username,
+      comments
+    });
   } catch (error) {
     console.error('Error approving EFT requisition:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -1978,6 +2127,20 @@ app.put('/api/forms/petty-cash-requisitions/:id/approve', authenticate, async (r
     await pcReq.save();
 
     res.json({ success: true, message: `Petty cash requisition ${approved ? 'approved' : 'rejected'}`, requisition: pcReq });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'petty-cash',
+      formId: pcReq.id,
+      newStatus,
+      department: pcReq.department,
+      initiatorId: pcReq.initiator_id,
+      initiatorName: pcReq.initiator_name,
+      description: pcReq.purpose || pcReq.description || '',
+      amount: pcReq.amount || 0,
+      approverName: approver_name || req.user.username,
+      comments
+    });
   } catch (error) {
     console.error('Error approving petty cash requisition:', error);
     res.status(500).json({ error: error.message || 'Server error' });
@@ -2285,6 +2448,18 @@ app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res)
     }
 
     res.json({ message: `Issue slip ${action} by HOD successfully` });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'issue-slip',
+      formId: id,
+      newStatus,
+      department: slip.department,
+      initiatorId: slip.initiator_id,
+      initiatorName: slip.initiator_name,
+      approverName: userName,
+      comments
+    });
   } catch (error) {
     console.error('Error processing HOD action:', error);
     res.status(500).json({ error: 'Failed to process action' });
@@ -2323,6 +2498,18 @@ app.put('/api/stores/issue-slips/:id/finance-action', authenticate, async (req, 
     }
 
     res.json({ message: `Issue slip ${action} by Finance successfully` });
+
+    // Fire-and-forget email notification
+    sendStatusNotification({
+      formType: 'issue-slip',
+      formId: id,
+      newStatus,
+      department: slip.department,
+      initiatorId: slip.initiator_id,
+      initiatorName: slip.initiator_name,
+      approverName: userName,
+      comments
+    });
   } catch (error) {
     console.error('Error processing Finance action:', error);
     res.status(500).json({ error: 'Failed to process action' });
