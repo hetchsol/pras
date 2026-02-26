@@ -10075,6 +10075,11 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
     recommendation_rationale: ''
   });
 
+  const [showAddVendorModal, setShowAddVendorModal] = useState(false);
+  const [addVendorForQuote, setAddVendorForQuote] = useState(null);
+  const [newVendorForm, setNewVendorForm] = useState({ name: '', contact_person: '', email: '', phone: '' });
+  const [addingVendor, setAddingVendor] = useState(false);
+
   // Load requisitions and vendors
   useEffect(() => {
     loadRequisitions();
@@ -10150,6 +10155,47 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
         vendor_id: vendor.id,
         vendor_name: vendor.name
       });
+    }
+  };
+
+  const openAddVendorModal = (quoteNum) => {
+    setAddVendorForQuote(quoteNum);
+    setNewVendorForm({ name: '', contact_person: '', email: '', phone: '' });
+    setShowAddVendorModal(true);
+  };
+
+  const handleAddNewVendor = async () => {
+    if (!newVendorForm.name.trim()) {
+      alert('Vendor name is required');
+      return;
+    }
+    setAddingVendor(true);
+    try {
+      const response = await fetch(`${API_URL}/vendors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(newVendorForm)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to create vendor');
+        return;
+      }
+      const newVendor = { ...data, id: data.id || data._id };
+      setVendors(prev => [...prev, newVendor].sort((a, b) => a.name.localeCompare(b.name)));
+      // Auto-select the new vendor in the triggering quote dropdown
+      const setter = addVendorForQuote === 1 ? setQuote1 : addVendorForQuote === 2 ? setQuote2 : setQuote3;
+      const quote = addVendorForQuote === 1 ? quote1 : addVendorForQuote === 2 ? quote2 : quote3;
+      setter({ ...quote, vendor_id: newVendor.id, vendor_name: newVendor.name });
+      setShowAddVendorModal(false);
+      setAddVendorForQuote(null);
+    } catch (error) {
+      alert('Error creating vendor: ' + error.message);
+    } finally {
+      setAddingVendor(false);
     }
   };
 
@@ -10345,7 +10391,11 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   },
                     React.createElement('option', { value: "" }, "-- Select Vendor --"),
                     vendors.map(v => React.createElement('option', { key: v.id, value: v.id }, v.name))
-                  )
+                  ),
+                  React.createElement('span', {
+                    onClick: () => openAddVendorModal(1),
+                    className: "text-xs text-blue-600 cursor-pointer hover:text-blue-800 mt-1 inline-block"
+                  }, "+ Add New Vendor")
                 ),
                 React.createElement('div', null,
                   React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, "Quote #"),
@@ -10416,7 +10466,11 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   },
                     React.createElement('option', { value: "" }, "-- Select Vendor --"),
                     vendors.map(v => React.createElement('option', { key: v.id, value: v.id }, v.name))
-                  )
+                  ),
+                  React.createElement('span', {
+                    onClick: () => openAddVendorModal(2),
+                    className: "text-xs text-blue-600 cursor-pointer hover:text-blue-800 mt-1 inline-block"
+                  }, "+ Add New Vendor")
                 ),
                 React.createElement('div', null,
                   React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, "Quote #"),
@@ -10487,7 +10541,11 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   },
                     React.createElement('option', { value: "" }, "-- Select Vendor --"),
                     vendors.map(v => React.createElement('option', { key: v.id, value: v.id }, v.name))
-                  )
+                  ),
+                  React.createElement('span', {
+                    onClick: () => openAddVendorModal(3),
+                    className: "text-xs text-blue-600 cursor-pointer hover:text-blue-800 mt-1 inline-block"
+                  }, "+ Add New Vendor")
                 ),
                 React.createElement('div', null,
                   React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" }, "Quote #"),
@@ -10796,6 +10854,69 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
               React.createElement('p', null, `Date: ${new Date(adjudication.created_at).toLocaleString()}`)
             )
           )
+        )
+      )
+    ),
+
+    // Add New Vendor Modal
+    showAddVendorModal && React.createElement('div', {
+      className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
+      onClick: (e) => { if (e.target === e.currentTarget) { setShowAddVendorModal(false); setAddVendorForQuote(null); } }
+    },
+      React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },
+        React.createElement('h3', { className: "text-lg font-bold mb-4" }, "Add New Vendor"),
+        React.createElement('div', { className: "space-y-3" },
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Vendor Name *"),
+            React.createElement('input', {
+              type: "text",
+              value: newVendorForm.name,
+              onChange: (e) => setNewVendorForm({ ...newVendorForm, name: e.target.value }),
+              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              placeholder: "Enter vendor name"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Contact Person"),
+            React.createElement('input', {
+              type: "text",
+              value: newVendorForm.contact_person,
+              onChange: (e) => setNewVendorForm({ ...newVendorForm, contact_person: e.target.value }),
+              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              placeholder: "Contact person name"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Email"),
+            React.createElement('input', {
+              type: "email",
+              value: newVendorForm.email,
+              onChange: (e) => setNewVendorForm({ ...newVendorForm, email: e.target.value }),
+              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              placeholder: "vendor@example.com"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Phone"),
+            React.createElement('input', {
+              type: "text",
+              value: newVendorForm.phone,
+              onChange: (e) => setNewVendorForm({ ...newVendorForm, phone: e.target.value }),
+              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              placeholder: "Phone number"
+            })
+          )
+        ),
+        React.createElement('div', { className: "flex gap-2 mt-4" },
+          React.createElement('button', {
+            onClick: handleAddNewVendor,
+            disabled: addingVendor,
+            className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          }, addingVendor ? "Saving..." : "Save Vendor"),
+          React.createElement('button', {
+            onClick: () => { setShowAddVendorModal(false); setAddVendorForQuote(null); },
+            className: "flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+          }, "Cancel")
         )
       )
     )

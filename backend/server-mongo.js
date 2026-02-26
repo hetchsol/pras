@@ -1420,6 +1420,36 @@ app.get('/api/vendors', authenticate, async (req, res) => {
   }
 });
 
+app.post('/api/vendors', authenticate, authorize('procurement', 'admin'), async (req, res) => {
+  try {
+    const { name, contact_person, email, phone } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Vendor name is required' });
+    }
+    // Check for duplicate name (case-insensitive)
+    const Vendor = require('./models/Vendor');
+    const existing = await Vendor.findOne({ name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
+    if (existing) {
+      return res.status(409).json({ error: 'A vendor with this name already exists' });
+    }
+    const vendorData = {
+      name: name.trim(),
+      contact_person: contact_person || '',
+      email: email || '',
+      phone: phone || '',
+      status: 'active'
+    };
+    const newVendor = new Vendor(vendorData);
+    const saved = await newVendor.save();
+    const vendor = saved.toObject();
+    vendor.id = vendor._id.toString();
+    res.status(201).json(vendor);
+  } catch (error) {
+    console.error('Error creating vendor:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ============================================
 // DEPARTMENT ROUTES
 // ============================================
