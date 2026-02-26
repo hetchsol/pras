@@ -1432,8 +1432,11 @@ app.post('/api/vendors', authenticate, authorize('procurement', 'admin'), async 
     if (existing) {
       return res.status(409).json({ error: 'A vendor with this name already exists' });
     }
+    // Generate unique vendor code
+    const vendorCode = `VEN-${Date.now().toString(36).toUpperCase()}`;
     const vendorData = {
       name: name.trim(),
+      code: vendorCode,
       contact_person: contact_person || '',
       email: email || '',
       phone: phone || '',
