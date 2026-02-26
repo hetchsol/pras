@@ -1696,7 +1696,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       isGroup: true,
       children: [
         { id: 'requisitions', label: 'My Requisitions', icon: '📋', show: true },
-        { id: 'create', label: 'Create Requisition', icon: '➕', show: hasRole(user.role, 'initiator', 'procurement') },
+        { id: 'create', label: 'Create Requisition', icon: '➕', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
         { id: 'approval-console', label: 'Pending Approvals', icon: '⏳', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
         { id: 'purchase-orders', label: 'Approved Requisitions', icon: '✓', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Requisitions', icon: '❌', show: hasRole(user.role, 'procurement', 'admin') },
