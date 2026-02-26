@@ -89,6 +89,9 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
   const mdApproval = approvals.find(a => a.role === 'md');
 
   // HOD Approval
+  // Check if Finance approved before/on behalf of HOD
+  const financeApprovedBeforeHod = !hodApproval && financeApproval && financeApproval.action === 'approved';
+
   doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000');
   doc.text('HEAD OF DEPARTMENT:', 70, yPosition);
   yPosition += 15;
@@ -104,6 +107,19 @@ function addApprovalWorkflowSection(doc, approvals, yPosition) {
     if (hodApproval.comments) {
       doc.text('Comments:', 70, yPosition);
       doc.text(hodApproval.comments, 125, yPosition, { width: 405 });
+    }
+  } else if (financeApprovedBeforeHod) {
+    doc.font('Helvetica').fillColor('#000000').text('Name:', 70, yPosition);
+    doc.fillColor('#0000CC').text(`${financeApproval.name || 'Finance Manager'} (On behalf of HOD)`, 108, yPosition);
+    doc.fillColor('#000000').text('Action:', 250, yPosition);
+    doc.fillColor('#0000CC').text('APPROVED', 290, yPosition);
+    doc.fillColor('#000000').text('Date/Time:', 370, yPosition);
+    doc.fillColor('#0000CC').text(formatDateTime(financeApproval.date), 428, yPosition);
+    yPosition += 12;
+    doc.fillColor('#000000');
+    if (financeApproval.comments) {
+      doc.text('Comments:', 70, yPosition);
+      doc.text(financeApproval.comments, 125, yPosition, { width: 405 });
     }
   } else {
     doc.font('Helvetica').fillColor('#000000').text('Pending', 70, yPosition);
