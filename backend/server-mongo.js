@@ -585,6 +585,18 @@ app.post('/api/admin/vendors', authenticate, authorize('admin'), async (req, res
   }
 });
 
+app.delete('/api/admin/requisitions/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const result = await db.Requisition.findOneAndDelete({ id: req.params.id });
+    if (!result) {
+      return res.status(404).json({ error: 'Requisition not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.delete('/api/admin/vendors/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     await db.Vendor.findByIdAndDelete(req.params.id);
