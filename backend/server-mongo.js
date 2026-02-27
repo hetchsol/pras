@@ -3107,16 +3107,6 @@ app.delete('/api/stores/stock-items/:id', authenticate, async (req, res) => {
   }
 });
 
-// Catch-all for undefined API routes - return JSON error
-app.all('/api/*', (req, res) => {
-  res.status(404).json({ success: false, error: `Route not found: ${req.path}` });
-});
-
-// Serve frontend for all other non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
 // Email notification test/diagnostic endpoint
 app.get('/api/test-email', authenticate, async (req, res) => {
   try {
@@ -3128,7 +3118,6 @@ app.get('/api/test-email', authenticate, async (req, res) => {
     const smtpHost = process.env.SMTP_HOST;
     const smtpPort = process.env.SMTP_PORT;
 
-    // Check SMTP config
     const config = {
       SMTP_HOST: smtpHost || '(not set)',
       SMTP_PORT: smtpPort || '(not set)',
@@ -3137,14 +3126,10 @@ app.get('/api/test-email', authenticate, async (req, res) => {
       SMTP_FROM: process.env.SMTP_FROM || '(not set)'
     };
 
-    // Check user making request
     const currentUser = await User.findById(req.user.id).select('full_name email role department').lean();
-
-    // Check HODs for user's department
     const department = currentUser?.department;
     const hods = await User.find({ is_hod: 1, department }).select('full_name email department').lean();
 
-    // Check if supervisor fallback would work
     const initiator = await User.findById(req.user.id).select('supervisor_name').lean();
     let supervisorEmail = null;
     if (initiator?.supervisor_name) {
@@ -3152,7 +3137,6 @@ app.get('/api/test-email', authenticate, async (req, res) => {
       supervisorEmail = supervisor?.email || `(supervisor "${initiator.supervisor_name}" not found)`;
     }
 
-    // Try SMTP connection
     let smtpStatus = 'not configured';
     if (smtpUser && smtpPass) {
       try {
@@ -3181,6 +3165,16 @@ app.get('/api/test-email', authenticate, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Catch-all for undefined API routes - return JSON error
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ success: false, error: `Route not found: ${req.path}` });
+});
+
+// Serve frontend for all other non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 // Error handler
