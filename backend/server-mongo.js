@@ -3117,6 +3117,72 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+// Email notification test/diagnostic endpoint
+app.get('/api/test-email', authenticate, async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const nodemailer = require('nodemailer');
+
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+
+    // Check SMTP config
+    const config = {
+      SMTP_HOST: smtpHost || '(not set)',
+      SMTP_PORT: smtpPort || '(not set)',
+      SMTP_USER: smtpUser ? `${smtpUser.substring(0, 3)}***` : '(not set)',
+      SMTP_PASS: smtpPass ? '***set***' : '(not set)',
+      SMTP_FROM: process.env.SMTP_FROM || '(not set)'
+    };
+
+    // Check user making request
+    const currentUser = await User.findById(req.user.id).select('full_name email role department').lean();
+
+    // Check HODs for user's department
+    const department = currentUser?.department;
+    const hods = await User.find({ is_hod: 1, department }).select('full_name email department').lean();
+
+    // Check if supervisor fallback would work
+    const initiator = await User.findById(req.user.id).select('supervisor_name').lean();
+    let supervisorEmail = null;
+    if (initiator?.supervisor_name) {
+      const supervisor = await User.findOne({ full_name: initiator.supervisor_name }).select('full_name email').lean();
+      supervisorEmail = supervisor?.email || `(supervisor "${initiator.supervisor_name}" not found)`;
+    }
+
+    // Try SMTP connection
+    let smtpStatus = 'not configured';
+    if (smtpUser && smtpPass) {
+      try {
+        const transport = nodemailer.createTransport({
+          host: smtpHost || 'smtp.gmail.com',
+          port: parseInt(smtpPort, 10) || 587,
+          secure: parseInt(smtpPort, 10) === 465,
+          auth: { user: smtpUser, pass: smtpPass }
+        });
+        await transport.verify();
+        smtpStatus = 'connected OK';
+      } catch (e) {
+        smtpStatus = `connection failed: ${e.message}`;
+      }
+    }
+
+    res.json({
+      smtpConfig: config,
+      smtpStatus,
+      currentUser,
+      department,
+      hodsForDepartment: hods,
+      supervisorFallback: supervisorEmail || initiator?.supervisor_name || '(no supervisor set)',
+      note: 'If hodsForDepartment is empty and supervisor has no email, no recipient can be found for pending_hod notifications.'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
