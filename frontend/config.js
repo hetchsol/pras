@@ -6,7 +6,7 @@ const CONFIG = {
   // Automatically uses localhost for development, Render URL for production
   API_URL: window.location.hostname === 'localhost'
     ? 'http://localhost:3001/api'
-    : 'https://pras-backend.onrender.com/api'
+    : 'https://pras-27c8.onrender.com/api'
 };
 
 // Make it globally available
