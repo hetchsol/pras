@@ -1,11 +1,24 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { logger } = require('./logger');
 const User = require('../models/User');
 
 let transporter = null;
+let resendClient = null;
 
 /**
- * Lazy-initialize the nodemailer SMTP transport from env vars.
+ * Get the Resend client (preferred for Render/cloud deployments).
+ */
+function getResendClient() {
+  if (resendClient) return resendClient;
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  resendClient = new Resend(apiKey);
+  return resendClient;
+}
+
+/**
+ * Lazy-initialize the nodemailer SMTP transport from env vars (fallback).
  */
 function getTransporter() {
   if (transporter) return transporter;
@@ -25,6 +38,31 @@ function getTransporter() {
   });
 
   return transporter;
+}
+
+/**
+ * Send an email using Resend (HTTP) or nodemailer (SMTP) as fallback.
+ */
+async function sendEmail({ from, to, subject, html }) {
+  const resend = getResendClient();
+  if (resend) {
+    const toArray = Array.isArray(to) ? to : to.split(',').map(e => e.trim());
+    const result = await resend.emails.send({
+      from: from || process.env.RESEND_FROM || 'PRAS Approvals <onboarding@resend.dev>',
+      to: toArray,
+      subject,
+      html
+    });
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    return result;
+  }
+
+  const transport = getTransporter();
+  if (!transport) return null;
+
+  return transport.sendMail({ from, to, subject, html });
 }
 
 /**
@@ -199,10 +237,11 @@ function escapeHtml(str) {
  */
 async function sendStatusNotification({ formType, formId, newStatus, department, initiatorId, initiatorName, description, amount, approverName, comments }) {
   try {
+    const resend = getResendClient();
     const transport = getTransporter();
-    if (!transport) return; // SMTP not configured
+    if (!resend && !transport) return; // No email provider configured
 
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const from = process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || 'PRAS Approvals <onboarding@resend.dev>';
 
     // Send to the next approvers / initiator for final statuses
     const recipients = await getRecipientsForStatus(newStatus, department, initiatorId);
@@ -214,12 +253,7 @@ async function sendStatusNotification({ formType, formId, newStatus, department,
 
       const html = buildEmailHtml({ formType, formId, newStatus, amount, department, initiatorName, approverName, comments, isProgressNotification: false });
 
-      await transport.sendMail({
-        from,
-        to: recipients.join(', '),
-        subject,
-        html
-      });
+      await sendEmail({ from, to: recipients, subject, html });
 
       logger.info({ type: 'EMAIL', event: 'notification_sent', formId, newStatus, recipients });
     }
@@ -234,12 +268,7 @@ async function sendStatusNotification({ formType, formId, newStatus, department,
 
         const html = buildEmailHtml({ formType, formId, newStatus, amount, department, initiatorName, approverName, comments, isProgressNotification: true });
 
-        await transport.sendMail({
-          from,
-          to: initiator.email,
-          subject,
-          html
-        });
+        await sendEmail({ from, to: [initiator.email], subject, html });
 
         logger.info({ type: 'EMAIL', event: 'progress_notification_sent', formId, newStatus, recipient: initiator.email });
       }

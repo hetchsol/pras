@@ -3111,19 +3111,17 @@ app.delete('/api/stores/stock-items/:id', authenticate, async (req, res) => {
 app.get('/api/test-email', authenticate, async (req, res) => {
   try {
     const User = require('./models/User');
-    const nodemailer = require('nodemailer');
 
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-
+    const resendKey = process.env.RESEND_API_KEY;
     const config = {
-      SMTP_HOST: smtpHost || '(not set)',
-      SMTP_PORT: smtpPort || '(not set)',
-      SMTP_USER: smtpUser ? `${smtpUser.substring(0, 3)}***` : '(not set)',
-      SMTP_PASS: smtpPass ? '***set***' : '(not set)',
-      SMTP_FROM: process.env.SMTP_FROM || '(not set)'
+      RESEND_API_KEY: resendKey ? `${resendKey.substring(0, 8)}***` : '(not set)',
+      RESEND_FROM: process.env.RESEND_FROM || '(not set)',
+      SMTP_HOST: process.env.SMTP_HOST || '(not set)',
+      SMTP_PORT: process.env.SMTP_PORT || '(not set)',
+      SMTP_USER: process.env.SMTP_USER ? `${process.env.SMTP_USER.substring(0, 3)}***` : '(not set)',
+      SMTP_PASS: process.env.SMTP_PASS ? '***set***' : '(not set)',
+      SMTP_FROM: process.env.SMTP_FROM || '(not set)',
+      provider: resendKey ? 'Resend (HTTP)' : (process.env.SMTP_USER ? 'SMTP' : 'none')
     };
 
     const currentUser = await User.findById(req.user.id).select('full_name email role department').lean();
@@ -3137,25 +3135,24 @@ app.get('/api/test-email', authenticate, async (req, res) => {
       supervisorEmail = supervisor?.email || `(supervisor "${initiator.supervisor_name}" not found)`;
     }
 
-    let smtpStatus = 'not configured';
-    if (smtpUser && smtpPass) {
+    let emailStatus = 'not configured';
+    if (resendKey) {
       try {
-        const transport = nodemailer.createTransport({
-          host: smtpHost || 'smtp.gmail.com',
-          port: parseInt(smtpPort, 10) || 587,
-          secure: parseInt(smtpPort, 10) === 465,
-          auth: { user: smtpUser, pass: smtpPass }
-        });
-        await transport.verify();
-        smtpStatus = 'connected OK';
+        const { Resend } = require('resend');
+        const resend = new Resend(resendKey);
+        // Test by listing API keys (lightweight check)
+        await resend.apiKeys.list();
+        emailStatus = 'Resend connected OK';
       } catch (e) {
-        smtpStatus = `connection failed: ${e.message}`;
+        emailStatus = `Resend connection failed: ${e.message}`;
       }
+    } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      emailStatus = 'SMTP configured (may be blocked on Render)';
     }
 
     res.json({
-      smtpConfig: config,
-      smtpStatus,
+      emailConfig: config,
+      emailStatus,
       currentUser,
       department,
       hodsForDepartment: hods,
