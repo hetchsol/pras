@@ -237,14 +237,20 @@ function escapeHtml(str) {
  */
 async function sendStatusNotification({ formType, formId, newStatus, department, initiatorId, initiatorName, description, amount, approverName, comments }) {
   try {
+    console.log(`📧 EMAIL: Starting notification for ${formId}, status: ${newStatus}`);
     const resend = getResendClient();
     const transport = getTransporter();
-    if (!resend && !transport) return; // No email provider configured
+    if (!resend && !transport) {
+      console.log('📧 EMAIL: No email provider configured (no Resend API key or SMTP credentials)');
+      return;
+    }
+    console.log(`📧 EMAIL: Using provider: ${resend ? 'Resend' : 'SMTP'}`);
 
     const from = process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || 'PRAS Approvals <onboarding@resend.dev>';
 
     // Send to the next approvers / initiator for final statuses
     const recipients = await getRecipientsForStatus(newStatus, department, initiatorId);
+    console.log(`📧 EMAIL: Recipients for ${newStatus} in ${department}:`, recipients);
 
     if (recipients.length > 0) {
       const statusLabel = STATUS_LABELS[newStatus] || newStatus;
@@ -253,9 +259,13 @@ async function sendStatusNotification({ formType, formId, newStatus, department,
 
       const html = buildEmailHtml({ formType, formId, newStatus, amount, department, initiatorName, approverName, comments, isProgressNotification: false });
 
-      await sendEmail({ from, to: recipients, subject, html });
+      console.log(`📧 EMAIL: Sending to ${recipients.join(', ')} from ${from}`);
+      const result = await sendEmail({ from, to: recipients, subject, html });
+      console.log(`📧 EMAIL: Send result:`, JSON.stringify(result));
 
       logger.info({ type: 'EMAIL', event: 'notification_sent', formId, newStatus, recipients });
+    } else {
+      console.log(`📧 EMAIL: No recipients found for status ${newStatus} in department ${department}`);
     }
 
     // On intermediate approvals, also notify the initiator about progress
@@ -274,6 +284,7 @@ async function sendStatusNotification({ formType, formId, newStatus, department,
       }
     }
   } catch (error) {
+    console.error(`📧 EMAIL ERROR: ${error.message}`);
     logger.error({ type: 'EMAIL', event: 'notification_failed', formId, newStatus, error: error.message });
   }
 }
