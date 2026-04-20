@@ -34,6 +34,7 @@ const { logger, logError } = require('./utils/logger');
 const { validateLogin } = require('./middleware/validation');
 const { assertTransition } = require('./utils/statusTransitions');
 const { getPaginationParams, paginateFind } = require('./utils/pagination');
+const { logAudit } = require('./utils/audit');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -2525,6 +2526,15 @@ app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res)
 
     res.json({ message: `Issue slip ${action} by HOD successfully` });
 
+    logAudit(req, {
+      entity_type: 'IssueSlip',
+      entity_id: id,
+      action: `hod-${action}`,
+      from_status: 'pending_hod',
+      to_status: newStatus,
+      comments
+    });
+
     // Fire-and-forget email notification
     sendStatusNotification({
       formType: 'issue-slip',
@@ -2577,6 +2587,15 @@ app.put('/api/stores/issue-slips/:id/finance-action', authenticate, async (req, 
     }
 
     res.json({ message: `Issue slip ${action} by Finance successfully` });
+
+    logAudit(req, {
+      entity_type: 'IssueSlip',
+      entity_id: id,
+      action: `finance-${action}`,
+      from_status: 'pending_finance',
+      to_status: newStatus,
+      comments
+    });
 
     // Fire-and-forget email notification
     sendStatusNotification({
@@ -2959,6 +2978,15 @@ app.put('/api/stores/grns/:id/approve', authenticate, async (req, res) => {
     }
 
     res.json({ message: `GRN ${action} successfully`, grn });
+
+    logAudit(req, {
+      entity_type: 'GRN',
+      entity_id: req.params.id,
+      action: `approve-${action}`,
+      from_status: 'pending_approval',
+      to_status: action,
+      comments
+    });
   } catch (error) {
     console.error('Error approving GRN:', error);
     res.status(500).json({ error: 'Failed to process GRN approval' });
