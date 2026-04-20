@@ -6,8 +6,21 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const db = require('./database-mongo');
 const { sendStatusNotification } = require('./utils/emailService');
+
+// Typed error for validation failures inside transactions. Thrown inside
+// session.withTransaction to abort the transaction; caught in the route
+// handler to return the correct HTTP status without a generic 500.
+class HttpError extends Error {
+  constructor(status, body) {
+    super((body && body.error) || 'HTTP error');
+    this.status = status;
+    this.body = body;
+    this.name = 'HttpError';
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -2326,7 +2339,11 @@ app.get('/api/stores/issue-slips/:id', authenticate, async (req, res) => {
   }
 });
 
-// Create new issue slip
+// Create new issue slip.
+// Wrapped in a MongoDB transaction so the GRN stock read and the IssueSlip
+// write are atomic: two concurrent POSTs against the same GRN cannot both
+// pass validation and leave the GRN over-issued. Requires a replica set
+// (Atlas deployments are replica sets; satisfied by our MONGODB_URI).
 app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
   try {
     const {
@@ -2349,62 +2366,6 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     const timestamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 17);
     const slipId = `KSB-ISS-${timestamp}`;
 
-    // === GRN Stock Validation ===
-    if (reference_number) {
-      // Validate GRN exists and is received
-      const grn = await GoodsReceiptNote.findOne({ id: reference_number }).lean();
-      if (!grn) {
-        return res.status(400).json({ error: `GRN ${reference_number} not found` });
-      }
-      if (grn.status !== 'approved') {
-        return res.status(400).json({ error: `GRN ${reference_number} is not approved` });
-      }
-
-      // Check customer reservation
-      if (grn.customer) {
-        if (!customer || customer !== grn.customer) {
-          return res.status(400).json({ error: `GRN ${reference_number} is reserved for customer "${grn.customer}". Issue slip customer must match.` });
-        }
-      }
-
-      // Calculate already-issued quantities from this GRN (pending + approved issue slips)
-      const existingSlips = await IssueSlip.find({
-        reference_number: reference_number,
-        status: { $in: ['pending_hod', 'pending_finance', 'approved'] }
-      }).lean();
-
-      // Build a map of total issued per item_code/description
-      const issuedMap = {};
-      existingSlips.forEach(s => {
-        (s.items || []).forEach(item => {
-          const key = item.item_code || item.description || item.item_name;
-          issuedMap[key] = (issuedMap[key] || 0) + (item.quantity || 0);
-        });
-      });
-
-      // Validate each item against GRN remaining stock
-      for (const item of (items || [])) {
-        const key = item.item_code || item.description || item.item_name;
-        const grnItem = grn.items.find(gi =>
-          (gi.item_code && gi.item_code === item.item_code) ||
-          (gi.description || gi.item_name) === (item.description || item.item_name)
-        );
-
-        if (!grnItem) {
-          return res.status(400).json({ error: `Item "${key}" not found on GRN ${reference_number}` });
-        }
-
-        const alreadyIssued = issuedMap[key] || 0;
-        const remaining = grnItem.quantity_received - alreadyIssued;
-
-        if (item.quantity > remaining) {
-          return res.status(400).json({
-            error: `Insufficient stock for "${key}": requested ${item.quantity}, available ${remaining} (received ${grnItem.quantity_received}, already issued ${alreadyIssued})`
-          });
-        }
-      }
-    }
-
     const slipItems = (items || []).map(item => ({
       item_code: item.item_code || '',
       item_name: item.item_name,
@@ -2413,40 +2374,106 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
       unit: item.unit || 'pcs'
     }));
 
-    const slip = await IssueSlip.create({
-      id: slipId,
-      issued_to,
-      department: department || req.user.department,
-      delivery_location,
-      delivery_date: delivery_date || null,
-      delivered_by,
-      reference_number,
-      customer,
-      remarks,
-      initiator_id: userId,
-      initiator_name: userName,
-      status: 'pending_hod',
-      items: slipItems,
-      approvals: [{
-        role: 'hod',
-        name: '',
-        action: 'pending',
-        comments: '',
-        date: new Date()
-      }]
-    });
+    let createdSlip;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // === GRN Stock Validation ===
+        if (reference_number) {
+          const grn = await GoodsReceiptNote.findOne({ id: reference_number }).session(session).lean();
+          if (!grn) {
+            throw new HttpError(400, { error: `GRN ${reference_number} not found` });
+          }
+          if (grn.status !== 'approved') {
+            throw new HttpError(400, { error: `GRN ${reference_number} is not approved` });
+          }
+
+          if (grn.customer) {
+            if (!customer || customer !== grn.customer) {
+              throw new HttpError(400, { error: `GRN ${reference_number} is reserved for customer "${grn.customer}". Issue slip customer must match.` });
+            }
+          }
+
+          const existingSlips = await IssueSlip.find({
+            reference_number: reference_number,
+            status: { $in: ['pending_hod', 'pending_finance', 'approved'] }
+          }).session(session).lean();
+
+          const issuedMap = {};
+          existingSlips.forEach(s => {
+            (s.items || []).forEach(item => {
+              const key = item.item_code || item.description || item.item_name;
+              issuedMap[key] = (issuedMap[key] || 0) + (item.quantity || 0);
+            });
+          });
+
+          for (const item of (items || [])) {
+            const key = item.item_code || item.description || item.item_name;
+            const grnItem = grn.items.find(gi =>
+              (gi.item_code && gi.item_code === item.item_code) ||
+              (gi.description || gi.item_name) === (item.description || item.item_name)
+            );
+
+            if (!grnItem) {
+              throw new HttpError(400, { error: `Item "${key}" not found on GRN ${reference_number}` });
+            }
+
+            const alreadyIssued = issuedMap[key] || 0;
+            const remaining = grnItem.quantity_received - alreadyIssued;
+
+            if (item.quantity > remaining) {
+              throw new HttpError(400, {
+                error: `Insufficient stock for "${key}": requested ${item.quantity}, available ${remaining} (received ${grnItem.quantity_received}, already issued ${alreadyIssued})`
+              });
+            }
+          }
+        }
+
+        const slipDoc = new IssueSlip({
+          id: slipId,
+          issued_to,
+          department: department || req.user.department,
+          delivery_location,
+          delivery_date: delivery_date || null,
+          delivered_by,
+          reference_number,
+          customer,
+          remarks,
+          initiator_id: userId,
+          initiator_name: userName,
+          status: 'pending_hod',
+          items: slipItems,
+          approvals: [{
+            role: 'hod',
+            name: '',
+            action: 'pending',
+            comments: '',
+            date: new Date()
+          }]
+        });
+        await slipDoc.save({ session });
+        createdSlip = slipDoc;
+      });
+    } finally {
+      await session.endSession();
+    }
 
     res.status(201).json({
       message: 'Issue slip created successfully',
-      slip
+      slip: createdSlip
     });
   } catch (error) {
+    if (error instanceof HttpError) {
+      return res.status(error.status).json(error.body);
+    }
     console.error('Error creating issue slip:', error);
     res.status(500).json({ error: 'Failed to create issue slip', details: error.message });
   }
 });
 
-// HOD action on issue slip
+// HOD action on issue slip. Wrapped in a transaction so we cannot leave
+// the slip in pending_finance without its finance approval entry if the
+// second update fails.
 app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
@@ -2459,7 +2486,6 @@ app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res)
 
     const newStatus = action === 'approved' ? 'pending_finance' : 'rejected';
 
-    // Update the HOD approval entry and status
     const updateOps = {
       status: newStatus,
       'approvals.$[hodApproval].name': userName,
@@ -2468,22 +2494,30 @@ app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res)
       'approvals.$[hodApproval].date': new Date()
     };
 
-    const slip = await IssueSlip.findOneAndUpdate(
-      { id },
-      { $set: updateOps },
-      { arrayFilters: [{ 'hodApproval.role': 'hod' }], new: true }
-    );
+    let slip;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        slip = await IssueSlip.findOneAndUpdate(
+          { id },
+          { $set: updateOps },
+          { arrayFilters: [{ 'hodApproval.role': 'hod' }], new: true, session }
+        );
 
-    if (!slip) {
-      return res.status(404).json({ error: 'Issue slip not found' });
-    }
+        if (!slip) {
+          throw new HttpError(404, { error: 'Issue slip not found' });
+        }
 
-    // If approved, add Finance approval entry
-    if (action === 'approved') {
-      await IssueSlip.findOneAndUpdate(
-        { id },
-        { $push: { approvals: { role: 'finance', name: '', action: 'pending', comments: '', date: new Date() } } }
-      );
+        if (action === 'approved') {
+          await IssueSlip.findOneAndUpdate(
+            { id },
+            { $push: { approvals: { role: 'finance', name: '', action: 'pending', comments: '', date: new Date() } } },
+            { session }
+          );
+        }
+      });
+    } finally {
+      await session.endSession();
     }
 
     res.json({ message: `Issue slip ${action} by HOD successfully` });
@@ -2500,6 +2534,9 @@ app.put('/api/stores/issue-slips/:id/hod-action', authenticate, async (req, res)
       comments
     });
   } catch (error) {
+    if (error instanceof HttpError) {
+      return res.status(error.status).json(error.body);
+    }
     console.error('Error processing HOD action:', error);
     res.status(500).json({ error: 'Failed to process action' });
   }
@@ -2868,35 +2905,48 @@ app.put('/api/stores/grns/:id/approve', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Action must be "approved" or "rejected"' });
     }
 
-    const grn = await GoodsReceiptNote.findOne({ id: req.params.id });
-    if (!grn) {
+    // Load the GRN once to run authorization checks; the actual status
+    // flip is done via a conditional findOneAndUpdate so two concurrent
+    // approvals cannot both succeed (the second will find status !=
+    // pending_approval and return null).
+    const existing = await GoodsReceiptNote.findOne({ id: req.params.id }).lean();
+    if (!existing) {
       return res.status(404).json({ error: 'GRN not found' });
     }
-    if (grn.status !== 'pending_approval') {
-      return res.status(400).json({ error: `GRN is already ${grn.status}` });
+    if (existing.status !== 'pending_approval') {
+      return res.status(400).json({ error: `GRN is already ${existing.status}` });
     }
 
     const userName = req.user.full_name || req.user.name;
-
-    // Check if user is the assigned approver or has admin/finance role
     const userRole = req.user.role;
-    const isAssignedApprover = grn.assigned_approver && grn.assigned_approver === userName;
+    const isAssignedApprover = existing.assigned_approver && existing.assigned_approver === userName;
     const isPrivilegedRole = ['admin', 'finance', 'finance_manager', 'md'].includes(userRole);
 
     if (!isAssignedApprover && !isPrivilegedRole) {
       return res.status(403).json({ error: 'You are not authorized to approve this GRN' });
     }
 
-    grn.status = action;
-    grn.approvals = [{
-      role: 'finance',
-      name: userName,
-      action: action,
-      comments: comments || '',
-      date: new Date()
-    }];
+    const grn = await GoodsReceiptNote.findOneAndUpdate(
+      { id: req.params.id, status: 'pending_approval' },
+      {
+        $set: {
+          status: action,
+          approvals: [{
+            role: 'finance',
+            name: userName,
+            action: action,
+            comments: comments || '',
+            date: new Date()
+          }]
+        }
+      },
+      { new: true }
+    );
 
-    await grn.save();
+    if (!grn) {
+      // Lost the race: another approver committed first.
+      return res.status(409).json({ error: 'GRN was just updated by another approver. Refresh and try again.' });
+    }
 
     res.json({ message: `GRN ${action} successfully`, grn });
   } catch (error) {
