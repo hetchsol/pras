@@ -11,6 +11,13 @@ const { sendStatusNotification } = require('./utils/emailService');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET environment variable is missing or shorter than 32 characters. Set a strong secret (64+ random bytes hex) in Render environment settings before starting the server.');
+  process.exit(1);
+}
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+
 // CORS Configuration
 app.use(cors({
   origin: function (origin, callback) {
@@ -36,7 +43,7 @@ const authenticate = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -378,8 +385,8 @@ app.post('/api/auth/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id || user.id, username: user.username, role: user.role, full_name: user.full_name, department: user.department },
-      process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
     const refreshToken = require('crypto').randomBytes(40).toString('hex');
