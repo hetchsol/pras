@@ -33,6 +33,7 @@ const { loginLimiter } = require('./middleware/rateLimiter');
 const { logger, logError } = require('./utils/logger');
 const { validateLogin } = require('./middleware/validation');
 const { assertTransition } = require('./utils/statusTransitions');
+const { getPaginationParams, paginateFind } = require('./utils/pagination');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -2306,16 +2307,16 @@ app.get('/api/stores/issue-slips', authenticate, async (req, res) => {
       };
     }
 
+    const mapRow = s => ({ ...s, initiator_full_name: s.initiator_name, initiator_department: s.department });
+
+    const pageParams = getPaginationParams(req);
+    if (pageParams) {
+      const envelope = await paginateFind(IssueSlip, filter, { created_at: -1 }, pageParams);
+      return res.json({ ...envelope, items: envelope.items.map(mapRow) });
+    }
+
     const slips = await IssueSlip.find(filter).sort({ created_at: -1 }).lean();
-
-    // Map to match SQLite response format
-    const result = slips.map(s => ({
-      ...s,
-      initiator_full_name: s.initiator_name,
-      initiator_department: s.department
-    }));
-
-    res.json(result);
+    res.json(slips.map(mapRow));
   } catch (error) {
     console.error('Error fetching issue slips:', error);
     res.status(500).json({ error: 'Failed to fetch issue slips' });
@@ -2643,15 +2644,16 @@ app.get('/api/stores/picking-slips', authenticate, async (req, res) => {
       };
     }
 
+    const mapRow = s => ({ ...s, initiator_full_name: s.initiator_name, initiator_department: s.department });
+
+    const pageParams = getPaginationParams(req);
+    if (pageParams) {
+      const envelope = await paginateFind(PickingSlip, filter, { created_at: -1 }, pageParams);
+      return res.json({ ...envelope, items: envelope.items.map(mapRow) });
+    }
+
     const slips = await PickingSlip.find(filter).sort({ created_at: -1 }).lean();
-
-    const result = slips.map(s => ({
-      ...s,
-      initiator_full_name: s.initiator_name,
-      initiator_department: s.department
-    }));
-
-    res.json(result);
+    res.json(slips.map(mapRow));
   } catch (error) {
     console.error('Error fetching picking slips:', error);
     res.status(500).json({ error: 'Failed to fetch picking slips' });
@@ -2801,6 +2803,12 @@ app.get('/api/stores/grns', authenticate, async (req, res) => {
           { assigned_approver: req.user.full_name }
         ]
       };
+    }
+
+    const pageParams = getPaginationParams(req);
+    if (pageParams) {
+      const envelope = await paginateFind(GoodsReceiptNote, filter, { created_at: -1 }, pageParams);
+      return res.json(envelope);
     }
 
     const grns = await GoodsReceiptNote.find(filter).sort({ created_at: -1 }).lean();
