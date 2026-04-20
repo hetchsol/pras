@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 3001;
 app.set('trust proxy', 1);
 
 const { loginLimiter } = require('./middleware/rateLimiter');
+const { logger, logError } = require('./utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -150,9 +151,19 @@ const getDepartmentFilter = async (user) => {
   };
 };
 
-// Health check
+// Health check. Reports 200 only when MongoDB is connected so Render's
+// load balancer can distinguish an unhealthy instance.
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Purchase Requisition API is running', database: 'MongoDB' });
+  const mongoose = require('mongoose');
+  const state = mongoose.connection.readyState; // 1 = connected
+  const healthy = state === 1;
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    message: 'Purchase Requisition API',
+    database: 'MongoDB',
+    dbState: state,
+    uptime: process.uptime()
+  });
 });
 
 // Manual seed endpoint (for initial setup)
@@ -3213,11 +3224,32 @@ const startServer = async () => {
   await db.connectDB();
   await db.initializeDatabase();
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`📍 Local: http://localhost:${PORT}`);
     console.log(`🗄️  Database: MongoDB`);
+    logger.info({ type: 'STARTUP', port: PORT, env: process.env.NODE_ENV || 'development' });
   });
+
+  // Graceful shutdown: drain in-flight requests then disconnect Mongo.
+  // Render sends SIGTERM before killing the container during redeploys.
+  const shutdown = async (signal) => {
+    logger.info({ type: 'SHUTDOWN', signal });
+    server.close(async () => {
+      try { await require('mongoose').disconnect(); } catch (_) {}
+      process.exit(0);
+    });
+    // Hard timeout if anything is stuck.
+    setTimeout(() => process.exit(1), 15000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('unhandledRejection', (err) => logError(err instanceof Error ? err : new Error(String(err)), { type: 'UNHANDLED_REJECTION' }));
+  process.on('uncaughtException', (err) => { logError(err, { type: 'UNCAUGHT_EXCEPTION' }); });
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
