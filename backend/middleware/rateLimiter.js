@@ -7,17 +7,18 @@ const rateLimit = require('express-rate-limit');
  * from a single IP address within a time window.
  */
 
-// Strict rate limiter for login endpoint
+// Strict rate limiter for login endpoint.
+// Max is env-driven so production can tighten without a code change.
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Increased for development - change to 5 in production
+  windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || String(15 * 60 * 1000), 10),
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX || '20', 10),
   message: {
     error: 'Too many login attempts from this IP, please try again after 15 minutes'
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skipSuccessfulRequests: false, // Count successful requests
-  skipFailedRequests: false, // Count failed requests
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
 });
 
 // General API rate limiter

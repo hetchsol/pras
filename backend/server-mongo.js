@@ -12,6 +12,12 @@ const { sendStatusNotification } = require('./utils/emailService');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Render (and most PaaS) sits behind a reverse proxy. Without trusting it,
+// express-rate-limit keys all requests to the proxy IP, making limits useless.
+app.set('trust proxy', 1);
+
+const { loginLimiter } = require('./middleware/rateLimiter');
+
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
   console.error('FATAL: JWT_SECRET environment variable is missing or shorter than 32 characters. Set a strong secret (64+ random bytes hex) in Render environment settings before starting the server.');
@@ -380,7 +386,7 @@ app.post('/api/import-users', async (req, res) => {
 // AUTH ROUTES
 // ============================================
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -429,7 +435,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.post('/api/auth/refresh', async (req, res) => {
+app.post('/api/auth/refresh', loginLimiter, async (req, res) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken) {
