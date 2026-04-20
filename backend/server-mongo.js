@@ -31,6 +31,8 @@ app.set('trust proxy', 1);
 
 const { loginLimiter } = require('./middleware/rateLimiter');
 const { logger, logError } = require('./utils/logger');
+const { validateLogin } = require('./middleware/validation');
+const { assertTransition } = require('./utils/statusTransitions');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -410,7 +412,7 @@ app.post('/api/import-users', async (req, res) => {
 // AUTH ROUTES
 // ============================================
 
-app.post('/api/auth/login', loginLimiter, async (req, res) => {
+app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res) => {
   try {
     const { username, password } = req.body;
 
