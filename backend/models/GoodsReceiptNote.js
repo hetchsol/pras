@@ -38,4 +38,9 @@ const goodsReceiptNoteSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 
+goodsReceiptNoteSchema.index({ status: 1 });
+goodsReceiptNoteSchema.index({ pr_id: 1 });
+goodsReceiptNoteSchema.index({ initiator_name: 1 });
+goodsReceiptNoteSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('GoodsReceiptNote', goodsReceiptNoteSchema);

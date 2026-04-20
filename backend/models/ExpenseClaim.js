@@ -42,4 +42,8 @@ const expenseClaimSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 });
 
+expenseClaimSchema.index({ initiator_id: 1 });
+expenseClaimSchema.index({ status: 1 });
+expenseClaimSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('ExpenseClaim', expenseClaimSchema);

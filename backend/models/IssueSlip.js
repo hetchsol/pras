@@ -34,4 +34,9 @@ const issueSlipSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 
+issueSlipSchema.index({ initiator_id: 1 });
+issueSlipSchema.index({ status: 1 });
+issueSlipSchema.index({ reference_number: 1, status: 1 });
+issueSlipSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('IssueSlip', issueSlipSchema);

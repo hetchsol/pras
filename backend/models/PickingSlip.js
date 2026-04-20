@@ -26,4 +26,8 @@ const pickingSlipSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 
+pickingSlipSchema.index({ initiator_id: 1 });
+pickingSlipSchema.index({ department: 1 });
+pickingSlipSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('PickingSlip', pickingSlipSchema);

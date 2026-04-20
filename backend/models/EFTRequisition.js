@@ -27,4 +27,9 @@ const eftRequisitionSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 });
 
+eftRequisitionSchema.index({ initiator_id: 1 });
+eftRequisitionSchema.index({ status: 1 });
+eftRequisitionSchema.index({ department: 1, status: 1 });
+eftRequisitionSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('EFTRequisition', eftRequisitionSchema);

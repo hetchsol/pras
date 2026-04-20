@@ -30,4 +30,8 @@ const pettyCashRequisitionSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 });
 
+pettyCashRequisitionSchema.index({ initiator_id: 1 });
+pettyCashRequisitionSchema.index({ status: 1 });
+pettyCashRequisitionSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('PettyCashRequisition', pettyCashRequisitionSchema);

@@ -23,4 +23,8 @@ userSchema.virtual('name').get(function() {
 userSchema.set('toJSON', { virtuals: true });
 userSchema.set('toObject', { virtuals: true });
 
+userSchema.index({ supervisor_name: 1 });
+userSchema.index({ department: 1 });
+userSchema.index({ role: 1 });
+
 module.exports = mongoose.model('User', userSchema);

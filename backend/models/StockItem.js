@@ -10,4 +10,7 @@ const stockItemSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 
+stockItemSchema.index({ item_description: 1 });
+stockItemSchema.index({ status: 1 });
+
 module.exports = mongoose.model('StockItem', stockItemSchema);

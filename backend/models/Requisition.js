@@ -41,4 +41,10 @@ const requisitionSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 });
 
+requisitionSchema.index({ initiator_id: 1 });
+requisitionSchema.index({ status: 1 });
+requisitionSchema.index({ department: 1, status: 1 });
+requisitionSchema.index({ assigned_hod_id: 1 });
+requisitionSchema.index({ created_at: -1 });
+
 module.exports = mongoose.model('Requisition', requisitionSchema);
