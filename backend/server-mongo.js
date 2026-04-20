@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
@@ -18,13 +19,27 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
 }
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 
+// Security headers. CSP is intentionally disabled for now because the frontend
+// still uses inline handlers in app.js and HTML pages; enable after inline
+// handler extraction in a later phase.
+app.use(helmet({ contentSecurityPolicy: false }));
+
 // CORS Configuration
+// CORS_MODE=open (default) preserves previous allow-all behaviour.
+// CORS_MODE=allowlist restricts to the comma-separated ALLOWED_ORIGINS list.
+const CORS_MODE = process.env.CORS_MODE || 'open';
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, file://)
     if (!origin) return callback(null, true);
     if (origin.startsWith('file://') || origin === 'null') return callback(null, true);
-    callback(null, true); // Allow all origins in this version
+    if (CORS_MODE === 'open') return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS blocked: origin ' + origin + ' not in allowlist'));
   },
   credentials: true
 }));
