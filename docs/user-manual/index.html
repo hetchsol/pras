@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KSB Purchase Requisition System — User Manuals</title>
+  <link rel="stylesheet" href="_shared.css">
+  <style>
+    body { padding: 20pt; max-width: 900px; margin: 0 auto; }
+    .role-card {
+      display: block;
+      padding: 14pt 18pt;
+      margin: 8pt 0;
+      border: 1px solid var(--border);
+      border-radius: 6pt;
+      background: white;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.1s;
+    }
+    .role-card:hover { transform: translateX(4pt); border-color: var(--accent); }
+    .role-card h3 { margin: 0 0 4pt 0; color: var(--accent); }
+    .role-card p { margin: 0; color: var(--muted); font-size: 10pt; }
+    .intro { margin: 20pt 0; padding: 14pt; background: var(--accent-soft); border-radius: 6pt; }
+  </style>
+</head>
+<body>
+  <h1>KSB Purchase Requisition System — User Manuals</h1>
+
+  <div class="intro">
+    <p><strong>How to use:</strong> Find your role below, open the page, then print to PDF from your browser.</p>
+    <ol>
+      <li>Click your role.</li>
+      <li>Press <code>Ctrl+P</code> (Windows) or <code>Cmd+P</code> (Mac).</li>
+      <li>Choose "Save as PDF" as the destination.</li>
+      <li>Paper size: A4. Margins: Default. Background graphics: ON.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <h2>Start here (everyone)</h2>
+  <a class="role-card" href="00-all-users.html">
+    <h3>All Users — Getting Started</h3>
+    <p>Login, screen layout, sidebar, security rules. Read first regardless of role.</p>
+  </a>
+
+  <h2>Role-specific manuals</h2>
+
+  <a class="role-card" href="01-initiator.html">
+    <h3>1. Initiator</h3>
+    <p>Any staff member creating Purchase Requisitions, EFTs, Petty Cash, or Expense Claims.</p>
+  </a>
+
+  <a class="role-card" href="02-hod.html">
+    <h3>2. HOD (Head of Department)</h3>
+    <p>First-stage approver for your department's requests.</p>
+  </a>
+
+  <a class="role-card" href="03-finance.html">
+    <h3>3. Finance / Finance Manager</h3>
+    <p>Second-stage approver; manages budgets, FX rates, and GRN approvals.</p>
+  </a>
+
+  <a class="role-card" href="04-md.html">
+    <h3>4. MD (Managing Director)</h3>
+    <p>Final approver on high-value Purchase Requisitions.</p>
+  </a>
+
+  <a class="role-card" href="05-procurement.html">
+    <h3>5. Procurement</h3>
+    <p>Vendor management, quote collection, and adjudication.</p>
+  </a>
+
+  <a class="role-card" href="06-stores-user.html">
+    <h3>6. Stores User</h3>
+    <p>Warehouse staff creating GRNs, Issue Slips, and Picking Slips.</p>
+  </a>
+
+  <a class="role-card" href="07-admin.html">
+    <h3>7. Administrator</h3>
+    <p>User accounts, vendors, clients, budgets, and system settings.</p>
+  </a>
+</body>
+</html>

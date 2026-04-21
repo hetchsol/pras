@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Administrator — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 7 — Administrator</div>
+  <p class="sub">User accounts, vendors, clients, reference data, and emergency interventions</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Access</strong></td><td>Everything — no hidden menus</td></tr>
+      <tr><td><strong>Skill level</strong></td><td>Needs basic IT literacy; you are the escalation point for all other users</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">5</span></li>
+    <li><span>Task 1: Create a User</span><span class="pnum">6</span></li>
+    <li><span>Task 2: Reset a Password</span><span class="pnum">8</span></li>
+    <li><span>Task 3: Change a User's Role or Department</span><span class="pnum">9</span></li>
+    <li><span>Task 4: Disable / Deactivate a User</span><span class="pnum">10</span></li>
+    <li><span>Task 5: Manage Vendors</span><span class="pnum">11</span></li>
+    <li><span>Task 6: Manage Clients</span><span class="pnum">12</span></li>
+    <li><span>Task 7: Set Budgets</span><span class="pnum">13</span></li>
+    <li><span>Task 8: Set FX Rates</span><span class="pnum">14</span></li>
+    <li><span>Task 9: Review the Audit Log</span><span class="pnum">15</span></li>
+    <li><span>Task 10: Emergency Reassign a Stuck Approval</span><span class="pnum">16</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">17</span></li>
+    <li><span>Appendix</span><span class="pnum">18</span></li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are the <strong>Administrator</strong>. You hold the keys to the system: every menu, every record, every setting. You are also the first point of contact for every other user when they have an issue.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>Create, edit, disable, or delete user accounts.</li>
+    <li>Assign roles (initiator, HOD, procurement, finance, MD, admin).</li>
+    <li>Set the "Can Access Stores" flag for users who need the Stores module.</li>
+    <li>Manage the vendor master list.</li>
+    <li>Manage the client list.</li>
+    <li>Set department budgets and FX rates.</li>
+    <li>See every form in the system for support purposes.</li>
+    <li>Reassign stuck approvals when an approver is unavailable.</li>
+    <li>View the audit log for forensic / compliance requests.</li>
+  </ul>
+
+  <h3>1.2 What you should NOT do</h3>
+  <ul>
+    <li>Do not approve Purchase Requisitions or financial forms unless you hold a genuine secondary role — approval belongs to HODs, Finance, and MD.</li>
+    <li>Do not edit historical records to "fix" them. If a record is wrong, document the correction through proper channels.</li>
+    <li>Do not share your admin account credentials. If you need another admin, create them a separate account.</li>
+  </ul>
+
+  <h3>1.3 Your responsibilities</h3>
+  <ol>
+    <li>Keep the <strong>user master list</strong> accurate (right role, right department, right HOD assignment).</li>
+    <li>Respond to <strong>password resets</strong> within a few hours.</li>
+    <li>Keep the <strong>vendor list</strong> clean and up to date.</li>
+    <li>Set and review <strong>budgets</strong> and <strong>FX rates</strong> if Finance isn't able.</li>
+    <li>Preserve the <strong>audit log</strong> — never manipulate it.</li>
+    <li>Respond to <strong>support requests</strong> from all other users.</li>
+    <li>Coordinate with IT on any <strong>backend issues</strong> (system down, database errors, etc.).</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>Users:</strong> Sidebar &rarr; Administration &rarr; Users.</p>
+    <p><strong>Vendors:</strong> Sidebar &rarr; Administration &rarr; Vendors.</p>
+    <p><strong>Clients:</strong> Sidebar &rarr; Administration &rarr; Clients.</p>
+    <p><strong>Budgets:</strong> Sidebar &rarr; Financial Planning &rarr; Budgets.</p>
+    <p><strong>FX Rates:</strong> Sidebar &rarr; Financial Planning &rarr; FX Rates.</p>
+
+    <h3>Common support requests</h3>
+    <table>
+      <thead><tr><th>Request</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>"I forgot my password"</td><td>Reset it (Task 2)</td></tr>
+        <tr><td>"I can't see a menu"</td><td>Check their role (Task 3)</td></tr>
+        <tr><td>"I need stores access"</td><td>Enable Can Access Stores flag</td></tr>
+        <tr><td>"My supervisor changed"</td><td>Update the supervisor_name field</td></tr>
+        <tr><td>"An approver is on leave and my request is stuck"</td><td>Reassign (Task 10)</td></tr>
+        <tr><td>"I left the company"</td><td>Disable, not delete (Task 4)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Emergency numbers (fill these in)</h3>
+    <ul>
+      <li>IT on-call: ___________</li>
+      <li>Render platform ops: ___________</li>
+      <li>MongoDB Atlas admin: ___________</li>
+    </ul>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>3. What Your Sidebar Looks Like</h2>
+  <p>You see everything. Highlighted items are where you spend most of your time.</p>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+    <div class="item">Pending Approvals</div>
+    <div class="item">Approved Requisitions</div>
+    <div class="item">Rejected Requisitions</div>
+    <div class="item">Adjudication</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item">Goods Receipt Notes</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Stock Items</div>
+    <div class="item">Issue Slips</div>
+    <div class="item">Picking Slips</div>
+
+    <div class="section-label">Financial Planning</div>
+    <div class="item highlight">Budgets</div>
+    <div class="item highlight">FX Rates</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+    <div class="item">Analytics</div>
+
+    <div class="section-label">Administration</div>
+    <div class="item highlight">Users</div>
+    <div class="item highlight">Vendors</div>
+    <div class="item highlight">Clients</div>
+    <div class="item highlight">Audit Log</div>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>4. Task 1 — Create a User</h2>
+
+  <div class="task">
+    <h3>4.1 Open the Users page</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Users</strong>.</li>
+      <li>You see the full list of user accounts.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>4.2 Click Add User</h3>
+    <ol>
+      <li>Click the <strong>Add User</strong> button (usually top-right).</li>
+      <li>A form opens.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Users page with Add User button at the top and a searchable list of existing users.</em>
+  </div>
+
+  <div class="task">
+    <h3>4.3 Fill in basic details</h3>
+    <ol>
+      <li><strong>Username</strong> — 3+ characters. Letters, numbers, dots, underscores, hyphens. Use a consistent convention (e.g. <code>firstname.lastname</code>).</li>
+      <li><strong>Password</strong> — minimum 8 characters with upper, lower, and digit. Use a strong one-time password that the user will change on first login.</li>
+      <li><strong>Full Name</strong> — as it should appear on approvals and PDFs.</li>
+      <li><strong>Email</strong> — the user's real work email address. Must be unique.</li>
+      <li><strong>Employee Number</strong> — HR identifier (optional but recommended).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>4.4 Assign role and department</h3>
+    <ol>
+      <li><strong>Role</strong> — pick one:
+        <ul>
+          <li><code>initiator</code> — any staff member who creates requests</li>
+          <li><code>hod</code> — head of a department, first-stage approver</li>
+          <li><code>procurement</code> — vendor management and adjudication</li>
+          <li><code>finance</code> — second-stage approver, budgets, FX</li>
+          <li><code>finance_manager</code> — same as finance with wider visibility</li>
+          <li><code>md</code> — final approver on high-value PRs</li>
+          <li><code>admin</code> — full system access (this role)</li>
+        </ul>
+      </li>
+      <li><strong>Department</strong> — pick from dropdown.</li>
+      <li><strong>Is HOD</strong> — tick if this person is the head of their department (separate from the <code>hod</code> role).</li>
+      <li><strong>Supervisor Name</strong> — the full name of this user's HOD, used to route their requests.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>4. Task 1 — continued</h2>
+
+  <div class="task">
+    <h3>4.5 Set the Can Access Stores flag</h3>
+    <ol>
+      <li>Tick <strong>Can Access Stores</strong> if the user should see the Stores section.</li>
+      <li>This is independent of their role. A Finance officer who also handles GRNs needs this flag.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>4.6 Save</h3>
+    <ol>
+      <li>Click <strong>Save</strong>.</li>
+      <li>The user account is created and active immediately.</li>
+      <li>If email is configured, the user receives a welcome message.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>4.7 Tell the user their password</h3>
+    <ol>
+      <li>Tell the user their temporary password <em>out-of-band</em> — face-to-face, by phone, or via a secure channel. Not in plain email.</li>
+      <li>Instruct them to change it on first login.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Never send passwords in plain email. If your email is intercepted,
+    the attacker has both the username (visible in the From/To header)
+    and the password. Use phone or in-person delivery.
+  </div>
+
+  <div class="task">
+    <h3>4.8 Bulk user creation</h3>
+    <ol>
+      <li>Use the <strong>Upload from Excel</strong> action (if available).</li>
+      <li>Download the template, fill it in, upload.</li>
+      <li>Review the import results — any errors appear row-by-row.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 2 — Reset a Password</h2>
+
+  <div class="task">
+    <h3>5.1 Find the user</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Users</strong>.</li>
+      <li>Search by name or username.</li>
+      <li>Click the row to open their profile.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Reset action</h3>
+    <ol>
+      <li>Click <strong>Reset Password</strong>.</li>
+      <li>Generate a new temporary password that meets the requirements.</li>
+      <li>Click <strong>Save</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Notify the user</h3>
+    <ol>
+      <li>Tell them the new password face-to-face or by phone.</li>
+      <li>Tell them to change it on first login.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.4 Verify identity before resetting</h3>
+    <ol>
+      <li>Confirm you're talking to the real user (voice recognition, face-to-face, or known email).</li>
+      <li>Beware of social-engineering: an attacker pretending to be a user to get into an account.</li>
+      <li>If the request feels wrong, ask for additional verification (employee number, HR date, etc.).</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    A password reset request that comes by email from an unknown sender
+    is a red flag. Always verify the requester is genuinely the owner
+    of the account.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 3 — Change a User's Role or Department</h2>
+
+  <div class="task">
+    <h3>6.1 Open the user profile</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Users</strong> &rarr; click the user.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Change the relevant fields</h3>
+    <ol>
+      <li><strong>Role</strong> — use the dropdown.</li>
+      <li><strong>Department</strong> — use the dropdown.</li>
+      <li><strong>Is HOD</strong> — tick or untick.</li>
+      <li><strong>Supervisor Name</strong> — update if the reporting line changes.</li>
+      <li><strong>Can Access Stores</strong> — tick or untick.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Save</h3>
+    <ol>
+      <li>Click <strong>Save</strong>.</li>
+      <li>The change takes effect on the user's next login (or immediately if they refresh).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.4 Ripple effects to consider</h3>
+    <ol>
+      <li>If you demote someone from <code>hod</code>, any pending requests routed to them will need to be reassigned.</li>
+      <li>If you change their department, historical requests stay tied to the old department (that's correct — spend was against the old dept's budget).</li>
+      <li>If you change their supervisor, new requests will go to the new supervisor. Already-pending requests stay with the old one.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>7. Task 4 — Disable / Deactivate a User</h2>
+
+  <div class="task">
+    <h3>7.1 When to disable vs delete</h3>
+    <ol>
+      <li><strong>Disable</strong> when the user has left the company. They can no longer log in, but history and audit trail are preserved.</li>
+      <li><strong>Never delete</strong> a user who has ever initiated or approved anything. Deleting breaks the audit trail.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Disable a user</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Users</strong> &rarr; find and open the user.</li>
+      <li>Change <strong>Status</strong> to <code>disabled</code> (or untick <strong>Active</strong>, depending on the UI).</li>
+      <li>Click <strong>Save</strong>.</li>
+      <li>The user can no longer log in. Their name and history remain visible in reports and audit.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.3 Reassign their pending work</h3>
+    <ol>
+      <li>Before disabling an HOD or approver, check their Pending Approvals queue.</li>
+      <li>Reassign to another HOD (see Task 10) or explicitly rejection-with-reassignment.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    An HOD who left with a full Pending Approvals queue can freeze the
+    whole department's spending. Always reassign before disabling.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>8. Task 5 — Manage Vendors</h2>
+
+  <div class="task">
+    <h3>8.1 Open the Vendors page</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Vendors</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Add a vendor</h3>
+    <ol>
+      <li>Click <strong>Add Vendor</strong>.</li>
+      <li>Fill in: name, code, category, contact, email, phone, tier (1-3), rating (1-5), status.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.3 Edit a vendor</h3>
+    <ol>
+      <li>Click a vendor row.</li>
+      <li>Update the fields.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.4 Disable a vendor</h3>
+    <ol>
+      <li>Change <strong>Status</strong> to <code>inactive</code>.</li>
+      <li>Save.</li>
+      <li>The vendor no longer appears in Procurement's Add-Quote dropdown but historical quotes remain intact.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.5 Bulk upload from Excel</h3>
+    <ol>
+      <li>Download the vendor template.</li>
+      <li>Fill in columns: name, code, category, tier, rating, contact info, status.</li>
+      <li>Click <strong>Upload from Excel</strong>.</li>
+      <li>Review the import report.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Vendor codes should be stable. If you change a vendor's code,
+    historical PRs using the old code still reference the old record.
+    Prefer adding a new code and marking the old as inactive.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>9. Task 6 — Manage Clients</h2>
+  <p>Clients are external parties whose stock is reserved within your warehouse. Used on GRNs and Issue Slips when the Customer field is set.</p>
+
+  <div class="task">
+    <h3>9.1 Open the Clients page</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Clients</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 Add a client</h3>
+    <ol>
+      <li>Click <strong>Add Client</strong>.</li>
+      <li>Fill in: name, code, contact, address, status.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.3 Edit / disable</h3>
+    <ol>
+      <li>Same pattern as vendors: open, edit, save — or set status to inactive to disable.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>10. Task 7 — Set Budgets</h2>
+
+  <div class="task">
+    <h3>10.1 Open Budgets</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>Budgets</strong>.</li>
+      <li>See every department with its annual budget and spend-to-date.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.2 Set or update a budget</h3>
+    <ol>
+      <li>Click the department row.</li>
+      <li>Enter the annual budget in ZMW.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.3 Year-end rollover</h3>
+    <ol>
+      <li>At financial year-end, reset each department's <strong>Spent</strong> to zero.</li>
+      <li>Set the new year's budget values.</li>
+      <li>Coordinate this timing with Finance.</li>
+      <li>Document the rollover with a clear comment.</li>
+    </ol>
+  </div>
+
+  <h2>11. Task 8 — Set FX Rates</h2>
+
+  <div class="task">
+    <h3>11.1 Open FX Rates</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>FX Rates</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>11.2 Update a rate</h3>
+    <ol>
+      <li>Click the currency.</li>
+      <li>Enter the new ZMW rate (how many ZMW equal one unit of that currency).</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    FX rates are normally set by Finance. Admin should only update
+    them when Finance is unavailable. Document every change you make
+    with the source (e.g. "Bank of Zambia mid-rate 21 Apr 2026").
+  </div>
+</div>
+
+<div class="page section">
+  <h2>12. Task 9 — Review the Audit Log</h2>
+
+  <div class="task">
+    <h3>12.1 Why the audit log matters</h3>
+    <ol>
+      <li>Every approval, rejection, and GRN status change is recorded permanently.</li>
+      <li>It captures: actor name, IP, browser, from/to status, timestamp, comment.</li>
+      <li>Used for forensic investigations, compliance, and fraud detection.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>12.2 Open a record's history</h3>
+    <ol>
+      <li>Open any form's detail page.</li>
+      <li>Scroll to the <strong>Approval History</strong> section.</li>
+      <li>See every action with who, when, and what.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>12.3 Query the wider audit log</h3>
+    <ol>
+      <li>A dedicated Audit Log page may exist under Administration.</li>
+      <li>Filter by actor, entity type, date range, or action.</li>
+      <li>Export to CSV for deeper analysis in Excel.</li>
+      <li>If the UI does not expose this, IT can query the <code>audit_logs</code> MongoDB collection directly.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    You cannot modify or delete audit log entries. If you think an
+    entry is wrong, add an explanatory comment on the record itself
+    — don't try to rewrite history.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>13. Task 10 — Emergency Reassign a Stuck Approval</h2>
+  <p>If an approver is unavailable (on leave, left the company) and their queue is blocking others, you can reassign.</p>
+
+  <div class="task">
+    <h3>13.1 Identify the stuck request</h3>
+    <ol>
+      <li>Ask the initiator for the form ID (e.g. <code>KSB-PR-20260421123456789</code>).</li>
+      <li>Find the form in the appropriate list.</li>
+      <li>Check the current status and who is the current approver.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>13.2 Decide the reassignment target</h3>
+    <ol>
+      <li>If the original HOD is out: reassign to the deputy HOD, or a peer HOD of a related department.</li>
+      <li>If Finance is out: reassign to another Finance officer or escalate to MD.</li>
+      <li>If MD is out: coordinate with the Board for temporary delegation.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>13.3 Perform the reassignment</h3>
+    <ol>
+      <li>Methods depend on the UI:
+        <ul>
+          <li>If a reassign button exists: click it, pick the new approver, save.</li>
+          <li>If not: coordinate with IT to update the <code>assigned_approver</code> field via a maintenance script.</li>
+        </ul>
+      </li>
+      <li>Document the reassignment in the form's Comments with the reason (e.g. "Reassigned to John Banda because HOD Mary Mwale is on two-week leave.").</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>13.4 Notify the new approver</h3>
+    <ol>
+      <li>Email the person and tell them to check their Pending Approvals.</li>
+      <li>Tell the initiator too so they know their request is moving again.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Reassignments are visible in the audit log. Do them sparingly and
+    only when necessary. Over-use undermines the approval workflow.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>14. Troubleshooting</h2>
+
+  <h3>14.1 A user says "I can't log in"</h3>
+  <ol>
+    <li>Verify their identity.</li>
+    <li>Check their account status (active or disabled).</li>
+    <li>Reset password (Task 2).</li>
+    <li>If still failing, check they're using the right URL.</li>
+    <li>If multiple users can't log in, suspect backend downtime — contact IT.</li>
+  </ol>
+
+  <h3>14.2 A user's menu is missing items</h3>
+  <ol>
+    <li>Verify their role (Task 3).</li>
+    <li>Verify the Can Access Stores flag if they need stores.</li>
+    <li>Tell them to hard-refresh: Ctrl+Shift+R.</li>
+  </ol>
+
+  <h3>14.3 Stock register shows impossible numbers</h3>
+  <ol>
+    <li>Rare but possible if a GRN was deleted outside the app or data was restored from backup.</li>
+    <li>Coordinate with IT to reconcile. Do not attempt ad-hoc database edits — they will bypass the audit trail.</li>
+  </ol>
+
+  <h3>14.4 "FATAL: JWT_SECRET" error on login</h3>
+  <ol>
+    <li>The backend server failed to start because the JWT secret is missing or too short.</li>
+    <li>Coordinate with IT to check Render dashboard environment variables.</li>
+    <li>Do not attempt to change secrets without IT involvement.</li>
+  </ol>
+
+  <h3>14.5 Email notifications are not going out</h3>
+  <ol>
+    <li>Check your own inbox for test actions.</li>
+    <li>Check the email service status (Resend, SMTP) with IT.</li>
+    <li>Check user profiles have valid email addresses.</li>
+  </ol>
+
+  <h3>14.6 Forms are duplicating or creating with colliding IDs</h3>
+  <ol>
+    <li>Extremely rare. Document the IDs.</li>
+    <li>Contact IT — may indicate a timestamp-generation bug or a system clock issue.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>15. Appendix</h2>
+
+  <h3>15.1 Role matrix</h3>
+  <table>
+    <thead><tr><th>Role</th><th>Creates</th><th>Approves</th><th>Configures</th></tr></thead>
+    <tbody>
+      <tr><td>initiator</td><td>PR, EFT, PC, EC</td><td>Nothing</td><td>Nothing</td></tr>
+      <tr><td>hod</td><td>Same as initiator</td><td>Stage 1 (pending_hod)</td><td>Nothing</td></tr>
+      <tr><td>procurement</td><td>Quotes, adjudications</td><td>Nothing formal</td><td>Vendors</td></tr>
+      <tr><td>finance</td><td>Same as initiator</td><td>Stage 2 (pending_finance); GRNs</td><td>Budgets, FX</td></tr>
+      <tr><td>md</td><td>Same as initiator</td><td>Stage 3 (pending_md)</td><td>Nothing</td></tr>
+      <tr><td>admin</td><td>Everything</td><td>Via secondary role</td><td>Everything</td></tr>
+    </tbody>
+  </table>
+
+  <h3>15.2 Seeded default users</h3>
+  <p>Initial setup includes these default users. Change their passwords immediately in any production environment.</p>
+  <table>
+    <thead><tr><th>Username</th><th>Role</th><th>Department</th></tr></thead>
+    <tbody>
+      <tr><td>admin</td><td>admin</td><td>IT</td></tr>
+      <tr><td>procurement</td><td>procurement</td><td>Procurement</td></tr>
+      <tr><td>finance</td><td>finance</td><td>Finance</td></tr>
+      <tr><td>hod</td><td>hod</td><td>Operations</td></tr>
+      <tr><td>initiator</td><td>initiator</td><td>Operations</td></tr>
+    </tbody>
+  </table>
+
+  <h3>15.3 Admin weekly checklist</h3>
+  <ul>
+    <li>All password reset requests handled.</li>
+    <li>New joiners and leavers processed.</li>
+    <li>FX rates checked if Finance didn't update.</li>
+    <li>Any stuck approvals reassigned.</li>
+    <li>Audit log spot-check for unusual patterns.</li>
+  </ul>
+
+  <h3>15.4 Glossary</h3>
+  <table>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Role</td><td>Determines which menu items and actions are available.</td></tr>
+      <tr><td>Department</td><td>Determines which cost centre requests are charged to.</td></tr>
+      <tr><td>Is HOD</td><td>Flag making a user the head of their department.</td></tr>
+      <tr><td>Supervisor</td><td>The HOD that this user reports to — drives approval routing.</td></tr>
+      <tr><td>Can Access Stores</td><td>Flag unlocking the Stores module for any role.</td></tr>
+      <tr><td>Audit log</td><td>Append-only record of every state-changing action.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

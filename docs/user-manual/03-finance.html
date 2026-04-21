@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Finance — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 3 — Finance</div>
+  <p class="sub">Finance / Finance Manager — second-stage approver and budget / FX custodian</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Approval stage</strong></td><td>Stage 2 — after HOD, before MD</td></tr>
+      <tr><td><strong>Extra responsibilities</strong></td><td>Budgets, FX rates, GRN approvals</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>Approval Workflow from Your Point of View</span><span class="pnum">5</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
+    <li><span>Task 1: Review and Approve Financial Requests</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Approve a GRN</span><span class="pnum">9</span></li>
+    <li><span>Task 3: Approve an Issue Slip (Finance stage)</span><span class="pnum">11</span></li>
+    <li><span>Task 4: Maintain Budgets</span><span class="pnum">12</span></li>
+    <li><span>Task 5: Maintain FX Rates</span><span class="pnum">13</span></li>
+    <li><span>Task 6: Run Financial Reports</span><span class="pnum">14</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">15</span></li>
+    <li><span>Appendix</span><span class="pnum">16</span></li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are a <strong>Finance</strong> user (officer or manager). You act as the second-stage gatekeeper after HODs and you control budgets and foreign-exchange rates used across the whole system.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>Approve / reject any request at <span class="badge badge-pending">pending_finance</span>.</li>
+    <li>Approve GRNs (goods receipts) so stock is officially in the system.</li>
+    <li>See and edit department budgets.</li>
+    <li>See and edit currency FX rates.</li>
+    <li>See every request in the system for reporting.</li>
+    <li>Run financial analytics reports.</li>
+  </ul>
+
+  <h3>1.2 What you cannot do</h3>
+  <ul>
+    <li>You cannot skip the HOD stage. Requests must reach you via HOD approval.</li>
+    <li>You cannot approve your own initiated requests.</li>
+    <li>You cannot delete users or change system roles (that is the Administrator's job).</li>
+    <li>You cannot modify an approved request. If something is wrong after approval, create a new one with a correction.</li>
+  </ul>
+
+  <h3>1.3 Your responsibilities</h3>
+  <ol>
+    <li>Check the request sits within the <strong>department budget</strong>.</li>
+    <li>Check the request has the required <strong>supporting documents</strong> (quote, invoice, receipt).</li>
+    <li>For foreign-currency items, verify the <strong>FX conversion</strong> is reasonable.</li>
+    <li>Keep <strong>FX rates</strong> up to date (weekly at minimum).</li>
+    <li>Approve GRNs <strong>promptly</strong> so stock becomes usable for the operations team.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>To approve PRs:</strong> Sidebar &rarr; Procurement &rarr; Pending Approvals.</p>
+    <p><strong>To approve EFT / PC / EC:</strong> Sidebar &rarr; Financial Forms &rarr; Pending Approvals.</p>
+    <p><strong>To approve GRNs:</strong> Sidebar &rarr; Stores &rarr; Goods Receipt Notes, filter <span class="badge badge-pending">pending_approval</span>.</p>
+    <p><strong>To approve Issue Slips:</strong> Sidebar &rarr; Stores &rarr; Issue Slips, filter <span class="badge badge-pending">pending_finance</span>.</p>
+    <p><strong>Budgets:</strong> Sidebar &rarr; Financial Planning &rarr; Budgets.</p>
+    <p><strong>FX Rates:</strong> Sidebar &rarr; Financial Planning &rarr; FX Rates.</p>
+
+    <h3>What to check before approving</h3>
+    <ol>
+      <li>Is the department under its budget?</li>
+      <li>Is the supplier invoice or quote attached?</li>
+      <li>Does the amount match the supporting document?</li>
+      <li>Is the FX conversion (if applicable) using the current rate?</li>
+      <li>Did the HOD leave a meaningful comment? If the HOD approved in silence, ask for context before acting.</li>
+    </ol>
+
+    <h3>Emergency escalation</h3>
+    <ul>
+      <li>Time-critical payments can be marked urgent in the comment; MD will prioritise.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>3. Approval Workflow from Your Point of View</h2>
+
+  <div class="diagram">
+               [HOD approved]
+                     |
+                     v
+         +--------------------------+
+         | STATUS = pending_finance | &lt;-- your queue
+         +--------------------------+
+                     |
+            approve / reject
+                     |
+       +-------------+-------------+
+       |                           |
+       v                           v
+    pending_md                 approved
+  (only if PR value            (EFT, PC, EC,
+   &gt; MD threshold)              Issue Slip,
+                                 or low-value PR)
+
+  GRN workflow (separate):
+    [Stores creates GRN] --> pending_approval --> approved
+                                      ^
+                                      |
+                              YOU approve / reject
+  </div>
+
+  <h3>3.1 When you approve a Purchase Requisition</h3>
+  <ul>
+    <li>If the total exceeds the MD threshold (check your local configuration), status becomes <span class="badge badge-pending">pending_md</span>.</li>
+    <li>Otherwise, status becomes <span class="badge badge-approved">approved</span> directly and Procurement takes over.</li>
+  </ul>
+
+  <h3>3.2 When you approve an EFT / Petty Cash / Expense Claim</h3>
+  <ul>
+    <li>Status becomes <span class="badge badge-approved">approved</span>. No MD stage.</li>
+    <li>For EFT, Finance then processes the actual bank payment outside the system.</li>
+  </ul>
+
+  <h3>3.3 When you approve a GRN</h3>
+  <ul>
+    <li>Stock becomes officially available in the Stock Register.</li>
+    <li>Related Issue Slips can now draw from this GRN.</li>
+  </ul>
+</div>
+
+<div class="page section">
+  <h2>4. What Your Sidebar Looks Like</h2>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+    <div class="item highlight">Pending Approvals</div>
+    <div class="item">Approved Requisitions</div>
+    <div class="item">Rejected Requisitions</div>
+    <div class="item">Adjudication</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+    <div class="item highlight">Pending Approvals</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item highlight">Goods Receipt Notes</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Stock Items</div>
+    <div class="item highlight">Issue Slips</div>
+    <div class="item">Picking Slips</div>
+
+    <div class="section-label">Financial Planning</div>
+    <div class="item highlight">Budgets</div>
+    <div class="item highlight">FX Rates</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+    <div class="item highlight">Analytics</div>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — Review and Approve Financial Requests</h2>
+
+  <div class="task">
+    <h3>5.1 Open the Pending Approvals list</h3>
+    <ol>
+      <li>For Purchase Requisitions: Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Pending Approvals</strong>.</li>
+      <li>For EFT / Petty Cash / Expense Claims: Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>Pending Approvals</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Click a request to open the detail view</h3>
+    <ol>
+      <li>Check the HOD has approved — the Approval History section should show an HOD entry.</li>
+      <li>Read the HOD's comment for context.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Approval history section showing HOD entry approved, Finance entry pending.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Check budget impact</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>Budgets</strong> (open in a new tab so you keep the request open).</li>
+      <li>Find the department of the request.</li>
+      <li>Check <strong>Budget</strong> and <strong>Spent</strong> columns.</li>
+      <li>Will this request push the department over budget? If yes, you may need to escalate or reject.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.4 Check supporting documents</h3>
+    <ol>
+      <li>For a PR, the attached supplier quote should match the unit prices.</li>
+      <li>For an EFT, the invoice should match the amount and the payee bank details.</li>
+      <li>For Petty Cash, the itemised breakdown should make sense.</li>
+      <li>For an Expense Claim, every line should have a receipt attached.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.5 Check FX (if applicable)</h3>
+    <ol>
+      <li>If the request is in USD, EUR, GBP, or ZAR, confirm the ZMW-equivalent shown on the detail page uses a recent FX rate.</li>
+      <li>If the rate looks stale, update it (see Task 5) before approving. The system re-converts automatically.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — continued</h2>
+
+  <div class="task">
+    <h3>5.6 Approve or reject</h3>
+    <ol>
+      <li>Write a comment. Examples:
+        <ul>
+          <li>Approve: "Within Q2 budget. Quote from Tech Solutions verified."</li>
+          <li>Approve with note: "Approved. Flag to MD — this is the last PR before hitting IT budget cap."</li>
+          <li>Reject: "Invoice amount does not match the form (K5200 vs K5020). Please correct and resubmit."</li>
+        </ul>
+      </li>
+      <li>Click <strong>Approve</strong> or <strong>Reject</strong>.</li>
+      <li>On approval: status moves to <span class="badge badge-pending">pending_md</span> (for high-value PR) or <span class="badge badge-approved">approved</span>.</li>
+      <li>On rejection: status becomes <span class="badge badge-rejected">rejected</span>, initiator is notified.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Never approve a request where the supporting document does not match
+    the form. Discrepancies are your responsibility to catch — the
+    audit log will show you approved despite the mismatch.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — Approve a GRN</h2>
+  <p>When Stores receive goods, they create a Goods Receipt Note (GRN) at status <span class="badge badge-pending">pending_approval</span>. Your role is to verify and approve.</p>
+
+  <div class="task">
+    <h3>6.1 Open pending GRNs</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Goods Receipt Notes</strong>.</li>
+      <li>Filter or sort by <strong>Status</strong> &rarr; <span class="badge badge-pending">pending_approval</span>.</li>
+      <li>Click a GRN to open its detail.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Verify quantities</h3>
+    <ol>
+      <li>Note the <strong>Reference PR</strong> — the purchase requisition this GRN relates to.</li>
+      <li>Compare the <strong>Quantity Received</strong> on the GRN against the PR's ordered quantities.</li>
+      <li>If the GRN is a partial delivery, that's fine — another GRN can follow when the balance arrives.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Verify supplier match</h3>
+    <ol>
+      <li>Does the <strong>Supplier / Vendor</strong> match the one selected on the PR?</li>
+      <li>If different, check whether a vendor substitution was approved (via Procurement).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.4 Approve or reject</h3>
+    <ol>
+      <li>Write a comment (e.g. "Quantities verified against delivery note DN-2026-0154").</li>
+      <li>Click <strong>Approve</strong>.</li>
+      <li>Status becomes <span class="badge badge-approved">approved</span>. Goods are now officially in stock and available for issue slips.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    If another approver acts on the same GRN at the same moment, only
+    one approval succeeds. The later one will see a <code>409 Conflict</code>
+    message. Simply refresh and the status will already show approved.
+  </div>
+
+  <div class="screenshot">
+    <em>GRN detail page with Approve / Reject buttons at the bottom.</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>7. Task 3 — Approve an Issue Slip (Finance stage)</h2>
+
+  <div class="task">
+    <h3>7.1 Find pending Issue Slips</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Issue Slips</strong>.</li>
+      <li>Filter by status <span class="badge badge-pending">pending_finance</span>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Verify stock availability</h3>
+    <ol>
+      <li>Open the Issue Slip.</li>
+      <li>Note the <strong>Reference Number</strong> (GRN this stock came from).</li>
+      <li>The system automatically checks remaining stock — you do not need to manually calculate.</li>
+      <li>If the Issue Slip reached this stage without errors, availability has already been verified.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.3 Verify customer reservation (if applicable)</h3>
+    <ol>
+      <li>If the GRN was reserved for a specific customer, the Issue Slip's <strong>Customer</strong> field must match.</li>
+      <li>The system enforces this at creation, but double-check on high-value issues.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.4 Approve</h3>
+    <ol>
+      <li>Write a comment.</li>
+      <li>Click <strong>Approve</strong>.</li>
+      <li>Status becomes <span class="badge badge-approved">approved</span>. Stock is officially deducted from the register.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>8. Task 4 — Maintain Budgets</h2>
+
+  <div class="task">
+    <h3>8.1 Open the Budgets page</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>Budgets</strong>.</li>
+      <li>The page lists every department with its annual budget and spend-to-date.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Edit a department's budget</h3>
+    <ol>
+      <li>Click the department row.</li>
+      <li>Enter the new budget amount in ZMW.</li>
+      <li>Click <strong>Save</strong>.</li>
+      <li>The change takes effect immediately. Future requests are compared to the new number.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.3 Year-end rollover</h3>
+    <ol>
+      <li>At the end of the financial year, reset each department's <strong>Spent</strong> to zero using the rollover tool (if available) or by coordinating with Administration.</li>
+      <li>Set the new year's budget values at the same time.</li>
+      <li>Document the rollover in a comment visible to MD and Admin.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Budgets are for your visibility. The system does not currently block
+    requests that exceed budget — it's a soft control. You must enforce
+    it manually during approval review.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>9. Task 5 — Maintain FX Rates</h2>
+
+  <div class="task">
+    <h3>9.1 Open FX Rates</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>FX Rates</strong>.</li>
+      <li>See the current rate for each supported currency: USD, EUR, GBP, ZAR.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 Update a rate</h3>
+    <ol>
+      <li>Click the row of the currency.</li>
+      <li>Enter the new <strong>Rate to ZMW</strong> — how many ZMW equal one unit of that currency.</li>
+      <li>Click <strong>Save</strong>.</li>
+      <li>The change is effective immediately; any pending request in that currency will show the new ZMW value on refresh.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.3 Suggested cadence</h3>
+    <ol>
+      <li><strong>Monday</strong>: update all four currencies using the Bank of Zambia midweek rate.</li>
+      <li>Update ad-hoc if a rate moves by more than 2% during the week.</li>
+      <li>Document big movements in a comment so MD can see why expensive requests changed value.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>FX Rates page with currency rows: ZMW (1.00), USD (27.5), EUR (29.5), GBP (34.5), ZAR (1.5).</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>10. Task 6 — Run Financial Reports</h2>
+
+  <div class="task">
+    <h3>10.1 Summary Reports</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Reports</strong>.</li>
+      <li>Pick a date range (Last 30 Days, This Month, This Year, etc.).</li>
+      <li>See total requests, approvals, rejections, and average turnaround.</li>
+      <li>Export to Excel or PDF.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.2 Analytics</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Analytics</strong>.</li>
+      <li>See deeper charts: spend by department, vendor concentration, approval bottlenecks.</li>
+      <li>Use the filters at the top to narrow by date, department, or status.</li>
+      <li>This page is read-only — use it in your monthly finance review.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.3 Individual form PDFs</h3>
+    <ol>
+      <li>Open any approved document's detail page.</li>
+      <li>Click <strong>Download PDF</strong>.</li>
+      <li>The PDF includes header, items, approval signatures, and the KSB letterhead.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>11. Troubleshooting</h2>
+
+  <h3>11.1 The ZMW amount on a PR looks wrong</h3>
+  <ol>
+    <li>Check the <strong>FX Rates</strong> page — is the currency rate up to date?</li>
+    <li>Update the rate, then refresh the PR detail page.</li>
+    <li>If still wrong, check the item has the correct currency selected.</li>
+  </ol>
+
+  <h3>11.2 I can't approve a GRN — the button is greyed out</h3>
+  <ol>
+    <li>Check your role includes Finance, or that you are the explicitly assigned approver on the GRN.</li>
+    <li>Check the GRN isn't already <span class="badge badge-approved">approved</span> — refresh.</li>
+    <li>If you see a <code>409 Conflict</code> error, another approver acted first — refresh to see the updated status.</li>
+  </ol>
+
+  <h3>11.3 Department "Spent" looks wrong</h3>
+  <ol>
+    <li>The Spent figure is computed from all approved requisitions against that department.</li>
+    <li>Rejected requests do not count.</li>
+    <li>If a recent large approval isn't reflected, wait a few seconds and refresh — the dashboard may be cached.</li>
+  </ol>
+
+  <h3>11.4 A request is at pending_finance but I don't see it</h3>
+  <ol>
+    <li>Check the combined Pending Approvals list.</li>
+    <li>Filter out by form type to narrow down.</li>
+    <li>If still missing, Admin may need to re-run index sync.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>12. Appendix</h2>
+
+  <h3>12.1 Status values relevant to Finance</h3>
+  <table>
+    <thead><tr><th>Status</th><th>Your action</th></tr></thead>
+    <tbody>
+      <tr><td>pending_hod</td><td>Wait — HOD's turn</td></tr>
+      <tr><td>pending_finance</td><td>Review and Approve / Reject</td></tr>
+      <tr><td>pending_md</td><td>Wait — MD's turn</td></tr>
+      <tr><td>pending_approval (GRN)</td><td>Review and Approve / Reject</td></tr>
+      <tr><td>approved</td><td>View for reference</td></tr>
+      <tr><td>rejected</td><td>View for reference</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.2 FX rate sources</h3>
+  <ul>
+    <li>Bank of Zambia daily rates (primary).</li>
+    <li>Commercial bank mid-rate if BoZ is delayed.</li>
+  </ul>
+
+  <h3>12.3 Typical monthly finance checklist</h3>
+  <ul>
+    <li>All FX rates reviewed and updated weekly.</li>
+    <li>All pending GRNs approved within 48 hours.</li>
+    <li>All pending Finance approvals cleared within 48 hours.</li>
+    <li>Department budgets vs spend reviewed monthly.</li>
+    <li>Analytics report exported and shared with MD.</li>
+  </ul>
+</div>
+
+</body>
+</html>

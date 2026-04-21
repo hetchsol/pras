@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Initiator — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<!-- COVER -->
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 1 — Initiator</div>
+  <p class="sub">For any staff member who submits requisitions, EFTs, petty cash, or expense claims</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Approval role</strong></td><td>None — you are the creator, not an approver</td></tr>
+      <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>Approval Workflow Diagrams</span><span class="pnum">5</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
+    <li><span>Task 1: Create a Purchase Requisition</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Create an EFT Requisition</span><span class="pnum">10</span></li>
+    <li><span>Task 3: Create a Petty Cash Requisition</span><span class="pnum">11</span></li>
+    <li><span>Task 4: Create an Expense Claim</span><span class="pnum">12</span></li>
+    <li><span>Task 5: Track Your Requests</span><span class="pnum">13</span></li>
+    <li><span>Task 6: Respond to a Rejection</span><span class="pnum">14</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">15</span></li>
+    <li><span>Appendix — Status Values &amp; ID Formats</span><span class="pnum">16</span></li>
+  </ol>
+</div>
+
+<!-- WHO YOU ARE -->
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are an <strong>Initiator</strong> — any staff member who needs the company to spend money on their behalf. You don't need any special role flag; every employee can initiate.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>Create a Purchase Requisition when you need goods or services.</li>
+    <li>Create an EFT Requisition when the company needs to pay someone by bank transfer.</li>
+    <li>Create a Petty Cash Requisition when you need a small amount of cash.</li>
+    <li>Create an Expense Claim to be reimbursed for money you already spent.</li>
+    <li>View the status of all your own requests.</li>
+    <li>See your own history — what you have initiated, approved amounts, dates.</li>
+  </ul>
+
+  <h3>1.2 What you cannot do</h3>
+  <ul>
+    <li>You cannot approve or reject any request, even your own.</li>
+    <li>You cannot see other people's requests unless the HOD or Admin gives you a wider role.</li>
+    <li>You cannot edit a request after it is submitted. If it is wrong, cancel by asking an approver to reject it, or submit a new one.</li>
+  </ul>
+
+  <h3>1.3 Who approves your requests</h3>
+  <ol>
+    <li>Your <strong>Head of Department (HOD)</strong> is the first approver. Your HOD is set on your user profile — ask your Administrator if you are not sure who it is.</li>
+    <li>After HOD approval, the request moves to <strong>Finance</strong>.</li>
+    <li>For high-value Purchase Requisitions, the final step is <strong>MD</strong> approval. Expense claims, petty cash, and EFT usually stop at Finance.</li>
+  </ol>
+</div>
+
+<!-- QUICK REFERENCE -->
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>To buy something:</strong> Sidebar &rarr; Procurement &rarr; Create Requisition.</p>
+    <p><strong>To pay a supplier:</strong> Sidebar &rarr; Financial Forms &rarr; EFT Requisitions &rarr; Create New.</p>
+    <p><strong>To draw cash:</strong> Sidebar &rarr; Financial Forms &rarr; Petty Cash &rarr; Create New.</p>
+    <p><strong>To claim reimbursement:</strong> Sidebar &rarr; Financial Forms &rarr; Expense Claims &rarr; Create New.</p>
+    <p><strong>To track a request:</strong> Sidebar &rarr; the relevant list. Look at the Status column.</p>
+
+    <h3>Meaning of each status</h3>
+    <ul>
+      <li><span class="badge badge-pending">pending_hod</span> At your HOD, not yet approved.</li>
+      <li><span class="badge badge-pending">pending_finance</span> HOD approved, Finance is next.</li>
+      <li><span class="badge badge-pending">pending_md</span> Finance approved, MD is next (high-value PRs).</li>
+      <li><span class="badge badge-approved">approved</span> Fully approved — procurement will action it.</li>
+      <li><span class="badge badge-rejected">rejected</span> Rejected — read the comments.</li>
+    </ul>
+
+    <h3>When in doubt</h3>
+    <ul>
+      <li>Type a clear <strong>title</strong> and <strong>justification</strong>. Vague requests get rejected.</li>
+      <li>Add a supplier quote if you have one. Faster approval.</li>
+      <li>Use the <strong>Required Date</strong> to signal urgency — but be realistic.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- WORKFLOW DIAGRAMS -->
+<div class="page section">
+  <h2>3. Approval Workflow Diagrams</h2>
+
+  <h3>3.1 Purchase Requisition</h3>
+  <div class="diagram">
+    [You]  submit  -->  pending_hod
+                             |
+                       approve / reject
+                             v
+                        pending_finance
+                             |
+                       approve / reject
+                             v
+                          pending_md   (only if value &gt; MD threshold)
+                             |
+                       approve / reject
+                             v
+                         approved
+  </div>
+
+  <h3>3.2 EFT / Petty Cash / Expense Claim</h3>
+  <div class="diagram">
+    [You]  submit  -->  pending_hod  -->  pending_finance  -->  approved
+
+    MD is NOT in this chain.
+  </div>
+
+  <h3>3.3 What "rejected" means</h3>
+  <p>At any step, the approver may reject the request. If that happens:</p>
+  <ul>
+    <li>Status becomes <span class="badge badge-rejected">rejected</span>.</li>
+    <li>The rejection comment appears on the detail page.</li>
+    <li>The request cannot be resubmitted. You must create a new one with the correction.</li>
+    <li>You do <em>not</em> get a new request-ID from the rejected one. Each submission is its own record.</li>
+  </ul>
+
+  <div class="note">
+    The audit log keeps a permanent record of every submission and every
+    rejection, with the reason. A rejected request is not "gone" —
+    Finance and Admin can still see it under "Rejected Requisitions".
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="page section">
+  <h2>4. What Your Sidebar Looks Like</h2>
+  <p>As an initiator you should see these items. Highlighted items are the ones you will use most.</p>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item highlight">My Requisitions</div>
+    <div class="item highlight">Create Requisition</div>
+    <div class="item">Approved Requisitions</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item highlight">Expense Claims</div>
+    <div class="item highlight">EFT Requisitions</div>
+    <div class="item highlight">Petty Cash</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item">Goods Receipt Notes</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Issue Slips</div>
+    <div class="item">Picking Slips</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+  </div>
+
+  <div class="screenshot">
+    <em>Dashboard for a typical initiator — "My Requisitions" highlighted in sidebar, summary cards in main area.</em>
+  </div>
+</div>
+
+<!-- TASK 1: PURCHASE REQUISITION -->
+<div class="page section">
+  <h2>5. Task 1 — Create a Purchase Requisition</h2>
+  <p>Use a Purchase Requisition (PR) when you want the company to buy goods or services for you or for your department.</p>
+
+  <div class="task">
+    <h3>5.1 Open the PR form</h3>
+    <ol>
+      <li>In the sidebar, click <strong>Procurement</strong> to expand that section.</li>
+      <li>Click <strong>Create Requisition</strong>.</li>
+      <li>The form opens — it may open in a new tab.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Purchase Requisition form (empty) showing Title, Description, Delivery Location, Required Date, and Items table.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Fill in the header</h3>
+    <ol>
+      <li><strong>Title</strong> — a short name (e.g. "Office printer toner x 3").</li>
+      <li><strong>Description</strong> — a sentence or two explaining what you need and why.</li>
+      <li><strong>Department</strong> — usually filled from your profile. Change only if requesting for another department with their agreement.</li>
+      <li><strong>Delivery Location</strong> — where the goods should go: Office, Site, Workshop, etc.</li>
+      <li><strong>Required Date</strong> — the date by which you need the items.</li>
+      <li><strong>Currency</strong> — default is ZMW. Change if the supplier quotes in USD, EUR, GBP, or ZAR.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Add each item</h3>
+    <ol>
+      <li>Click <strong>Add Item</strong>.</li>
+      <li>Fill in for each line:
+        <ul>
+          <li><strong>Item Name</strong> (required)</li>
+          <li><strong>Item Code</strong> (if you know it — optional)</li>
+          <li><strong>Description</strong> (optional but helpful for clarity)</li>
+          <li><strong>Quantity</strong> (must be 1 or more)</li>
+          <li><strong>Unit</strong> (pcs, kg, box, litre, hour, etc.)</li>
+          <li><strong>Estimated Unit Price</strong> (if you have a quote; otherwise leave blank)</li>
+        </ul>
+      </li>
+      <li>Click <strong>Add Item</strong> again for each additional line.</li>
+      <li>To remove a line, click the delete icon on its row.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.4 Add justification and attachments</h3>
+    <ol>
+      <li>Scroll to the <strong>Justification</strong> text box.</li>
+      <li>Explain why this purchase is needed. Be specific — approvers read this first.</li>
+      <li>If you have a supplier quote, click <strong>Attach File</strong> and upload the PDF or image. Maximum 10 MB.</li>
+    </ol>
+    <div class="note">
+      Supported formats are PDF, JPG, PNG, Excel, and Word.
+    </div>
+  </div>
+</div>
+
+<!-- TASK 1 CONTINUED -->
+<div class="page section">
+  <div class="task">
+    <h3>5.5 Review and submit</h3>
+    <ol>
+      <li>Scroll up and check the title, items, prices, and justification one more time.</li>
+      <li>Click <strong>Submit</strong> at the bottom.</li>
+      <li>The system creates a requisition with an ID in the format <code>KSB-PR-&lt;timestamp&gt;</code>.</li>
+      <li>Status becomes <span class="badge badge-pending">pending_hod</span>.</li>
+      <li>Your HOD receives an email notification.</li>
+      <li>You are redirected back to the "My Requisitions" list where you can see the new entry.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>"My Requisitions" list showing the newly-created requisition row with status "pending_hod".</em>
+  </div>
+
+  <div class="task">
+    <h3>5.6 Common mistakes that cause rejection</h3>
+    <ol>
+      <li><strong>No justification</strong> — approvers reject these almost always. Fill the box.</li>
+      <li><strong>Wrong department</strong> — if you accidentally picked another department, Finance cannot charge the budget properly.</li>
+      <li><strong>Missing quote for high-value items</strong> — anything &gt; the unquoted limit (check with your HOD or Finance) usually needs a quote.</li>
+      <li><strong>Vague item names</strong> — "miscellaneous parts" is too vague. Name each specific part.</li>
+      <li><strong>Duplicate line items</strong> — check you haven't added the same thing twice.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Once submitted you cannot edit the PR. If you notice a mistake,
+    ask your HOD to reject it with a comment. Then create a new PR.
+  </div>
+</div>
+
+<!-- TASK 2: EFT -->
+<div class="page section">
+  <h2>6. Task 2 — Create an EFT Requisition</h2>
+  <p>Use an EFT Requisition when the company needs to pay a supplier or an individual by electronic bank transfer.</p>
+
+  <div class="task">
+    <h3>6.1 Open the EFT form</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>EFT Requisitions</strong>.</li>
+      <li>Click <strong>Create New EFT</strong> (or similar).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Fill in the form</h3>
+    <ol>
+      <li><strong>Payee Name</strong> — who is being paid.</li>
+      <li><strong>Bank Name</strong> — payee's bank.</li>
+      <li><strong>Account Number</strong> / <strong>Branch</strong> — as on the payee's invoice.</li>
+      <li><strong>Amount</strong> and <strong>Currency</strong>.</li>
+      <li><strong>Purpose</strong> — short description of why you're paying (e.g. "Settlement of invoice INV-2026-0042 for IT supplies").</li>
+      <li><strong>Reference</strong> — invoice or PO number.</li>
+      <li><strong>Attachment</strong> — upload the supplier invoice or supporting document.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>EFT Requisition form with sections for Payee details, Amount, and Attachment.</em>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Submit</h3>
+    <ol>
+      <li>Click <strong>Submit</strong>.</li>
+      <li>ID format: <code>KSB-EFT-&lt;timestamp&gt;</code>.</li>
+      <li>Status becomes <span class="badge badge-pending">pending_hod</span>.</li>
+      <li>Finance will receive it after your HOD approves.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Double-check bank details <strong>before</strong> submitting. A wrong
+    account number leads to delayed or misdirected payments.
+  </div>
+</div>
+
+<!-- TASK 3: PETTY CASH -->
+<div class="page section">
+  <h2>7. Task 3 — Create a Petty Cash Requisition</h2>
+  <p>Use this to draw a small amount of cash from the petty-cash float for immediate purchases (tea, office stationery, minor repairs).</p>
+
+  <div class="task">
+    <h3>7.1 Open the Petty Cash form</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>Petty Cash</strong>.</li>
+      <li>Click <strong>Create New Petty Cash Request</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Fill in the form</h3>
+    <ol>
+      <li><strong>Amount</strong> and <strong>Currency</strong> (usually ZMW).</li>
+      <li><strong>Purpose</strong> — one-line reason for the cash.</li>
+      <li><strong>Itemised breakdown</strong> — list what you will buy with the cash. Add a line for each item.</li>
+      <li><strong>Required By</strong> — the date by which you need the cash.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.3 Submit</h3>
+    <ol>
+      <li>Click <strong>Submit</strong>.</li>
+      <li>ID format: <code>KSB-PC-&lt;timestamp&gt;</code>.</li>
+      <li>Status: <span class="badge badge-pending">pending_hod</span>.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Keep your receipts after spending the petty cash. Finance may ask
+    you to submit them as a reconciliation. Missing receipts can
+    result in the amount being deducted from your next pay.
+  </div>
+</div>
+
+<!-- TASK 4: EXPENSE CLAIM -->
+<div class="page section">
+  <h2>8. Task 4 — Create an Expense Claim</h2>
+  <p>Use this when you have already spent your own money on company business and want to be reimbursed.</p>
+
+  <div class="task">
+    <h3>8.1 Open the Expense Claim form</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>Expense Claims</strong>.</li>
+      <li>Click <strong>Create New Claim</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Fill in the header</h3>
+    <ol>
+      <li><strong>Claim Title</strong> — e.g. "Travel to Ndola 15 April 2026".</li>
+      <li><strong>Claim Date</strong> — today's date.</li>
+      <li><strong>Currency</strong> — usually ZMW.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.3 Add each expense line</h3>
+    <ol>
+      <li>Click <strong>Add Expense Line</strong>.</li>
+      <li>For each line, enter:
+        <ul>
+          <li><strong>Date</strong> the expense was incurred.</li>
+          <li><strong>Category</strong> — Travel, Meals, Accommodation, Fuel, Other.</li>
+          <li><strong>Description</strong> — brief detail (e.g. "Fuel Lusaka to Ndola, 420 km").</li>
+          <li><strong>Amount</strong> — the amount you paid.</li>
+          <li><strong>Receipt</strong> — attach a photo or scan.</li>
+        </ul>
+      </li>
+      <li>Add as many lines as you need. The total is calculated at the bottom.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Expense Claim form showing three expense lines — Fuel, Accommodation, Meals — with attached receipts.</em>
+  </div>
+
+  <div class="task">
+    <h3>8.4 Submit</h3>
+    <ol>
+      <li>Click <strong>Submit</strong>.</li>
+      <li>ID format: <code>KSB-EXP-&lt;timestamp&gt;</code>.</li>
+      <li>Status: <span class="badge badge-pending">pending_hod</span>.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Keep your original paper receipts for at least six months. Tax or
+    audit staff may ask for them.
+  </div>
+</div>
+
+<!-- TASK 5: TRACK -->
+<div class="page section">
+  <h2>9. Task 5 — Track Your Requests</h2>
+  <p>At any time you can check where your submissions are in the approval chain.</p>
+
+  <div class="task">
+    <h3>9.1 Open the relevant list</h3>
+    <ol>
+      <li>For Purchase Requisitions: Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>My Requisitions</strong>.</li>
+      <li>For EFT: Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>EFT Requisitions</strong>.</li>
+      <li>For Petty Cash: Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>Petty Cash</strong>.</li>
+      <li>For Expense Claims: Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>Expense Claims</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 Read the status column</h3>
+    <ol>
+      <li>Each row shows the request ID, date, a short title, and the <strong>Status</strong> column.</li>
+      <li>The status matches one of the values in the Quick Reference card.</li>
+      <li>Click any row to open the full detail page.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.3 Read the full history</h3>
+    <ol>
+      <li>On the detail page, scroll to <strong>Approval History</strong> (sometimes called Approvals or Audit).</li>
+      <li>Each entry shows: who acted, their role, what they did (approved / rejected / pending), the comment they left, and the date/time.</li>
+      <li>This gives you a clear trail of where it's been and where it's going.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Requisition detail page showing Approval History: HOD approved, Finance pending.</em>
+  </div>
+
+  <div class="task">
+    <h3>9.4 Download the PDF copy</h3>
+    <ol>
+      <li>On the detail page, click <strong>Download PDF</strong> (top-right).</li>
+      <li>The PDF contains the header, items, and approval signatures. Print or email as needed.</li>
+      <li>PDF is available even while the request is still pending.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- TASK 6: REJECTION -->
+<div class="page section">
+  <h2>10. Task 6 — Respond to a Rejection</h2>
+  <p>If an approver rejects your request, follow these steps.</p>
+
+  <div class="task">
+    <h3>10.1 Read why it was rejected</h3>
+    <ol>
+      <li>Open the rejected request from the list (status <span class="badge badge-rejected">rejected</span>).</li>
+      <li>Read the rejection comment in the Approval History. It should tell you what is wrong.</li>
+      <li>If the comment is unclear, contact the person who rejected it directly.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.2 Create a corrected version</h3>
+    <ol>
+      <li>You cannot edit a rejected request. You must create a new one.</li>
+      <li>Start a new form of the same type (e.g. new PR).</li>
+      <li>Fix the issue: rephrase the justification, add a quote, correct a quantity, change the item name, etc.</li>
+      <li>In the description, reference the rejected request's ID for context (e.g. "Resubmitted from KSB-PR-20260421... with added quote").</li>
+      <li>Submit.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.3 If you think the rejection is wrong</h3>
+    <ol>
+      <li>Talk to the rejector face-to-face or by phone.</li>
+      <li>If you cannot agree, escalate to your HOD (if rejected by HOD, escalate to Finance).</li>
+      <li>Only resubmit after the disagreement is resolved.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Repeated resubmissions without addressing the feedback are visible
+    to all approvers and damage trust. Fix the issue first.
+  </div>
+</div>
+
+<!-- TROUBLESHOOTING -->
+<div class="page section">
+  <h2>11. Troubleshooting</h2>
+
+  <h3>11.1 I submitted the form but nothing appears in "My Requisitions"</h3>
+  <ol>
+    <li>Refresh the page.</li>
+    <li>Check that you are looking at the right list. Purchase Requisitions appear under Procurement, not Financial Forms.</li>
+    <li>Check that you didn't switch departments after creating — the list may be filtered.</li>
+  </ol>
+
+  <h3>11.2 File upload failed</h3>
+  <ol>
+    <li>Make sure the file is under 10 MB.</li>
+    <li>Use a supported format: PDF, JPG, PNG, Excel, or Word.</li>
+    <li>Try renaming the file to remove special characters (&amp;, #, %).</li>
+  </ol>
+
+  <h3>11.3 The "Required Date" won't accept my input</h3>
+  <ol>
+    <li>Use the date picker (calendar icon) rather than typing.</li>
+    <li>Cannot pick a date in the past.</li>
+  </ol>
+
+  <h3>11.4 I see an error "Insufficient permissions"</h3>
+  <ol>
+    <li>You are trying to do something your role doesn't allow.</li>
+    <li>If you believe the role is wrong, ask your Administrator to check.</li>
+  </ol>
+
+  <h3>11.5 I can't find my HOD's name in any dropdown</h3>
+  <ol>
+    <li>HOD is set on your profile, not selected by you. Ask your Administrator to assign your HOD correctly.</li>
+  </ol>
+
+  <h3>11.6 I don't receive email confirmations</h3>
+  <ol>
+    <li>Check your spam/junk folder.</li>
+    <li>Confirm your email address is correct on your user profile.</li>
+    <li>If still nothing, tell IT — the mail service may be down.</li>
+  </ol>
+</div>
+
+<!-- APPENDIX -->
+<div class="page section">
+  <h2>12. Appendix</h2>
+
+  <h3>12.1 Status values</h3>
+  <table>
+    <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>draft</td><td>Saved but not submitted. Usually invisible on lists.</td></tr>
+      <tr><td>pending_hod</td><td>Waiting for your Head of Department.</td></tr>
+      <tr><td>pending_finance</td><td>HOD approved, Finance is next.</td></tr>
+      <tr><td>pending_md</td><td>Finance approved, MD is next (high-value PRs only).</td></tr>
+      <tr><td>approved</td><td>Fully approved.</td></tr>
+      <tr><td>rejected</td><td>Rejected at some stage — read the comment.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.2 Document ID formats</h3>
+  <table>
+    <thead><tr><th>Prefix</th><th>Document</th></tr></thead>
+    <tbody>
+      <tr><td>KSB-PR-&hellip;</td><td>Purchase Requisition</td></tr>
+      <tr><td>KSB-EFT-&hellip;</td><td>EFT Requisition</td></tr>
+      <tr><td>KSB-PC-&hellip;</td><td>Petty Cash</td></tr>
+      <tr><td>KSB-EXP-&hellip;</td><td>Expense Claim</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.3 Glossary</h3>
+  <table>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>HOD</td><td>Head of Department — your direct supervisor.</td></tr>
+      <tr><td>Finance</td><td>The finance team who approve spending against budgets.</td></tr>
+      <tr><td>MD</td><td>Managing Director — final approver on high-value PRs.</td></tr>
+      <tr><td>Initiator</td><td>You. The person who creates and submits the form.</td></tr>
+      <tr><td>ZMW</td><td>Zambian Kwacha.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

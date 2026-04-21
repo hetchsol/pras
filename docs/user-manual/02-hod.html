@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HOD — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 2 — HOD</div>
+  <p class="sub">Head of Department — first-stage approver for your department</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Approval stage</strong></td><td>Stage 1 of 3 (for PRs) / Stage 1 of 2 (for EFT, PC, EC, Issue Slips)</td></tr>
+      <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>Approval Workflow from Your Point of View</span><span class="pnum">5</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
+    <li><span>Task 1: Find Requests Waiting for You</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Review a Request</span><span class="pnum">8</span></li>
+    <li><span>Task 3: Approve a Request</span><span class="pnum">10</span></li>
+    <li><span>Task 4: Reject a Request</span><span class="pnum">11</span></li>
+    <li><span>Task 5: Approve an Issue Slip</span><span class="pnum">12</span></li>
+    <li><span>Task 6: Monitor Your Department</span><span class="pnum">13</span></li>
+    <li><span>Task 7: Initiate Your Own Requests</span><span class="pnum">14</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">15</span></li>
+    <li><span>Appendix</span><span class="pnum">16</span></li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are a <strong>Head of Department (HOD)</strong>. You lead a department and are the first formal check on every spending request that originates from your team.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>See every request initiated by someone in your department or by a direct subordinate.</li>
+    <li>Approve or reject Purchase Requisitions, EFTs, Petty Cash, Expense Claims, and Issue Slips at the HOD stage.</li>
+    <li>Initiate your own requests (you are still an initiator in your own right).</li>
+    <li>See department-level spend summaries.</li>
+  </ul>
+
+  <h3>1.2 What you cannot do</h3>
+  <ul>
+    <li>You cannot approve things from other departments you do not head.</li>
+    <li>You cannot approve your own initiated request — a peer HOD or higher must approve.</li>
+    <li>You cannot skip the Finance stage. Your approval passes the request <em>to</em> Finance, not around it.</li>
+    <li>You cannot modify amounts or items on a request you're reviewing. If something is wrong, reject with a clear comment.</li>
+  </ul>
+
+  <h3>1.3 Your responsibilities</h3>
+  <ol>
+    <li>Check requests are <strong>legitimate business needs</strong> for your department.</li>
+    <li>Check prices and quantities are <strong>reasonable</strong>.</li>
+    <li>Check the <strong>justification makes sense</strong>.</li>
+    <li>Check the request is going to the <strong>right cost centre</strong> (department).</li>
+    <li>Respond within a <strong>reasonable time</strong> (typically 24–48 working hours) so requests don't stall.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>To approve PRs / forms:</strong> Sidebar &rarr; Procurement &rarr; Pending Approvals, or Financial Forms &rarr; Pending Approvals.</p>
+    <p><strong>To approve Issue Slips:</strong> Sidebar &rarr; Stores &rarr; Issue Slips. Filter by status <span class="badge badge-pending">pending_hod</span>.</p>
+    <p><strong>Click a row</strong> to open full detail.</p>
+    <p><strong>Add a comment</strong> before clicking Approve or Reject. Comments are permanent.</p>
+
+    <h3>What to check before approving</h3>
+    <ol>
+      <li>Is this a real business need for the department?</li>
+      <li>Are quantities and prices sensible?</li>
+      <li>Is there a supplier quote attached for higher-value items?</li>
+      <li>Does the justification answer "why now"?</li>
+      <li>Does it stay within the department budget you're familiar with?</li>
+    </ol>
+
+    <h3>What to do when you're unavailable</h3>
+    <ul>
+      <li>Tell Admin before you go on leave. They can temporarily reassign your pending items to another HOD or Finance.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>3. Approval Workflow from Your Point of View</h2>
+
+  <div class="diagram">
+                  [Initiator submits]
+                         |
+                         v
+          +---------------------------+
+          |  STATUS = pending_hod     | &lt;-- this is your queue
+          |  Your name = the approver |
+          +---------------------------+
+                         |
+         approve -------+--------- reject
+            |                        |
+            v                        v
+   pending_finance              rejected
+   (Finance takes over)        (initiator sees
+                                 rejection + comment)
+  </div>
+
+  <h3>3.1 Time-to-approve expectations</h3>
+  <p>There is no enforced deadline, but requests left at <span class="badge badge-pending">pending_hod</span> for more than a few working days raise questions in the monthly report. Aim to act within 48 hours.</p>
+
+  <h3>3.2 What happens after you approve</h3>
+  <ul>
+    <li>Status changes to <span class="badge badge-pending">pending_finance</span>.</li>
+    <li>Finance team receives an email.</li>
+    <li>You can still see the request in "Approved Requisitions" for audit purposes.</li>
+  </ul>
+
+  <h3>3.3 What happens after you reject</h3>
+  <ul>
+    <li>Status becomes <span class="badge badge-rejected">rejected</span>.</li>
+    <li>Your comment is sent to the initiator by email.</li>
+    <li>The initiator must create a new request to resubmit.</li>
+  </ul>
+</div>
+
+<div class="page section">
+  <h2>4. What Your Sidebar Looks Like</h2>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+    <div class="item highlight">Pending Approvals</div>
+    <div class="item">Approved Requisitions</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+    <div class="item highlight">Pending Approvals</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item">Goods Receipt Notes</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Stock Items</div>
+    <div class="item highlight">Issue Slips</div>
+    <div class="item">Picking Slips</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+  </div>
+
+  <div class="note">
+    The two "Pending Approvals" items are where you do most of your
+    work. Your dashboard also shows a count of items waiting for you.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — Find Requests Waiting for You</h2>
+
+  <div class="task">
+    <h3>5.1 Check the dashboard first</h3>
+    <ol>
+      <li>On the Dashboard, look for the card titled <strong>Pending Approvals</strong> or <strong>Waiting for You</strong>.</li>
+      <li>The number on that card is the total count of items needing your action across all form types.</li>
+      <li>Click the card to open the combined approvals list.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>HOD dashboard showing a "Pending Approvals" card with count.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Procurement approvals (Purchase Requisitions)</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Pending Approvals</strong>.</li>
+      <li>The list shows only PRs from your department or your subordinates at status <span class="badge badge-pending">pending_hod</span>.</li>
+      <li>Each row shows the ID, initiator name, total amount, and submission date.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Financial Forms approvals (EFT, PC, EC)</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Forms</strong> &rarr; <strong>Pending Approvals</strong>.</li>
+      <li>The list combines EFT Requisitions, Petty Cash, and Expense Claims.</li>
+      <li>Use the filter at the top to narrow by form type if needed.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.4 Stores approvals (Issue Slips)</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Issue Slips</strong>.</li>
+      <li>Filter by status <span class="badge badge-pending">pending_hod</span>.</li>
+      <li>Only Issue Slips originating in your department appear at the HOD stage.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — Review a Request</h2>
+
+  <div class="task">
+    <h3>6.1 Open the detail view</h3>
+    <ol>
+      <li>Click any row in the Pending Approvals list.</li>
+      <li>The full detail page opens showing the form header, items, attachments, and approval history.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Requisition detail page with header, items, attached quote, and approval history section.</em>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Check the header</h3>
+    <ol>
+      <li><strong>Initiator</strong> — is this person really in your department or a subordinate?</li>
+      <li><strong>Date submitted</strong> — if recent, the request is fresh; if old, it may be stale.</li>
+      <li><strong>Required Date</strong> — is there enough time to process before the deadline?</li>
+      <li><strong>Delivery Location</strong> — does it match the business need?</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Check each item line</h3>
+    <ol>
+      <li>Does each item name make sense for your department's work?</li>
+      <li>Is the quantity reasonable? (A PR for 500 printers in a 10-person team is suspicious.)</li>
+      <li>Is the unit price sensible? Compare to what you know similar items cost.</li>
+      <li>If a quote is attached, open it and verify the supplier prices match what's in the form.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.4 Check the justification</h3>
+    <ol>
+      <li>Scroll to the Justification text.</li>
+      <li>Does it answer: <em>What is this for? Why now? Why this specific item or supplier?</em></li>
+      <li>If the justification is blank or vague, this is usually a reason to reject until the initiator improves it.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.5 Check the approval history</h3>
+    <ol>
+      <li>Look for any previous approval attempts — was this request rejected before?</li>
+      <li>Read any prior comments for context.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>7. Task 3 — Approve a Request</h2>
+
+  <div class="task">
+    <h3>7.1 Leave a comment</h3>
+    <ol>
+      <li>Scroll to the bottom of the detail page.</li>
+      <li>Type a short comment in the <strong>Comments</strong> box.</li>
+      <li>Approval comments are optional but strongly encouraged — they create a clear record.</li>
+      <li>Example comments: "Approved. Quantities match stock-out projection.", "Approved. Quote from Tech Solutions is competitive.", "Approved pending Finance to check FX conversion."</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Click Approve</h3>
+    <ol>
+      <li>Click the green <strong>Approve</strong> button.</li>
+      <li>The system records your name, role, timestamp, IP address, and browser in the audit log.</li>
+      <li>Status changes to <span class="badge badge-pending">pending_finance</span> and Finance is notified by email.</li>
+      <li>You are returned to the Pending Approvals list with the request removed from your queue.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Approval action box at the bottom of a request: Comments textarea and Approve / Reject buttons.</em>
+  </div>
+
+  <div class="warn">
+    The audit log keeps a permanent record of every approval you make,
+    with IP address and timestamp. If a fraudulent approval is later
+    traced to your account, it will be visible.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>8. Task 4 — Reject a Request</h2>
+
+  <div class="task">
+    <h3>8.1 Write a clear rejection reason</h3>
+    <ol>
+      <li>Scroll to the Comments box.</li>
+      <li>Write a specific reason so the initiator knows what to fix. Examples:
+        <ul>
+          <li>"Quote required for purchases above K5000. Please attach and resubmit."</li>
+          <li>"Wrong department — this should come from IT, not Operations."</li>
+          <li>"Quantity 50 seems excessive for a 10-person team. Please justify or reduce."</li>
+        </ul>
+      </li>
+      <li>Avoid vague reasons like "unclear" or "not approved" — the initiator can't fix those.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Click Reject</h3>
+    <ol>
+      <li>Click the red <strong>Reject</strong> button.</li>
+      <li>Status changes to <span class="badge badge-rejected">rejected</span>.</li>
+      <li>Initiator receives an email with your comment.</li>
+      <li>They must create a new request — they cannot edit this one.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    You and the initiator can talk informally before rejecting. Often a
+    quick conversation fixes the issue faster than a formal rejection.
+    Reject only when they've had a chance to correct.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>9. Task 5 — Approve an Issue Slip</h2>
+  <p>Issue Slips are the stock-equivalent of a PR — they require HOD approval to release goods from the warehouse.</p>
+
+  <div class="task">
+    <h3>9.1 Find pending Issue Slips</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Issue Slips</strong>.</li>
+      <li>Filter by status <span class="badge badge-pending">pending_hod</span>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 Open and review</h3>
+    <ol>
+      <li>Click a row.</li>
+      <li>Check the <strong>Issued To</strong> and <strong>Delivery Location</strong> are correct.</li>
+      <li>Check the items and quantities against the need of the receiving site.</li>
+      <li>If the Issue Slip is drawing from a specific <strong>GRN reference</strong>, verify there is enough stock (the system will block over-issues automatically but it's good to double-check).</li>
+      <li>Check the <strong>Customer</strong> field if the stock is customer-reserved.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.3 Approve or reject</h3>
+    <ol>
+      <li>Type a comment.</li>
+      <li>Click <strong>Approve</strong> — status goes to <span class="badge badge-pending">pending_finance</span>.</li>
+      <li>Or click <strong>Reject</strong> — status goes to <span class="badge badge-rejected">rejected</span> and the stock stays in the warehouse.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>10. Task 6 — Monitor Your Department</h2>
+
+  <div class="task">
+    <h3>10.1 Open Reports</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Reports</strong>.</li>
+      <li>Choose a date range: Today, Last 7 Days, Last 30 Days, This Month, Last Month, This Year, or All Time.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.2 Read the summary</h3>
+    <ol>
+      <li>Total requests per status: Approved, Pending, Rejected.</li>
+      <li>Average days to approve (your turnaround).</li>
+      <li>Department totals (your department plus others if you have wider view).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.3 Export to Excel or PDF</h3>
+    <ol>
+      <li>Click <strong>Export to Excel</strong> or <strong>Download PDF</strong> at the top of the report.</li>
+      <li>Use these in your monthly department review.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Reports page showing summary counts and a Department Spend bar chart.</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>11. Task 7 — Initiate Your Own Requests</h2>
+  <p>You are still an initiator in your own right. The procedure is identical to what other staff do. See the <strong>Initiator manual (01-initiator.pdf)</strong> for the full steps.</p>
+
+  <div class="warn">
+    You cannot approve a request you initiated yourself. It will
+    automatically be routed to a peer HOD or upward to Finance for
+    the first stage.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>12. Troubleshooting</h2>
+
+  <h3>12.1 "Pending Approvals" list is empty but I know there are requests</h3>
+  <ol>
+    <li>Check you're looking at the right list — Procurement and Financial Forms have separate queues.</li>
+    <li>Refresh the page.</li>
+    <li>Check the filter is not limiting results to a small date range.</li>
+    <li>If still empty, ask Admin whether you are correctly set as HOD on your user profile.</li>
+  </ol>
+
+  <h3>12.2 The Approve button is greyed out</h3>
+  <ol>
+    <li>You may have missed the mandatory Comments field — some installations require it.</li>
+    <li>You may be viewing a request that is no longer at <span class="badge badge-pending">pending_hod</span> — refresh and check the status.</li>
+    <li>The initiator may be you — you can't approve your own.</li>
+  </ol>
+
+  <h3>12.3 An approved request seems to be lost</h3>
+  <ol>
+    <li>Check <strong>Approved Requisitions</strong>. HOD-approved requests disappear from your Pending list but stay visible under Approved.</li>
+    <li>Check Finance has seen it — they may have already acted.</li>
+  </ol>
+
+  <h3>12.4 I'll be on leave — what happens to my queue?</h3>
+  <ol>
+    <li>Tell your Administrator before you go.</li>
+    <li>Admin can temporarily reassign your pending items to another HOD or escalate them directly to Finance.</li>
+    <li>Nothing is lost — items stay in the system.</li>
+  </ol>
+
+  <h3>12.5 I rejected by mistake</h3>
+  <ol>
+    <li>Ask the initiator to create a new request referencing the rejected one.</li>
+    <li>Approve the new one promptly with a comment explaining the original rejection was an error.</li>
+    <li>The audit log preserves both actions.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>13. Appendix</h2>
+
+  <h3>13.1 Status values you act on</h3>
+  <table>
+    <thead><tr><th>Status</th><th>Your action</th></tr></thead>
+    <tbody>
+      <tr><td>pending_hod</td><td>Review and Approve / Reject</td></tr>
+      <tr><td>pending_finance</td><td>Wait — Finance's turn</td></tr>
+      <tr><td>pending_md</td><td>Wait — MD's turn (PRs only)</td></tr>
+      <tr><td>approved</td><td>View for reference</td></tr>
+      <tr><td>rejected</td><td>View for reference</td></tr>
+    </tbody>
+  </table>
+
+  <h3>13.2 Typical turnaround targets</h3>
+  <table>
+    <thead><tr><th>Form</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>Purchase Requisition</td><td>48 hours</td></tr>
+      <tr><td>EFT Requisition</td><td>24 hours (often time-sensitive)</td></tr>
+      <tr><td>Petty Cash</td><td>Same day</td></tr>
+      <tr><td>Expense Claim</td><td>48 hours</td></tr>
+      <tr><td>Issue Slip</td><td>24 hours (goods may be needed on site)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>13.3 Checklist — before approving</h3>
+  <ul>
+    <li>Request belongs to someone in my department or my subordinate.</li>
+    <li>Items and quantities make sense.</li>
+    <li>Prices are reasonable.</li>
+    <li>Justification is clear.</li>
+    <li>Required quote is attached (if applicable).</li>
+    <li>Department is correct.</li>
+    <li>I have left a clear comment.</li>
+  </ul>
+</div>
+
+</body>
+</html>

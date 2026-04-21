@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MD — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 4 — Managing Director</div>
+  <p class="sub">Final approver on high-value Purchase Requisitions</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Approval stage</strong></td><td>Stage 3 — final, for PRs only</td></tr>
+      <tr><td><strong>Other forms</strong></td><td>EFT / PC / EC stop at Finance and do not reach you</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>Approval Workflow from Your Point of View</span><span class="pnum">5</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
+    <li><span>Task 1: Find Requests Waiting for You</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Review a High-Value Request</span><span class="pnum">8</span></li>
+    <li><span>Task 3: Final Approve or Reject</span><span class="pnum">10</span></li>
+    <li><span>Task 4: Oversight Reports</span><span class="pnum">11</span></li>
+    <li><span>Task 5: Delegation During Absence</span><span class="pnum">12</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">13</span></li>
+    <li><span>Appendix</span><span class="pnum">14</span></li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are the <strong>Managing Director</strong>. In this system, your role is to give final approval on Purchase Requisitions whose value exceeds the delegated threshold set by Finance.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>Approve / reject Purchase Requisitions at <span class="badge badge-pending">pending_md</span>.</li>
+    <li>See every request in the system across all departments.</li>
+    <li>Access all reports and analytics.</li>
+    <li>Initiate your own requests if you need to.</li>
+  </ul>
+
+  <h3>1.2 What you will not typically do</h3>
+  <ul>
+    <li>EFT, Petty Cash, and Expense Claim forms stop at Finance and do not reach you.</li>
+    <li>GRNs are handled by Finance, not you.</li>
+    <li>User management is the Administrator's responsibility.</li>
+  </ul>
+
+  <h3>1.3 What you should focus on</h3>
+  <ol>
+    <li><strong>Strategic fit</strong> — does this purchase align with company direction?</li>
+    <li><strong>Value for money</strong> — is the winning quote demonstrably the best option?</li>
+    <li><strong>Budget impact</strong> — does it leave room for other known upcoming spend?</li>
+    <li><strong>Risk</strong> — any supplier or compliance concerns?</li>
+    <li><strong>Urgency</strong> — is there a good reason this must be approved now vs next month?</li>
+  </ol>
+
+  <div class="note">
+    Because most operational detail was already checked by HOD and
+    Finance, your review is about oversight, not transaction detail.
+    If the numbers already add up, you are being asked: "Is this the
+    right thing to spend company money on?"
+  </div>
+</div>
+
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>To approve:</strong> Sidebar &rarr; Procurement &rarr; Pending Approvals.</p>
+    <p><strong>Only PRs reach you</strong> — no EFTs, petty cash, expense claims, or stores forms.</p>
+    <p><strong>The list shows</strong> only PRs at status <span class="badge badge-pending">pending_md</span>.</p>
+    <p><strong>Read the prior history</strong>: HOD and Finance have already commented. Their views matter.</p>
+
+    <h3>Questions to ask before approving</h3>
+    <ol>
+      <li>Is this strategically aligned with our goals?</li>
+      <li>Has Finance confirmed the department has budget headroom?</li>
+      <li>Are there competing requests this month that I should prioritise against?</li>
+      <li>Did the HOD's comment reveal concerns Finance glossed over?</li>
+      <li>Is the supplier a known good one, or a new one I want to question?</li>
+    </ol>
+
+    <h3>If you need more info</h3>
+    <ul>
+      <li>Don't approve blind. Call the HOD or Finance directly.</li>
+      <li>Leave the request pending while you get the answer.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>3. Approval Workflow from Your Point of View</h2>
+
+  <div class="diagram">
+         [HOD approved]                [Finance approved]
+               |                              |
+               v                              v
+       pending_finance                   pending_md   &lt;-- your queue
+                                             |
+                                     approve / reject
+                                             |
+                            +----------------+----------------+
+                            |                                 |
+                            v                                 v
+                        approved                          rejected
+                (goes to Procurement             (returns to initiator
+                 for vendor order)                   with your comment)
+  </div>
+
+  <h3>3.1 When does a PR reach you?</h3>
+  <ul>
+    <li>Only when total value exceeds the MD threshold configured by Finance.</li>
+    <li>Below the threshold, Finance approves and the PR is done.</li>
+    <li>You can view all PRs, but only act on the ones at <span class="badge badge-pending">pending_md</span>.</li>
+  </ul>
+
+  <h3>3.2 What happens after your approval</h3>
+  <ul>
+    <li>Status becomes <span class="badge badge-approved">approved</span>.</li>
+    <li>Procurement receives the signal to raise the purchase order with the selected vendor.</li>
+    <li>Initiator and HOD receive an email.</li>
+  </ul>
+
+  <h3>3.3 What happens after your rejection</h3>
+  <ul>
+    <li>Status becomes <span class="badge badge-rejected">rejected</span>.</li>
+    <li>Initiator and earlier approvers see your comment.</li>
+    <li>No further action is automatic — the initiator decides whether to rework and resubmit.</li>
+  </ul>
+</div>
+
+<div class="page section">
+  <h2>4. What Your Sidebar Looks Like</h2>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+    <div class="item highlight">Pending Approvals</div>
+    <div class="item">Approved Requisitions</div>
+    <div class="item">Rejected Requisitions</div>
+    <div class="item">Adjudication</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item">Goods Receipt Notes</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Issue Slips</div>
+    <div class="item">Picking Slips</div>
+
+    <div class="section-label">Financial Planning</div>
+    <div class="item">Budgets</div>
+    <div class="item">FX Rates</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+    <div class="item highlight">Analytics</div>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — Find Requests Waiting for You</h2>
+
+  <div class="task">
+    <h3>5.1 Dashboard card</h3>
+    <ol>
+      <li>On the Dashboard, the <strong>Pending Approvals</strong> card shows the count of PRs waiting for you.</li>
+      <li>Click the card to open the list directly.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Procurement Pending Approvals</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Pending Approvals</strong>.</li>
+      <li>The list is already filtered to <span class="badge badge-pending">pending_md</span>.</li>
+      <li>Columns shown: ID, initiator, department, total amount, date of Finance approval.</li>
+      <li>Sort by amount (descending) if you want to action the largest first.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>MD pending approvals list sorted by amount, largest first.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Filter by urgency</h3>
+    <ol>
+      <li>Use the <strong>Required Date</strong> column to spot time-critical items.</li>
+      <li>Requests with a Required Date within the next 7 days should be reviewed first.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — Review a High-Value Request</h2>
+
+  <div class="task">
+    <h3>6.1 Open the detail view</h3>
+    <ol>
+      <li>Click the request row.</li>
+      <li>Scan the header: title, initiator, department, total, required date.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Read the Approval History carefully</h3>
+    <ol>
+      <li>Scroll to Approval History (also called Audit or Approvals).</li>
+      <li>Read the HOD entry — what did they say?</li>
+      <li>Read the Finance entry — any flags, comments, or conditions?</li>
+      <li>If any prior comment says "approved but…", treat the "but" as a concern for you to resolve.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Check supplier / adjudication</h3>
+    <ol>
+      <li>Does the request name a single supplier, or was an adjudication run between three quotes?</li>
+      <li>For high-value items, three quotes are expected unless the supplier is a sole-source with justification.</li>
+      <li>Open the adjudication section (if present) and confirm the chosen supplier is the winner on price, quality, or delivery.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.4 Budget impact</h3>
+    <ol>
+      <li>Open Budgets (Sidebar &rarr; Financial Planning &rarr; Budgets) in a new tab.</li>
+      <li>Check the department's current spend versus budget.</li>
+      <li>Ask yourself: if I approve this, how much headroom is left in the department's budget for the rest of the quarter?</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.5 Strategic check</h3>
+    <ol>
+      <li>Does the purchase fit company strategy or a board commitment?</li>
+      <li>Is this a one-off, or one of several similar items you'd expect to see?</li>
+      <li>Is it visible to external stakeholders (auditors, regulators)?</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>PR detail view showing three-quote comparison (adjudication result) and budget impact.</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>7. Task 3 — Final Approve or Reject</h2>
+
+  <div class="task">
+    <h3>7.1 Write a meaningful comment</h3>
+    <ol>
+      <li>Scroll to the bottom.</li>
+      <li>A one-sentence approval comment is usually enough — but make it count. Examples:
+        <ul>
+          <li>Approve: "Approved. Aligned with Q2 IT upgrade plan; vendor is preferred tier-1."</li>
+          <li>Approve with caveat: "Approved on condition the PO is issued this week to meet Required Date."</li>
+          <li>Reject: "Rejected. Adjudication is not compelling — please get a fourth quote from a tier-1 vendor."</li>
+          <li>Hold: leave a comment and do not click either button yet. Contact the HOD for clarification.</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Click the button</h3>
+    <ol>
+      <li><strong>Approve</strong>: green button. Status becomes <span class="badge badge-approved">approved</span>, Procurement is notified, the initiator and HOD receive email.</li>
+      <li><strong>Reject</strong>: red button. Status becomes <span class="badge badge-rejected">rejected</span>, and everyone down the chain sees the rejection reason.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Your action is final. There is no further escalation above you.
+    Take the time you need before clicking.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>8. Task 4 — Oversight Reports</h2>
+
+  <div class="task">
+    <h3>8.1 Analytics (monthly)</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Analytics</strong>.</li>
+      <li>Pick date range: This Month or Last Month.</li>
+      <li>Review:
+        <ul>
+          <li>Spend by department — any outliers?</li>
+          <li>Vendor concentration — are we over-reliant on one supplier?</li>
+          <li>Approval-chain bottlenecks — where are requests stalling?</li>
+          <li>Rejection rate — which HODs are rejecting most?</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Summary Reports</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Reports</strong>.</li>
+      <li>Use the "Last Month" range for board-pack numbers.</li>
+      <li>Export to PDF and attach to your monthly report to the Board.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.3 Individual PR PDFs</h3>
+    <ol>
+      <li>Open any approved PR.</li>
+      <li>Click <strong>Download PDF</strong>.</li>
+      <li>Use for signatures if a physical copy is required for external parties.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>9. Task 5 — Delegation During Absence</h2>
+
+  <div class="task">
+    <h3>9.1 Before you travel or take leave</h3>
+    <ol>
+      <li>Tell your Administrator at least 48 hours in advance.</li>
+      <li>Decide who can approve on your behalf — typically the Finance Manager or the Chair of the Board.</li>
+      <li>Admin temporarily changes the MD threshold or grants approval rights to the delegate for that period.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 After you return</h3>
+    <ol>
+      <li>Ask Admin to remove the delegation.</li>
+      <li>Review the Audit Log for approvals made during your absence. Any disagreements should be raised promptly.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    The system keeps a full audit trail of who approved what and when,
+    including during delegation periods. There is no way to hide or
+    back-date an approval.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>10. Troubleshooting</h2>
+
+  <h3>10.1 "Pending Approvals" list is empty — is everything approved?</h3>
+  <ol>
+    <li>Possibly. Most requests never reach you because they're below the MD threshold.</li>
+    <li>Check the "Approved Requisitions" list to confirm recent activity.</li>
+    <li>If concerned, ask Finance what the current MD threshold is.</li>
+  </ol>
+
+  <h3>10.2 I approved by mistake</h3>
+  <ol>
+    <li>Call the initiator and Procurement immediately — they may still be able to cancel the purchase order before sending.</li>
+    <li>You cannot "un-approve" in the system. The record stands.</li>
+    <li>If funds must be recovered, raise a separate issue with Finance.</li>
+  </ol>
+
+  <h3>10.3 The total amount shown looks wrong</h3>
+  <ol>
+    <li>Multi-currency requests are converted using the current FX rate.</li>
+    <li>Open FX Rates and check the rates are fresh.</li>
+    <li>If conversion is stale, Finance should update rates — the total will refresh.</li>
+  </ol>
+
+  <h3>10.4 I want to see ALL approved requests for the month</h3>
+  <ol>
+    <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Approved Requisitions</strong>.</li>
+    <li>Filter by date range "This Month" or "Last Month".</li>
+    <li>Export to Excel for analysis.</li>
+  </ol>
+
+  <h3>10.5 I need to contact the initiator but don't know them</h3>
+  <ol>
+    <li>On the PR detail page, the Initiator field is clickable — it opens their user profile with email address.</li>
+    <li>Or ask Admin for their contact details.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>11. Appendix</h2>
+
+  <h3>11.1 Statuses you see</h3>
+  <table>
+    <thead><tr><th>Status</th><th>Your action</th></tr></thead>
+    <tbody>
+      <tr><td>pending_hod</td><td>Not yours — HOD is reviewing</td></tr>
+      <tr><td>pending_finance</td><td>Not yours — Finance is reviewing</td></tr>
+      <tr><td>pending_md</td><td>Yours — review and approve or reject</td></tr>
+      <tr><td>approved</td><td>Reference — already approved</td></tr>
+      <tr><td>rejected</td><td>Reference — rejected at some stage</td></tr>
+    </tbody>
+  </table>
+
+  <h3>11.2 Your typical weekly rhythm</h3>
+  <ul>
+    <li><strong>Monday</strong>: clear pending queue from the weekend.</li>
+    <li><strong>Wednesday</strong>: spot-check the analytics for the previous week.</li>
+    <li><strong>Friday</strong>: clear pending queue before the weekend.</li>
+    <li><strong>End of month</strong>: export analytics to PDF for your monthly oversight note.</li>
+  </ul>
+
+  <h3>11.3 Delegation log format (suggested)</h3>
+  <p>When delegating during an absence, record in the handover note:</p>
+  <ul>
+    <li>Dates of absence.</li>
+    <li>Delegate name and role.</li>
+    <li>Any approval limit you want them to observe (e.g. "do not approve over K500k without calling me").</li>
+  </ul>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Procurement — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 5 — Procurement</div>
+  <p class="sub">Vendor management, quote collection, and adjudication</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Approval role</strong></td><td>None formal — you execute after MD approval</td></tr>
+      <tr><td><strong>Key responsibility</strong></td><td>Vendor selection and order execution</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>Workflow from Your Point of View</span><span class="pnum">5</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
+    <li><span>Task 1: Review Approved Requisitions</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Collect and Add Quotes</span><span class="pnum">8</span></li>
+    <li><span>Task 3: Run Adjudication</span><span class="pnum">10</span></li>
+    <li><span>Task 4: Manage Vendors</span><span class="pnum">12</span></li>
+    <li><span>Task 5: Track Rejected Requisitions</span><span class="pnum">13</span></li>
+    <li><span>Task 6: Reports</span><span class="pnum">14</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">15</span></li>
+    <li><span>Appendix</span><span class="pnum">16</span></li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are part of the <strong>Procurement</strong> team. You see every requisition in the system and you turn approved requisitions into real purchase orders.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>View every Purchase Requisition across all departments.</li>
+    <li>Add supplier quotes to a requisition.</li>
+    <li>Run an adjudication (three-quote comparison) to pick a winning vendor.</li>
+    <li>Add and maintain the vendor master list.</li>
+    <li>See rejected requisitions to feed back patterns to departments.</li>
+    <li>View reports.</li>
+  </ul>
+
+  <h3>1.2 What you cannot do</h3>
+  <ul>
+    <li>You do not approve financial requests — that is HOD / Finance / MD.</li>
+    <li>You cannot change the items or amounts on an approved PR.</li>
+    <li>You cannot manage users or system settings (that's Admin).</li>
+  </ul>
+
+  <h3>1.3 Your responsibilities</h3>
+  <ol>
+    <li>Collect at least <strong>three quotes</strong> for requisitions above the unquoted limit.</li>
+    <li>Run a fair <strong>adjudication</strong> that compares price, quality, and delivery.</li>
+    <li>Document the <strong>winning vendor</strong> and the reasoning.</li>
+    <li>Keep the vendor master list <strong>clean and up to date</strong>.</li>
+    <li>Issue purchase orders promptly after MD approval (outside the system).</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>See all approved PRs:</strong> Sidebar &rarr; Procurement &rarr; Approved Requisitions.</p>
+    <p><strong>Add quotes:</strong> open a PR &rarr; Quotes section &rarr; Add Quote.</p>
+    <p><strong>Run adjudication:</strong> Sidebar &rarr; Procurement &rarr; Adjudication.</p>
+    <p><strong>Manage vendors:</strong> Sidebar &rarr; Administration &rarr; Vendors.</p>
+    <p><strong>See rejections:</strong> Sidebar &rarr; Procurement &rarr; Rejected Requisitions.</p>
+
+    <h3>Quote rules of thumb</h3>
+    <ol>
+      <li>Below the unquoted limit: no quote needed, but adding one is always welcome.</li>
+      <li>Above the unquoted limit: at least three quotes required.</li>
+      <li>Sole-source (only one supplier available): attach a written justification signed by the HOD or Finance.</li>
+      <li>All quotes must be in writing (PDF, email, or letterhead).</li>
+    </ol>
+
+    <h3>When to push back on a requisition</h3>
+    <ul>
+      <li>Item name too vague to source — ask the initiator to rewrite.</li>
+      <li>Required Date impossible given procurement lead time — ask for a realistic date.</li>
+      <li>Specified vendor has a bad history — raise with Finance before ordering.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>3. Workflow from Your Point of View</h2>
+
+  <div class="diagram">
+  [Initiator] --> pending_hod --> pending_finance --> pending_md --> approved
+                                        ^                              |
+                                        |                              v
+                              YOU add quotes here            YOU run adjudication,
+                              (often during pending_finance)  issue PO outside system
+
+  OPTIONAL SUB-FLOW:
+    - Collect supplier quotes (email / PDF / website).
+    - Upload quotes into the system via the PR detail page.
+    - Run adjudication to pick winner.
+    - Add winner + rationale to the PR.
+    - After final approval, raise the PO with the vendor.
+  </div>
+
+  <h3>3.1 When do you step in?</h3>
+  <p>The system doesn't enforce a specific stage for Procurement. In practice you should:</p>
+  <ul>
+    <li><strong>Get involved at pending_finance</strong> — this is when Finance is scrutinising the request. Add quotes and run adjudication so Finance has full data.</li>
+    <li><strong>Act at approved</strong> — issue the purchase order to the winning vendor.</li>
+  </ul>
+
+  <h3>3.2 What the system records</h3>
+  <ul>
+    <li>Every quote you upload, with vendor, price, attachment.</li>
+    <li>The adjudication result — who you picked and why.</li>
+    <li>All your actions are in the audit log.</li>
+  </ul>
+</div>
+
+<div class="page section">
+  <h2>4. What Your Sidebar Looks Like</h2>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item highlight">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+    <div class="item highlight">Approved Requisitions</div>
+    <div class="item highlight">Rejected Requisitions</div>
+    <div class="item highlight">Adjudication</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item">Goods Receipt Notes</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Stock Items</div>
+    <div class="item">Issue Slips</div>
+    <div class="item">Picking Slips</div>
+
+    <div class="section-label">Financial Planning</div>
+    <div class="item">FX Rates</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+
+    <div class="section-label">Administration</div>
+    <div class="item highlight">Vendors</div>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — Review Approved Requisitions</h2>
+
+  <div class="task">
+    <h3>5.1 Open Approved Requisitions</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Approved Requisitions</strong>.</li>
+      <li>The list shows every PR at status <span class="badge badge-approved">approved</span>.</li>
+      <li>Sort by <strong>Required Date</strong> ascending to see the most urgent first.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Open a PR detail</h3>
+    <ol>
+      <li>Click a row.</li>
+      <li>Check: vendor selected (if any), winning quote, adjudication outcome.</li>
+      <li>If no vendor is selected yet, you need to complete that before raising a PO.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Approved requisitions list with columns ID, department, total, vendor, required date.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Reach out to the initiator (optional)</h3>
+    <ol>
+      <li>If any detail is unclear, contact the initiator before placing the order.</li>
+      <li>Document the clarification in the comments section of the PR.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — Collect and Add Quotes</h2>
+
+  <div class="task">
+    <h3>6.1 Collect quotes externally first</h3>
+    <ol>
+      <li>Email, phone, or visit each candidate vendor.</li>
+      <li>Ask for a written quote including:
+        <ul>
+          <li>Itemised unit prices</li>
+          <li>Currency</li>
+          <li>Validity period</li>
+          <li>Delivery lead time</li>
+          <li>Payment terms</li>
+        </ul>
+      </li>
+      <li>Save each quote as a PDF with a clear name (e.g. <code>Quote_TechSolutions_KSB-PR-20260421.pdf</code>).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Open the PR detail page</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>My Requisitions</strong> or <strong>Approved Requisitions</strong>.</li>
+      <li>Click the PR you're working on.</li>
+      <li>Scroll to the <strong>Quotes</strong> section.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Add a quote</h3>
+    <ol>
+      <li>Click <strong>Add Quote</strong>.</li>
+      <li>Select the <strong>Vendor</strong> from the dropdown. If the vendor is new, add them first via Administration &rarr; Vendors (see Task 4).</li>
+      <li>Enter <strong>Unit Price</strong> for each item in the PR.</li>
+      <li>Select <strong>Currency</strong>.</li>
+      <li>Attach the <strong>Quote PDF</strong>.</li>
+      <li>Enter the <strong>Validity Period</strong> (e.g. 30 days from quote date).</li>
+      <li>Click <strong>Save Quote</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.4 Repeat for each quote</h3>
+    <ol>
+      <li>Add at least three quotes for comparison, if the PR requires them.</li>
+      <li>If only one quote is possible (sole-source), note the reason in the Comments section.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Quotes section of a PR showing three quotes: Tech Solutions (lowest), Office Supplies Co, Furniture World.</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>7. Task 3 — Run Adjudication</h2>
+  <p>Adjudication is the formal process of comparing quotes and choosing a winner.</p>
+
+  <div class="task">
+    <h3>7.1 Open the Adjudication page</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Adjudication</strong>.</li>
+      <li>The page lists PRs that have multiple quotes but no adjudication yet.</li>
+      <li>Click the PR you want to adjudicate.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Review the side-by-side comparison</h3>
+    <ol>
+      <li>The system shows each quote as a column.</li>
+      <li>All non-ZMW prices are automatically converted to ZMW using the current FX rate.</li>
+      <li>Look at:
+        <ul>
+          <li>Total cost in ZMW</li>
+          <li>Lead time</li>
+          <li>Payment terms</li>
+          <li>Vendor rating / tier</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.3 Pick the winner</h3>
+    <ol>
+      <li>Select one quote as <strong>Winner</strong> using the radio button or "Select as winner" action.</li>
+      <li>The winning quote does NOT have to be the cheapest. Cheapest, fastest, or best quality are all valid criteria — but you must justify.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.4 Record the rationale</h3>
+    <ol>
+      <li>Fill in the <strong>Rationale</strong> text box.</li>
+      <li>Be specific. Examples:
+        <ul>
+          <li>"Tech Solutions — lowest total and shortest lead time."</li>
+          <li>"Office Supplies Co — not cheapest, but 30-day payment terms save cash flow."</li>
+          <li>"Furniture World — tier-1 vendor, 3-year warranty vs 1-year from others."</li>
+        </ul>
+      </li>
+      <li>Click <strong>Save Adjudication</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.5 After adjudication</h3>
+    <ol>
+      <li>The PR now has a selected vendor locked in.</li>
+      <li>Finance and MD see the adjudication data during their approval.</li>
+      <li>You can re-open the adjudication if needed — changes are audit-logged.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    If you deviate from the cheapest option, write a clear rationale.
+    Auditors review adjudications where the cheapest quote lost.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>8. Task 4 — Manage Vendors</h2>
+
+  <div class="task">
+    <h3>8.1 Open the Vendor list</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Vendors</strong>.</li>
+      <li>Search for an existing vendor by name or code.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Add a new vendor</h3>
+    <ol>
+      <li>Click <strong>Add Vendor</strong>.</li>
+      <li>Fill in:
+        <ul>
+          <li><strong>Name</strong> (required)</li>
+          <li><strong>Code</strong> (short unique identifier, e.g. TSL001)</li>
+          <li><strong>Category</strong> (IT Equipment, Office Supplies, Furniture, etc.)</li>
+          <li><strong>Contact person</strong> and phone</li>
+          <li><strong>Email</strong></li>
+          <li><strong>Tier</strong> (1 = preferred, 2 = approved, 3 = trial)</li>
+          <li><strong>Rating</strong> (1-5 stars based on past performance)</li>
+          <li><strong>Status</strong> — set to <code>active</code></li>
+        </ul>
+      </li>
+      <li>Click <strong>Save</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.3 Update a vendor</h3>
+    <ol>
+      <li>Click the vendor row.</li>
+      <li>Change the details.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.4 Disable (don't delete) an inactive vendor</h3>
+    <ol>
+      <li>Open the vendor.</li>
+      <li>Change Status to <code>inactive</code>.</li>
+      <li>Save.</li>
+      <li>Historical quotes and POs remain intact — the vendor just doesn't appear in new-quote dropdowns.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.5 Bulk upload from Excel</h3>
+    <ol>
+      <li>Download the vendor template from the Vendors page.</li>
+      <li>Fill in all columns.</li>
+      <li>Click <strong>Upload from Excel</strong>.</li>
+      <li>The system validates and imports. Errors are reported row-by-row.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Never delete a vendor who appears on any past quote or PR — it
+    breaks the audit trail. Disable instead.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>9. Task 5 — Track Rejected Requisitions</h2>
+
+  <div class="task">
+    <h3>9.1 Open Rejected Requisitions</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Rejected Requisitions</strong>.</li>
+      <li>The list shows every PR at status <span class="badge badge-rejected">rejected</span>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 Review rejection reasons</h3>
+    <ol>
+      <li>Click a row.</li>
+      <li>Read the approval history comments.</li>
+      <li>Identify patterns: which departments have most rejections? Which items? Which reasons?</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.3 Share feedback monthly</h3>
+    <ol>
+      <li>Summarise rejection patterns.</li>
+      <li>Share with HODs to improve their team's initial submissions.</li>
+      <li>Use the <strong>Reports</strong> page for formal numbers.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>10. Task 6 — Reports</h2>
+
+  <div class="task">
+    <h3>10.1 Summary Reports</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Reports</strong>.</li>
+      <li>Pick a date range (Last 30 Days for monthly view).</li>
+      <li>Export to Excel or PDF.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.2 Useful filters for Procurement</h3>
+    <ol>
+      <li>By department — which departments are spending the most?</li>
+      <li>By vendor — which vendors are we using most?</li>
+      <li>By status — how many PRs are stuck at each stage?</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.3 FX Rates visibility</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>FX Rates</strong> (view-only for Procurement).</li>
+      <li>Use this to check what rates are being applied to foreign-currency quotes.</li>
+      <li>If rates look stale, tell Finance.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>11. Troubleshooting</h2>
+
+  <h3>11.1 I can't add a quote — the Add Quote button is missing</h3>
+  <ol>
+    <li>Check your role is Procurement or Admin.</li>
+    <li>Check the PR is not already <span class="badge badge-rejected">rejected</span> — quotes can't be added to rejected PRs.</li>
+    <li>Try refreshing the page.</li>
+  </ol>
+
+  <h3>11.2 A quote I uploaded doesn't appear</h3>
+  <ol>
+    <li>Refresh the PR detail page.</li>
+    <li>Check the file size — must be under 10 MB.</li>
+    <li>Check the file format — PDF preferred; JPG / PNG / Excel / Word also accepted.</li>
+  </ol>
+
+  <h3>11.3 The ZMW total on adjudication is wrong</h3>
+  <ol>
+    <li>FX rate may be stale. Ask Finance to refresh the rate for that currency.</li>
+    <li>Then refresh the adjudication page — the new total will appear.</li>
+  </ol>
+
+  <h3>11.4 The vendor dropdown doesn't include the vendor I need</h3>
+  <ol>
+    <li>Vendor may be set to <code>inactive</code>. Open Administration &rarr; Vendors, find them, and set to <code>active</code>.</li>
+    <li>Or the vendor doesn't exist yet — add them (Task 4).</li>
+  </ol>
+
+  <h3>11.5 I selected the wrong winner by mistake</h3>
+  <ol>
+    <li>Re-open the adjudication.</li>
+    <li>Select the correct quote as winner.</li>
+    <li>Save. The change is audit-logged with your name and timestamp.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>12. Appendix</h2>
+
+  <h3>12.1 Vendor tiers</h3>
+  <table>
+    <thead><tr><th>Tier</th><th>Meaning</th><th>When to use</th></tr></thead>
+    <tbody>
+      <tr><td>1 — Preferred</td><td>Top-tier supplier with strong history</td><td>Anytime; use without extra justification</td></tr>
+      <tr><td>2 — Approved</td><td>Reliable supplier on roster</td><td>When tier-1 is not suitable</td></tr>
+      <tr><td>3 — Trial</td><td>New supplier being evaluated</td><td>Only when tier-1 and tier-2 can't serve; monitor closely</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.2 Typical PR lead times</h3>
+  <table>
+    <thead><tr><th>Category</th><th>Typical lead</th></tr></thead>
+    <tbody>
+      <tr><td>Office stationery (local)</td><td>1-3 days</td></tr>
+      <tr><td>IT equipment (local stock)</td><td>3-7 days</td></tr>
+      <tr><td>IT equipment (import)</td><td>2-6 weeks</td></tr>
+      <tr><td>Furniture (custom)</td><td>4-8 weeks</td></tr>
+      <tr><td>Vehicles / large machinery</td><td>8-16 weeks</td></tr>
+    </tbody>
+  </table>
+  <p>Use these figures to challenge unrealistic Required Dates.</p>
+
+  <h3>12.3 Checklist before closing a PR</h3>
+  <ul>
+    <li>All quotes uploaded.</li>
+    <li>Adjudication complete with rationale.</li>
+    <li>Winning vendor selected.</li>
+    <li>PO issued externally.</li>
+    <li>Delivery date confirmed with vendor.</li>
+    <li>GRN team informed of expected delivery.</li>
+  </ul>
+</div>
+
+</body>
+</html>

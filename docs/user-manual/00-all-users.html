@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>All Users — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<!-- ========== COVER ========== -->
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">All Users</div>
+  <p class="sub">Login, navigation, security basics</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Audience</strong></td><td>Everyone — read before your role-specific manual</td></tr>
+      <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+      <tr><td><strong>Pages</strong></td><td>~8</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ========== TOC ========== -->
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>What This System Does</span><span class="pnum">3</span></li>
+    <li><span>Logging In for the First Time</span><span class="pnum">4</span></li>
+    <li><span>The Screen Layout</span><span class="pnum">5</span></li>
+    <li><span>Sidebar Sections</span><span class="pnum">6</span></li>
+    <li><span>Logging Out and Session Timeouts</span><span class="pnum">7</span></li>
+    <li><span>Security Rules</span><span class="pnum">7</span></li>
+    <li><span>Troubleshooting — Login Problems</span><span class="pnum">8</span></li>
+  </ol>
+</div>
+
+<!-- ========== 1. WHAT THE SYSTEM DOES ========== -->
+<div class="page section">
+  <h2>1. What This System Does</h2>
+  <p>The KSB Purchase Requisition System replaces paper-based procurement and stores paperwork with one web application used by every department of KSB Zambia.</p>
+
+  <h3>1.1 What you can do in the system</h3>
+  <ul>
+    <li><strong>Purchase Requisitions</strong> — ask the company to buy something on your behalf.</li>
+    <li><strong>EFT Requisitions</strong> — request an electronic transfer to a supplier or person.</li>
+    <li><strong>Petty Cash Requisitions</strong> — draw a small amount of cash for immediate purchases.</li>
+    <li><strong>Expense Claims</strong> — get reimbursed for money you spent on company business.</li>
+    <li><strong>Goods Receipt Notes (GRNs)</strong> — record stock arriving at the warehouse.</li>
+    <li><strong>Issue Slips</strong> — record stock leaving stores to departments or sites.</li>
+    <li><strong>Picking Slips</strong> — record stock being moved between storage locations.</li>
+    <li><strong>Stock Register</strong> — see live available stock at any time.</li>
+  </ul>
+
+  <h3>1.2 Approval flow at a glance</h3>
+  <div class="diagram">
+  Purchase Requisition (typical flow)
+
+    [Initiator] ----submit----> [Pending HOD]
+                                    |
+                         approve ---+--- reject -----> [Rejected]
+                                    v
+                              [Pending Finance]
+                                    |
+                         approve ---+--- reject -----> [Rejected]
+                                    v
+                                [Pending MD]
+                                    |
+                         approve ---+--- reject -----> [Rejected]
+                                    v
+                                [Approved]
+
+  EFT / Petty Cash / Expense Claim / Issue Slip skip the MD step.
+  GRN has a single Finance-approval step.
+  Picking Slip has no approval — it is created as Completed.
+  </div>
+
+  <div class="note">
+    Your role decides which forms appear on your screen and which approval
+    buttons you can click. The sections below are the same for everyone;
+    role-specific detail lives in each role's manual.
+  </div>
+</div>
+
+<!-- ========== 2. LOGGING IN ========== -->
+<div class="page section">
+  <h2>2. Logging In for the First Time</h2>
+
+  <div class="task">
+    <h3>2.1 Before You Log In</h3>
+    <ol>
+      <li>Ask your Administrator for the system URL (usually something like <code>https://pras-frontend.onrender.com</code>).</li>
+      <li>Ask for your <strong>username</strong> and a temporary <strong>password</strong>.</li>
+      <li>Confirm with them that your <strong>role</strong> (initiator, HOD, Finance, etc.) and <strong>department</strong> are set correctly before you try to log in.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>2.2 Log In</h3>
+    <ol>
+      <li>Open a modern web browser — Chrome, Edge, or Firefox is recommended.</li>
+      <li>Go to the system URL given by your Administrator.</li>
+      <li>Type your <strong>Username</strong>.</li>
+      <li>Type your <strong>Password</strong>.</li>
+      <li>Click <strong>Login</strong>.</li>
+      <li>If the credentials are correct, you will land on the <strong>Dashboard</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Login screen showing username field, password field, and Login button.</em>
+  </div>
+
+  <div class="task">
+    <h3>2.3 Change Your Temporary Password</h3>
+    <ol>
+      <li>After first login, click your name in the top-right corner.</li>
+      <li>Select <strong>Profile</strong> (or <strong>Change Password</strong> if available).</li>
+      <li>Enter your current temporary password, then your new password twice.</li>
+      <li>The new password must be at least 8 characters and contain an uppercase letter, a lowercase letter, and a digit.</li>
+      <li>Click <strong>Save</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Never share your password, even with IT. A real Administrator will
+    never ask you for your password — they reset it instead.
+  </div>
+</div>
+
+<!-- ========== 3. SCREEN LAYOUT ========== -->
+<div class="page section">
+  <h2>3. The Screen Layout</h2>
+  <p>Every page of the system uses the same three-part layout.</p>
+
+  <div class="diagram">
+   +-----------------------------------------------------------+
+   |  TOP BAR: KSB logo   Dashboard > My Requisitions  [You]   |
+   +-----------+-----------------------------------------------+
+   |           |                                               |
+   |  SIDEBAR  |                MAIN AREA                      |
+   |           |  (forms, lists, approvals, dashboards)        |
+   |  Menu     |                                               |
+   |  items    |                                               |
+   |  grouped  |                                               |
+   |  by       |                                               |
+   |  section  |                                               |
+   |           |                                               |
+   +-----------+-----------------------------------------------+
+  </div>
+
+  <h3>3.1 Top Bar</h3>
+  <ul>
+    <li>Shows your full name and role on the right.</li>
+    <li>Click your name to open the Profile / Log Out menu.</li>
+    <li>Shows a breadcrumb of where you currently are (e.g. "Dashboard &gt; My Requisitions").</li>
+  </ul>
+
+  <h3>3.2 Sidebar</h3>
+  <ul>
+    <li>The main menu. Grouped by category (Procurement, Financial Forms, Stores, etc.).</li>
+    <li>Items are hidden if your role does not have access. If you can't see something, your role probably doesn't allow it.</li>
+    <li>Click a grouping header to collapse or expand it.</li>
+  </ul>
+
+  <h3>3.3 Main Area</h3>
+  <ul>
+    <li>Shows the page you clicked — a list, a form, or a detail view.</li>
+    <li>At the top of a detail page, you'll usually find <strong>Download PDF</strong>, <strong>Print</strong>, or <strong>Edit</strong> buttons.</li>
+    <li>At the bottom of an approval page, you'll find <strong>Approve</strong> / <strong>Reject</strong> with a comments box.</li>
+  </ul>
+
+  <div class="screenshot">
+    <em>Dashboard after login: top bar with user name, left sidebar open, main area showing stat cards.</em>
+  </div>
+</div>
+
+<!-- ========== 4. SIDEBAR SECTIONS ========== -->
+<div class="page section">
+  <h2>4. Sidebar Sections</h2>
+  <p>Below is the full sidebar. Sections that don't apply to your role are hidden automatically.</p>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+    <div class="item">Pending Approvals</div>
+    <div class="item">Approved Requisitions</div>
+    <div class="item">Rejected Requisitions</div>
+    <div class="item">Adjudication</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+    <div class="item">Pending Approvals</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item">Goods Receipt Notes</div>
+    <div class="item">Create GRN</div>
+    <div class="item">Real-Time Stock Register</div>
+    <div class="item">Stock Items</div>
+    <div class="item">Issue Slips</div>
+    <div class="item">Create Issue Slip</div>
+    <div class="item">Picking Slips</div>
+    <div class="item">Create Picking Slip</div>
+
+    <div class="section-label">Financial Planning</div>
+    <div class="item">Budgets (Finance/MD/Admin)</div>
+    <div class="item">FX Rates (Finance/MD/Admin/Procurement)</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+    <div class="item">Analytics (Finance/MD/Admin)</div>
+
+    <div class="section-label">Administration</div>
+    <div class="item">Admin Console (Admin only)</div>
+  </div>
+
+  <div class="note">
+    Don't see a section you expect? Your role probably doesn't have
+    access. Contact your Administrator to check your role assignment.
+  </div>
+</div>
+
+<!-- ========== 5. LOG OUT / SESSION ========== -->
+<div class="page section">
+  <h2>5. Logging Out and Session Timeouts</h2>
+
+  <div class="task">
+    <h3>5.1 Log Out Manually</h3>
+    <ol>
+      <li>Click your name in the top-right corner.</li>
+      <li>Select <strong>Logout</strong>.</li>
+      <li>You will be returned to the login screen.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Automatic Logout</h3>
+    <ol>
+      <li>If you leave the system idle for about <strong>15 minutes</strong>, your session will expire.</li>
+      <li>On your next action you will be asked to log in again.</li>
+      <li>Work in any form that you haven't submitted will be lost — submit regularly rather than keeping drafts open for hours.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Always log out before leaving a shared computer. If you stay logged
+    in, anyone walking past can approve or create forms as you.
+  </div>
+
+  <h2>6. Security Rules</h2>
+  <ul>
+    <li><strong>Password length:</strong> minimum 8 characters with uppercase, lowercase, and at least one digit.</li>
+    <li><strong>Brute-force protection:</strong> after 20 failed login attempts from the same computer in 15 minutes, further attempts are blocked for 15 minutes.</li>
+    <li><strong>Audit logging:</strong> every approval, rejection, and critical status change is recorded with your name, IP, browser, and timestamp. You can be held accountable for actions taken from your account.</li>
+    <li><strong>Secure transport:</strong> all data is sent over HTTPS.</li>
+  </ul>
+</div>
+
+<!-- ========== 7. TROUBLESHOOTING ========== -->
+<div class="page section">
+  <h2>7. Troubleshooting — Login Problems</h2>
+
+  <h3>7.1 "Invalid username or password. Make sure backend server is running."</h3>
+  <ol>
+    <li>Double-check caps lock and your typing.</li>
+    <li>Ask your Administrator to reset your password.</li>
+    <li>If a colleague reports the same error at the same time, the backend may be down. Contact IT.</li>
+  </ol>
+
+  <h3>7.2 "Too many login attempts from this IP"</h3>
+  <ol>
+    <li>Wait 15 minutes.</li>
+    <li>Try once only — more failures restart the timer.</li>
+    <li>If this keeps happening, tell IT. Someone on your network may be trying to guess a password.</li>
+  </ol>
+
+  <h3>7.3 Login succeeds but I see a mostly empty page</h3>
+  <ol>
+    <li>Hard-refresh the page: <code>Ctrl+Shift+R</code> (Windows) or <code>Cmd+Shift+R</code> (Mac).</li>
+    <li>Log out and log back in.</li>
+    <li>If still empty, your role may not have access to anything. Ask your Administrator.</li>
+  </ol>
+
+  <h3>7.4 "Session expired, please login again"</h3>
+  <p>Normal after 15 minutes of inactivity. Log in again.</p>
+
+  <h3>7.5 Who to contact</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Contact</th></tr></thead>
+    <tbody>
+      <tr><td>Password or login trouble</td><td>Your Administrator</td></tr>
+      <tr><td>Wrong role or department</td><td>Your Administrator</td></tr>
+      <tr><td>Backend errors or system down</td><td>IT / operations team</td></tr>
+      <tr><td>Policy or approval questions</td><td>Your HOD or Finance</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

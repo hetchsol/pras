@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stores User — KSB Purchase Requisition System</title>
+  <link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+
+<div class="print-banner no-print">
+  <span>Tip: Press <strong>Ctrl+P</strong> → "Save as PDF" → A4, default margins, background graphics on.</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="page cover section">
+  <div class="kicker">KSB Zambia · Purchase Requisition System</div>
+  <h1>User Manual</h1>
+  <div class="role-badge">Role 6 — Stores User</div>
+  <p class="sub">Warehouse staff — record goods in, issue goods out, move stock</p>
+  <div class="meta">
+    <table>
+      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td><strong>Account flag</strong></td><td>"Can Access Stores" enabled on your user profile</td></tr>
+      <tr><td><strong>Approval role</strong></td><td>None — you create, others approve</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page section toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><span>Who You Are</span><span class="pnum">3</span></li>
+    <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
+    <li><span>Stores Workflow Diagrams</span><span class="pnum">5</span></li>
+    <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
+    <li><span>Task 1: Create a Goods Receipt Note (GRN)</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Create an Issue Slip</span><span class="pnum">10</span></li>
+    <li><span>Task 3: Create a Picking Slip</span><span class="pnum">12</span></li>
+    <li><span>Task 4: Use the Real-Time Stock Register</span><span class="pnum">13</span></li>
+    <li><span>Task 5: Manage Stock Items</span><span class="pnum">14</span></li>
+    <li><span>Task 6: Print PDFs of Your Documents</span><span class="pnum">15</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">16</span></li>
+    <li><span>Appendix</span><span class="pnum">17</span></li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>1. Who You Are</h2>
+  <p>You are a <strong>Stores User</strong> — warehouse or stores staff who handle the physical movement of stock. Your user account has the <strong>Can Access Stores</strong> flag enabled, which unlocks the Stores section of the sidebar.</p>
+
+  <h3>1.1 What you can do</h3>
+  <ul>
+    <li>Create a Goods Receipt Note (GRN) when suppliers deliver.</li>
+    <li>Create Issue Slips when goods leave the warehouse for a department or site.</li>
+    <li>Create Picking Slips when stock moves between storage locations (no approval).</li>
+    <li>See live stock levels in the Stock Register.</li>
+    <li>Manage the Stock Items catalogue.</li>
+    <li>Print PDF versions of any of your documents.</li>
+  </ul>
+
+  <h3>1.2 What you cannot do</h3>
+  <ul>
+    <li>You cannot approve GRNs or Issue Slips — that is Finance.</li>
+    <li>You cannot create Purchase Requisitions on behalf of other departments. Those are initiated by the department themselves.</li>
+    <li>You cannot delete a GRN or Issue Slip once submitted. If wrong, ask Finance to reject it.</li>
+  </ul>
+
+  <h3>1.3 Your responsibilities</h3>
+  <ol>
+    <li>Record <strong>exact quantities</strong> on GRNs — these drive the stock register.</li>
+    <li>Match <strong>deliveries to the right PR</strong> so spend is attributed to the correct department.</li>
+    <li>Check the <strong>GRN is approved</strong> before issuing any stock (the system blocks you anyway).</li>
+    <li>Keep the <strong>Stock Items</strong> list tidy — no duplicate descriptions.</li>
+    <li>Promptly create <strong>picking slips</strong> when stock physically moves so the register stays accurate.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>2. Quick Reference Card</h2>
+
+  <div class="quick-ref">
+    <h3>One-page cheat sheet</h3>
+
+    <p><strong>Create GRN:</strong> Sidebar &rarr; Stores &rarr; Create GRN.</p>
+    <p><strong>Create Issue Slip:</strong> Sidebar &rarr; Stores &rarr; Create Issue Slip.</p>
+    <p><strong>Create Picking Slip:</strong> Sidebar &rarr; Stores &rarr; Create Picking Slip.</p>
+    <p><strong>See stock:</strong> Sidebar &rarr; Stores &rarr; Real-Time Stock Register.</p>
+    <p><strong>Print PDF:</strong> open the document &rarr; Download PDF.</p>
+
+    <h3>Stock flow at a glance</h3>
+    <ol>
+      <li>Goods arrive &rarr; you create GRN (pending approval).</li>
+      <li>Finance approves GRN &rarr; stock is officially in register.</li>
+      <li>Site requests goods &rarr; you create Issue Slip (pending HOD &rarr; pending Finance).</li>
+      <li>Finance approves Issue Slip &rarr; stock is deducted.</li>
+      <li>You physically hand over the goods to the issued-to person.</li>
+    </ol>
+
+    <h3>Checks before creating an Issue Slip</h3>
+    <ul>
+      <li>GRN exists and is <span class="badge badge-approved">approved</span>.</li>
+      <li>You know the reference GRN number.</li>
+      <li>Customer field matches if the GRN is customer-reserved.</li>
+      <li>Available stock covers the requested quantity (system blocks over-issue).</li>
+    </ul>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>3. Stores Workflow Diagrams</h2>
+
+  <h3>3.1 GRN flow (goods coming in)</h3>
+  <div class="diagram">
+  [Supplier delivers] --> [You create GRN] --> pending_approval
+                                                    |
+                                          Finance / assigned approver
+                                                    |
+                                          approve / reject
+                                                    v
+                                               approved
+                                        (stock appears in register)
+  </div>
+
+  <h3>3.2 Issue Slip flow (goods going out)</h3>
+  <div class="diagram">
+  [Site requests goods] --> [You create Issue Slip] --> pending_hod
+                                                            |
+                                                   HOD approve / reject
+                                                            v
+                                                   pending_finance
+                                                            |
+                                                Finance approve / reject
+                                                            v
+                                                       approved
+                                               (stock officially deducted)
+  </div>
+
+  <h3>3.3 Picking Slip flow (stock moving internally)</h3>
+  <div class="diagram">
+  [Move goods between locations] --> [You create Picking Slip] --> completed
+                                                                     (no approval)
+  </div>
+
+  <h3>3.4 How the Stock Register is computed</h3>
+  <p>The Stock Register recalculates on every view using this simple formula per item:</p>
+  <div class="diagram">
+  Available = (sum of Quantity Received on approved GRNs)
+            - (sum of Quantity Issued on approved Issue Slips)
+            - (sum of Quantity on pending Issue Slips, shown as Reserved)
+  </div>
+</div>
+
+<div class="page section">
+  <h2>4. What Your Sidebar Looks Like</h2>
+
+  <div class="sidebar-sketch">
+    <div class="section-label">Dashboard</div>
+    <div class="item">Home</div>
+
+    <div class="section-label">Procurement</div>
+    <div class="item">My Requisitions</div>
+    <div class="item">Create Requisition</div>
+
+    <div class="section-label">Financial Forms</div>
+    <div class="item">Expense Claims</div>
+    <div class="item">EFT Requisitions</div>
+    <div class="item">Petty Cash</div>
+
+    <div class="section-label">Stores</div>
+    <div class="item highlight">Goods Receipt Notes</div>
+    <div class="item highlight">Create GRN</div>
+    <div class="item highlight">Real-Time Stock Register</div>
+    <div class="item highlight">Stock Items</div>
+    <div class="item highlight">Issue Slips</div>
+    <div class="item highlight">Create Issue Slip</div>
+    <div class="item highlight">Picking Slips</div>
+    <div class="item highlight">Create Picking Slip</div>
+
+    <div class="section-label">Reports &amp; Analytics</div>
+    <div class="item">Reports</div>
+  </div>
+
+  <div class="note">
+    The Stores section is where you live day-to-day. Everything else
+    is available but rarely needed.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — Create a Goods Receipt Note (GRN)</h2>
+  <p>Use a GRN whenever goods physically arrive at the warehouse from a supplier.</p>
+
+  <div class="task">
+    <h3>5.1 Prepare before you start</h3>
+    <ol>
+      <li>Check the delivery note from the supplier — this is your source of truth.</li>
+      <li>Count the actual goods in the delivery. Note any damage, missing items, or over-deliveries.</li>
+      <li>Find the PR number the delivery relates to (usually on the PO or delivery note).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Open the GRN form</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Create GRN</strong>.</li>
+      <li>The form opens in a new page.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Create GRN form — header with PR reference and supplier, item table with Quantity Received column.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.3 Fill in the header</h3>
+    <ol>
+      <li><strong>Reference PR</strong> — pick the approved purchase requisition from the dropdown.</li>
+      <li><strong>Supplier / Vendor</strong> — confirm the vendor matches what's on the PR.</li>
+      <li><strong>Delivery Date</strong> — actual date the goods arrived.</li>
+      <li><strong>Delivery Note Number</strong> — supplier's document number (useful for tracing).</li>
+      <li><strong>Customer</strong> — only fill this if the stock is reserved for a specific customer (e.g. project stock). Leave blank for general stock.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.4 Record the items received</h3>
+    <ol>
+      <li>For each line on the delivery:
+        <ul>
+          <li><strong>Item Name / Description</strong></li>
+          <li><strong>Item Code</strong> (if known; pick from Stock Items dropdown)</li>
+          <li><strong>Quantity Received</strong> — the actual count, not the ordered count</li>
+          <li><strong>Unit</strong></li>
+          <li><strong>Condition</strong> note if any damage (write in description)</li>
+        </ul>
+      </li>
+      <li>If you received fewer items than ordered, record the actual received quantity. The difference remains on the PR for a later partial delivery.</li>
+      <li>If you received extras, only record up to the PR quantity. Escalate the excess to Procurement.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>5. Task 1 — continued</h2>
+
+  <div class="task">
+    <h3>5.5 Submit the GRN</h3>
+    <ol>
+      <li>Click <strong>Submit</strong>.</li>
+      <li>The GRN is created with an ID like <code>KSB-GRN-&lt;timestamp&gt;</code>.</li>
+      <li>Status becomes <span class="badge badge-pending">pending_approval</span>.</li>
+      <li>Finance (or the assigned approver) receives an email.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>5.6 After submission</h3>
+    <ol>
+      <li>The goods physically exist in the warehouse but are NOT yet shown as available in the Stock Register.</li>
+      <li>Once Finance approves, stock becomes available and issue slips can draw from it.</li>
+      <li>If Finance rejects (e.g. quantities don't match), the GRN is marked rejected. Create a new, corrected GRN.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Do not issue stock against a GRN that is still <span class="badge badge-pending">pending_approval</span>.
+    The system will block you, but more importantly, you'll be handing
+    out stock that hasn't been formally accepted by Finance.
+  </div>
+
+  <div class="task">
+    <h3>5.7 Common GRN mistakes</h3>
+    <ol>
+      <li><strong>Wrong PR reference</strong> — always double-check this, as it determines which department is charged.</li>
+      <li><strong>Quantity wrong</strong> — counting error. Re-count before submitting.</li>
+      <li><strong>Missing damaged-goods note</strong> — if 10 items arrived but 2 were damaged, record Quantity Received = 8 and note the damage in description.</li>
+      <li><strong>Blank customer field on customer-reserved stock</strong> — if the goods are for a specific customer, always fill this. Forgetting means someone else could issue the stock.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — Create an Issue Slip</h2>
+  <p>Use an Issue Slip whenever approved stock leaves the warehouse to go to a department or site.</p>
+
+  <div class="task">
+    <h3>6.1 Prepare before you start</h3>
+    <ol>
+      <li>Confirm the person requesting has the authority to ask for the items.</li>
+      <li>Know the destination (site, department, delivery address).</li>
+      <li>Know the GRN reference number if drawing from a specific receipt.</li>
+      <li>Check the Stock Register to confirm availability (Task 4).</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.2 Open the Issue Slip form</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Create Issue Slip</strong>.</li>
+      <li>The form opens in a new page.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Create Issue Slip form with Issued To, Department, Reference Number (GRN), Customer, and Items table.</em>
+  </div>
+
+  <div class="task">
+    <h3>6.3 Fill in the header</h3>
+    <ol>
+      <li><strong>Issued To</strong> — the person receiving the goods.</li>
+      <li><strong>Department</strong> — the receiving department.</li>
+      <li><strong>Delivery Location</strong> — where to take the goods.</li>
+      <li><strong>Delivery Date</strong> — when the goods should arrive.</li>
+      <li><strong>Delivered By</strong> — the driver / runner / courier name.</li>
+      <li><strong>Reference Number</strong> — the GRN these items came in on (required if drawing from a specific GRN; leave blank only for exceptional direct-issue cases).</li>
+      <li><strong>Customer</strong> — must match the GRN customer if the GRN is customer-reserved.</li>
+      <li><strong>Remarks</strong> — any special handling instructions.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.4 Add items</h3>
+    <ol>
+      <li>Click <strong>Add Item</strong>.</li>
+      <li>For each item:
+        <ul>
+          <li><strong>Item Name / Description</strong> — must match what's on the GRN</li>
+          <li><strong>Item Code</strong></li>
+          <li><strong>Quantity</strong> — cannot exceed remaining on the GRN</li>
+          <li><strong>Unit</strong></li>
+        </ul>
+      </li>
+      <li>The system checks availability as you type. If you exceed remaining stock, you see an error:
+        <code>Insufficient stock for "Widget": requested 10, available 7 (received 20, already issued 13)</code></li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    The system prevents over-issues even if two users try to issue at
+    the same moment. One will succeed; the other will get an error.
+    This is deliberate — it stops stock from going negative.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — continued</h2>
+
+  <div class="task">
+    <h3>6.5 Submit the Issue Slip</h3>
+    <ol>
+      <li>Click <strong>Submit</strong>.</li>
+      <li>ID format: <code>KSB-ISS-&lt;timestamp&gt;</code>.</li>
+      <li>Status becomes <span class="badge badge-pending">pending_hod</span>.</li>
+      <li>The HOD of the receiving department will approve first, then Finance.</li>
+      <li>Stock is shown as <strong>Reserved</strong> on the register until Finance approves.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>6.6 Hand over the goods</h3>
+    <ol>
+      <li>Wait for status to become <span class="badge badge-approved">approved</span> (HOD + Finance have both approved).</li>
+      <li>Print the PDF of the Issue Slip (Task 6).</li>
+      <li>Physically hand the goods to the delivery runner with the printed slip.</li>
+      <li>Get the recipient to sign the printed slip on receipt. File the signed copy.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    Some installations let you hand over goods immediately while the
+    Issue Slip is still at pending_hod. Check your local policy. In
+    any case, do not hand over goods if the HOD has rejected.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>7. Task 3 — Create a Picking Slip</h2>
+  <p>Use a Picking Slip when stock moves between storage locations within the warehouse (e.g. main store to site store). No approval needed.</p>
+
+  <div class="task">
+    <h3>7.1 Open the Picking Slip form</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Create Picking Slip</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.2 Fill in the form</h3>
+    <ol>
+      <li><strong>Picked By</strong> — your name or the picker's name.</li>
+      <li><strong>Destination</strong> — where stock is going.</li>
+      <li><strong>Delivery Location</strong> — detailed address or bay number.</li>
+      <li><strong>Department</strong> — the department that owns the stock (not necessarily the receiver).</li>
+      <li><strong>Reference Number</strong> — optional link to a PR, GRN, or external job.</li>
+      <li><strong>Customer</strong> — if the stock is customer-reserved.</li>
+      <li><strong>Remarks</strong> — any handling notes.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.3 Add items</h3>
+    <ol>
+      <li>Click <strong>Add Item</strong>.</li>
+      <li>For each item: name, code, quantity, unit.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>7.4 Submit</h3>
+    <ol>
+      <li>Click <strong>Submit</strong>.</li>
+      <li>ID format: <code>KSB-PCK-&lt;timestamp&gt;</code>.</li>
+      <li>Status: <span class="badge badge-approved">completed</span> immediately — no approval required.</li>
+      <li>Physically move the stock.</li>
+      <li>Print the PDF and file for records.</li>
+    </ol>
+  </div>
+
+  <div class="note">
+    A Picking Slip does NOT deduct stock from the register — it only
+    records an internal movement. If stock is actually leaving the
+    warehouse to a department, use an Issue Slip instead.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>8. Task 4 — Use the Real-Time Stock Register</h2>
+
+  <div class="task">
+    <h3>8.1 Open the Stock Register</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Real-Time Stock Register</strong>.</li>
+      <li>The page shows every stock item with its current availability.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.2 Understand the columns</h3>
+    <ol>
+      <li><strong>Item Code / Description</strong> — what it is.</li>
+      <li><strong>Stock In</strong> — total received on all approved GRNs.</li>
+      <li><strong>Stock Out</strong> — total issued on all approved Issue Slips.</li>
+      <li><strong>Reserved</strong> — quantity on pending (not yet approved) Issue Slips. Treated as unavailable for new issues.</li>
+      <li><strong>Available</strong> — the number you can still issue: <code>Stock In − Stock Out − Reserved</code>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.3 Search and sort</h3>
+    <ol>
+      <li>Type in the <strong>Search</strong> box to filter by item description.</li>
+      <li>Click any column header to sort.</li>
+      <li>Sort by <strong>Available</strong> ascending to see low-stock items first.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>8.4 Check a specific item before creating an Issue Slip</h3>
+    <ol>
+      <li>Search for the item in the Stock Register.</li>
+      <li>Note the Available quantity.</li>
+      <li>Plan your Issue Slip quantity accordingly.</li>
+      <li>If Available is less than the requested amount, you'll need to either wait for a new GRN or split the issue across multiple GRNs.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Stock Register showing ~30 items with Stock In, Stock Out, Reserved, and Available columns.</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>9. Task 5 — Manage Stock Items</h2>
+  <p>Stock Items is the catalogue of known part codes and descriptions used to populate dropdowns on GRNs and Issue Slips.</p>
+
+  <div class="task">
+    <h3>9.1 Open Stock Items</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Stores</strong> &rarr; <strong>Stock Items</strong>.</li>
+      <li>You see the full catalogue with code, description, unit, and preferred vendor.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.2 Add a new item</h3>
+    <ol>
+      <li>Click <strong>Add Stock Item</strong>.</li>
+      <li>Fill in:
+        <ul>
+          <li><strong>Item Number</strong> — unique code (e.g. <code>IT-LAP-001</code> for a specific laptop model).</li>
+          <li><strong>Item Description</strong> — clear, searchable name (e.g. "Dell Latitude 5420 14-inch laptop").</li>
+          <li><strong>Unit</strong> — default unit for this item (pcs, kg, box).</li>
+          <li><strong>Packaging UOM</strong> — how it comes (each, pack of 10, case of 50).</li>
+          <li><strong>Preferred Vendor</strong> — suggestion for future PRs.</li>
+        </ul>
+      </li>
+      <li>Click <strong>Save</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.3 Edit an existing item</h3>
+    <ol>
+      <li>Click the row.</li>
+      <li>Change what you need. Codes should not change — if wrong, create a new item and deactivate the old.</li>
+      <li>Save.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>9.4 Bulk upload from Excel</h3>
+    <ol>
+      <li>Click <strong>Download Template</strong> (or similar) to get the Excel template.</li>
+      <li>Fill in rows — one per item.</li>
+      <li>Click <strong>Upload from Excel</strong>.</li>
+      <li>Review any error messages row-by-row and correct the Excel before re-uploading.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    Don't create two items with nearly-identical descriptions. If you
+    see "Cement 50kg bag" and "Bag of cement 50kg" you have a
+    duplicate — stock will be split across both and the register will
+    under-report availability. Use the bulk-upload or a quick search
+    before adding.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>10. Task 6 — Print PDFs of Your Documents</h2>
+
+  <div class="task">
+    <h3>10.1 Open the document</h3>
+    <ol>
+      <li>From the list page (Goods Receipt Notes, Issue Slips, or Picking Slips), click the row.</li>
+      <li>The detail page opens.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.2 Download PDF</h3>
+    <ol>
+      <li>Click <strong>Download PDF</strong> at the top-right.</li>
+      <li>Your browser downloads the file — named after the document ID.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>10.3 Print and sign</h3>
+    <ol>
+      <li>Print the PDF on the warehouse printer.</li>
+      <li>Have the receiver sign where indicated.</li>
+      <li>File the signed copy in your physical records.</li>
+      <li>Scan and attach the signed copy back to the system if your local policy requires it.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Example Issue Slip PDF with KSB letterhead, item table, and signature lines at the bottom.</em>
+  </div>
+</div>
+
+<div class="page section">
+  <h2>11. Troubleshooting</h2>
+
+  <h3>11.1 "Insufficient stock for X" when I create an Issue Slip</h3>
+  <ol>
+    <li>Open the Stock Register and check Available.</li>
+    <li>Note that Reserved quantities (pending Issue Slips) reduce Available. If you see a pending Issue Slip holding stock you need, contact the initiator of that slip.</li>
+    <li>Reduce your requested quantity or split across multiple GRNs.</li>
+  </ol>
+
+  <h3>11.2 My GRN was rejected — what now?</h3>
+  <ol>
+    <li>Open the rejected GRN.</li>
+    <li>Read the rejection comment.</li>
+    <li>Create a new GRN with the correction. You cannot edit the rejected one.</li>
+  </ol>
+
+  <h3>11.3 Stock Register shows the wrong number</h3>
+  <ol>
+    <li>Check that all recent GRNs are <span class="badge badge-approved">approved</span> (pending ones don't count as Stock In).</li>
+    <li>Check for pending Issue Slips holding stock as Reserved.</li>
+    <li>If still wrong, contact IT — there may be a data issue.</li>
+  </ol>
+
+  <h3>11.4 "GRN X is reserved for customer Y" error</h3>
+  <ol>
+    <li>The GRN was created with a Customer value. Stock can only be issued if the Issue Slip has the same Customer value.</li>
+    <li>Either set the Customer on your Issue Slip to match, or draw from a different (unreserved) GRN.</li>
+  </ol>
+
+  <h3>11.5 I can't see the Stores menu at all</h3>
+  <ol>
+    <li>Your account doesn't have the "Can Access Stores" flag.</li>
+    <li>Ask your Administrator to enable it on your user profile.</li>
+  </ol>
+
+  <h3>11.6 I submitted a GRN but there's no approval happening</h3>
+  <ol>
+    <li>Check the Assigned Approver field on the GRN detail — is someone named?</li>
+    <li>Contact that person, or contact Finance directly.</li>
+    <li>Admin can reassign if the original approver is unavailable.</li>
+  </ol>
+
+  <h3>11.7 I need to cancel an Issue Slip I just created</h3>
+  <ol>
+    <li>Ask the HOD or Finance to reject it with a comment.</li>
+    <li>Stock that was Reserved returns to Available immediately on rejection.</li>
+    <li>You cannot delete it yourself.</li>
+  </ol>
+</div>
+
+<div class="page section">
+  <h2>12. Appendix</h2>
+
+  <h3>12.1 Status values you'll see</h3>
+  <table>
+    <thead><tr><th>Form</th><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>GRN</td><td>pending_approval</td><td>Waiting for Finance</td></tr>
+      <tr><td>GRN</td><td>approved</td><td>Stock is in register</td></tr>
+      <tr><td>GRN</td><td>rejected</td><td>Redo with correction</td></tr>
+      <tr><td>Issue Slip</td><td>pending_hod</td><td>Waiting for receiving dept HOD</td></tr>
+      <tr><td>Issue Slip</td><td>pending_finance</td><td>HOD approved, Finance next</td></tr>
+      <tr><td>Issue Slip</td><td>approved</td><td>Stock deducted</td></tr>
+      <tr><td>Issue Slip</td><td>rejected</td><td>Reserved stock released</td></tr>
+      <tr><td>Picking Slip</td><td>completed</td><td>Recorded; no approval</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.2 Document ID formats</h3>
+  <table>
+    <thead><tr><th>Prefix</th><th>Document</th></tr></thead>
+    <tbody>
+      <tr><td>KSB-GRN-&hellip;</td><td>Goods Receipt Note</td></tr>
+      <tr><td>KSB-ISS-&hellip;</td><td>Issue Slip</td></tr>
+      <tr><td>KSB-PCK-&hellip;</td><td>Picking Slip</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.3 Daily stores checklist</h3>
+  <ul>
+    <li>Create GRNs for every delivery received yesterday.</li>
+    <li>Create Issue Slips for every goods-out request received today.</li>
+    <li>File signed printed copies of approved Issue Slips.</li>
+    <li>Check the Stock Register for low items and alert Procurement if re-order is needed.</li>
+  </ul>
+
+  <h3>12.4 Glossary</h3>
+  <table>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>GRN</td><td>Goods Receipt Note — records goods arriving</td></tr>
+      <tr><td>Issue Slip</td><td>Records goods leaving stores to a site/department</td></tr>
+      <tr><td>Picking Slip</td><td>Records internal movement of stock</td></tr>
+      <tr><td>Reserved</td><td>Stock held against a pending (not yet approved) Issue Slip</td></tr>
+      <tr><td>Customer-reserved</td><td>Stock received on a GRN with a Customer value — can only be issued to that customer</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>
