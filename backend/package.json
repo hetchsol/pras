@@ -7,7 +7,8 @@
   },
   "scripts": {
     "start": "node server-mongo.js",
-    "start:sqlite": "node server.js"
+    "start:sqlite": "node server.js",
+    "test": "jest"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -25,5 +26,10 @@
     "pdfkit": "^0.17.2",
     "resend": "^6.9.3",
     "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "mongodb-memory-server": "^11.0.1",
+    "supertest": "^7.2.2"
   }
 }
