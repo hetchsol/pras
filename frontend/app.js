@@ -138,6 +138,40 @@ const fetchWithAuth = async (url, options = {}) => {
   return response;
 };
 
+// Submits a PR approval. If the backend returns 409 override_required,
+// prompts the user for a justification and re-submits with override:true.
+// Returns the parsed response. Throws Error on failure or cancellation.
+async function submitPRApproval(endpoint, body) {
+  let res = await fetchWithAuth(endpoint, {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+
+  if (res.status === 409) {
+    const data = await res.json().catch(() => ({}));
+    if (data && data.override_required) {
+      const fmt = (n) => (n || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 });
+      const msg = data.over_by_zmw !== undefined
+        ? `Budget exceeded\n\nThis requisition exceeds available department budget by K${fmt(data.over_by_zmw)} (available: K${fmt(data.available_zmw)}).\n\nEnter a justification to override (leave blank to cancel):`
+        : `Department is over-budget\n\nAvailable: K${fmt(data.available_zmw)}.\n\nEnter a justification to override (leave blank to cancel):`;
+      const justification = window.prompt(msg);
+      if (!justification || !justification.trim()) {
+        throw new Error('Approval cancelled');
+      }
+      res = await fetchWithAuth(endpoint, {
+        method: 'PUT',
+        body: JSON.stringify({ ...body, override: true, comments: justification.trim() })
+      });
+    }
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Approval failed');
+  }
+  return res.json();
+}
+
 const api = {
   login: async (username, password) => {
     const res = await fetch(`${API_URL}/auth/login`, {
@@ -2511,15 +2545,19 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         };
       }
 
-      const response = await fetchWithAuth(endpoint, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Failed to ${action} form`);
+      // PR approvals may trigger the Finance/MD budget-override dialog.
+      if (form.formType === 'purchase_requisition' && action === 'approve') {
+        await submitPRApproval(endpoint, requestBody);
+      } else {
+        const response = await fetchWithAuth(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || `Failed to ${action} form`);
+        }
       }
 
       alert(`${form.displayType || 'Form'} ${action}ed successfully!`);
@@ -3787,7 +3825,12 @@ function CreateRequisition({ user, setView, loadData }) {
 
       const response = await api.createRequisition(reqData);
       await loadData();
-      alert('Requisition saved as draft successfully!');
+      let msg = 'Requisition saved as draft successfully!';
+      if (response && response.budget_warning) {
+        const w = response.budget_warning;
+        msg += `\n\n⚠ Budget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
+      }
+      alert(msg);
       setView('dashboard');
     } catch (error) {
       console.error('Error saving requisition:', error);
@@ -3867,7 +3910,12 @@ function CreateRequisition({ user, setView, loadData }) {
       }
 
       await loadData();
-      alert('Requisition submitted for approval successfully!');
+      let msg = 'Requisition submitted for approval successfully!';
+      if (response && response.budget_warning) {
+        const w = response.budget_warning;
+        msg += `\n\n⚠ Budget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
+      }
+      alert(msg);
       setView('dashboard');
     } catch (error) {
       console.error('Error submitting requisition:', error);
@@ -4359,20 +4407,11 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         return;
       }
 
-      const response = await fetch(endpoint, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify({
-          user_id: user.id,
-          approved: true,
-          comments: comment || 'Approved'
-        })
+      await submitPRApproval(endpoint, {
+        user_id: user.id,
+        approved: true,
+        comments: comment || 'Approved'
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Approval failed');
-      }
 
       await loadData();
       alert(successMessage);
@@ -4938,7 +4977,8 @@ function AdminPanel({ data, loadData }) {
     role: 'initiator',
     department: 'IT',
     is_hod: 0,
-    can_access_stores: false
+    can_access_stores: false,
+    can_override_budget: false
   });
   const [vendorForm, setVendorForm] = useState({
     name: '', code: '', email: '', phone: '', address: '', country: '', type: ''
@@ -5127,7 +5167,8 @@ function AdminPanel({ data, loadData }) {
         role: 'initiator',
         department: 'IT',
         is_hod: 0,
-        can_access_stores: false
+        can_access_stores: false,
+        can_override_budget: false
       });
       loadAdminData();
       if (loadData) loadData();
@@ -5661,6 +5702,15 @@ function AdminPanel({ data, loadData }) {
               className: "w-4 h-4"
             }),
             React.createElement('span', null, "Stores Access")
+          ),
+          React.createElement('label', { className: "flex items-center gap-2", title: "Allow this user to approve requisitions that exceed the department budget (Finance/MD only)" },
+            React.createElement('input', {
+              type: "checkbox",
+              checked: userForm.can_override_budget,
+              onChange: (e) => setUserForm({ ...userForm, can_override_budget: e.target.checked }),
+              className: "w-4 h-4"
+            }),
+            React.createElement('span', null, "Can Override Budget")
           )
         ),
         React.createElement('div', { className: "flex gap-2 mt-4" },
@@ -5711,7 +5761,8 @@ function AdminPanel({ data, loadData }) {
                         role: user.role,
                         department: user.department,
                         is_hod: user.is_hod,
-                        can_access_stores: user.can_access_stores || false
+                        can_access_stores: user.can_access_stores || false,
+                        can_override_budget: user.can_override_budget || false
                       });
                       setShowUserForm(true);
                     },

@@ -37,6 +37,7 @@ const requisitionSchema = new mongoose.Schema({
   assigned_to: { type: mongoose.Schema.Types.Mixed },
   assigned_role: { type: String },
   assigned_hod_id: { type: mongoose.Schema.Types.Mixed },
+  budget_settled: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });

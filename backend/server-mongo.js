@@ -35,6 +35,14 @@ const { validateLogin } = require('./middleware/validation');
 const { assertTransition } = require('./utils/statusTransitions');
 const { getPaginationParams, paginateFind } = require('./utils/pagination');
 const { logAudit } = require('./utils/audit');
+const {
+  getRequisitionAmountZMW,
+  checkBudget,
+  checkSolvency,
+  commitToBudget,
+  releaseCommit,
+  shiftCommitToSpent
+} = require('./utils/budget');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -576,7 +584,7 @@ app.get('/api/admin/users', authenticate, authorize('admin'), async (req, res) =
 
 app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { username, password, full_name, email, role, department, is_hod } = req.body;
+    const { username, password, full_name, email, role, department, is_hod, can_access_stores, can_override_budget } = req.body;
     const hashedPassword = await bcrypt.hash(password || 'password123', 10);
 
     const user = await db.User.create({
@@ -586,7 +594,9 @@ app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) 
       email,
       role,
       department,
-      is_hod: is_hod || 0
+      is_hod: is_hod || 0,
+      can_access_stores: !!can_access_stores,
+      can_override_budget: !!can_override_budget
     });
 
     res.status(201).json({ success: true, id: user._id });
@@ -597,12 +607,13 @@ app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) 
 
 app.put('/api/admin/users/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { username, full_name, email, role, department, is_hod, assigned_hod, can_access_stores, password } = req.body;
+    const { username, full_name, email, role, department, is_hod, assigned_hod, can_access_stores, can_override_budget, password } = req.body;
     const updateData = { full_name, email, role, department, is_hod };
 
     if (username) updateData.username = username;
     if (assigned_hod !== undefined) updateData.assigned_hod = assigned_hod || null;
     if (can_access_stores !== undefined) updateData.can_access_stores = can_access_stores ? true : false;
+    if (can_override_budget !== undefined) updateData.can_override_budget = can_override_budget ? true : false;
 
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
@@ -1338,7 +1349,35 @@ const createRequisitionHandler = async (req, res) => {
       required_date: required_date || null
     });
 
-    res.status(201).json({ success: true, id: reqId, req_number: reqId, message: 'Requisition created' });
+    // Soft-warn if this PR would breach the department budget. Non-blocking:
+    // the PR is already created; approvers will hit the hard-block later.
+    let budgetWarning = null;
+    try {
+      const amountZMW = await getRequisitionAmountZMW({
+        items: items || [],
+        amount: totalAmount,
+        vendor_currency: req.body.vendor_currency || 'ZMW'
+      });
+      const check = await checkBudget(department, amountZMW);
+      if (!check.ok) {
+        budgetWarning = {
+          message: 'This requisition exceeds the available department budget.',
+          amount_zmw: amountZMW,
+          available_zmw: check.available,
+          over_by_zmw: check.over_by
+        };
+      }
+    } catch (err) {
+      logError(err, { type: 'BUDGET_CHECK_ON_CREATE_FAILED', reqId });
+    }
+
+    res.status(201).json({
+      success: true,
+      id: reqId,
+      req_number: reqId,
+      message: 'Requisition created',
+      budget_warning: budgetWarning
+    });
 
     // Fire-and-forget email notification
     sendStatusNotification({
@@ -1440,7 +1479,9 @@ app.put('/api/requisitions/:id/submit', authenticate, async (req, res) => {
 app.put('/api/requisitions/:id/hod-approve', authenticate, async (req, res) => {
   try {
     const reqId = req.params.id;
-    const { approve, comments } = req.body;
+    const { comments } = req.body;
+    // Accept both `approve` and `approved` to match inconsistent frontend callers.
+    const approve = req.body.approve ?? req.body.approved;
 
     const newStatus = approve ? 'pending_finance' : 'rejected';
     await db.updateRequisitionStatus(reqId, newStatus);
@@ -1454,6 +1495,15 @@ app.put('/api/requisitions/:id/hod-approve', authenticate, async (req, res) => {
     });
 
     res.json({ success: true, message: approve ? 'Approved by HOD' : 'Rejected by HOD' });
+
+    logAudit(req, {
+      entity_type: 'Requisition',
+      entity_id: reqId,
+      action: approve ? 'hod-approved' : 'hod-rejected',
+      from_status: 'pending_hod',
+      to_status: newStatus,
+      comments
+    });
 
     // Fire-and-forget email notification
     db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
@@ -1482,7 +1532,46 @@ app.put('/api/requisitions/:id/hod-approve', authenticate, async (req, res) => {
 app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) => {
   try {
     const reqId = req.params.id;
-    const { approve, comments } = req.body;
+    const { comments, override } = req.body;
+    const approve = req.body.approve ?? req.body.approved;
+
+    const pr = await db.Requisition.findOne({ id: reqId }).lean();
+    if (!pr) return res.status(404).json({ error: 'Requisition not found' });
+
+    let auditAction = approve ? 'finance-approved' : 'finance-rejected';
+    let amountZMW = 0;
+
+    // Budget gate only applies on approve. Reject is free.
+    if (approve) {
+      amountZMW = await getRequisitionAmountZMW(pr);
+      const check = await checkBudget(pr.department, amountZMW);
+
+      if (!check.ok) {
+        if (!override) {
+          return res.status(409).json({
+            error: 'This requisition exceeds the available department budget.',
+            override_required: true,
+            amount_zmw: amountZMW,
+            available_zmw: check.available,
+            over_by_zmw: check.over_by
+          });
+        }
+        const actingUser = await db.getUserById(req.user.id);
+        if (!actingUser || !actingUser.can_override_budget) {
+          return res.status(403).json({
+            error: 'You do not have permission to override the budget.'
+          });
+        }
+        if (!comments || !comments.trim()) {
+          return res.status(400).json({
+            error: 'A justification comment is required when overriding the budget.'
+          });
+        }
+        auditAction = 'finance-approved-with-override';
+      }
+
+      await commitToBudget(pr.department, amountZMW);
+    }
 
     const newStatus = approve ? 'pending_md' : 'rejected';
     await db.updateRequisitionStatus(reqId, newStatus);
@@ -1496,6 +1585,16 @@ app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) 
     });
 
     res.json({ success: true, message: approve ? 'Approved by Finance' : 'Rejected by Finance' });
+
+    logAudit(req, {
+      entity_type: 'Requisition',
+      entity_id: reqId,
+      action: auditAction,
+      from_status: 'pending_finance',
+      to_status: newStatus,
+      comments,
+      metadata: approve ? { amount_zmw: amountZMW } : undefined
+    });
 
     // Fire-and-forget email notification
     db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
@@ -1524,7 +1623,44 @@ app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) 
 app.put('/api/requisitions/:id/md-approve', authenticate, async (req, res) => {
   try {
     const reqId = req.params.id;
-    const { approve, comments } = req.body;
+    const { comments, override } = req.body;
+    const approve = req.body.approve ?? req.body.approved;
+
+    const pr = await db.Requisition.findOne({ id: reqId }).lean();
+    if (!pr) return res.status(404).json({ error: 'Requisition not found' });
+
+    let auditAction = approve ? 'md-approved' : 'md-rejected';
+    const amountZMW = await getRequisitionAmountZMW(pr);
+
+    if (approve) {
+      // Defense-in-depth: department must still be solvent overall.
+      // The PR amount is already in `committed` (locked at Finance approve).
+      const solvency = await checkSolvency(pr.department);
+      if (!solvency.ok) {
+        if (!override) {
+          return res.status(409).json({
+            error: 'Department is over-budget. MD approval requires an override.',
+            override_required: true,
+            available_zmw: solvency.available
+          });
+        }
+        const actingUser = await db.getUserById(req.user.id);
+        if (!actingUser || !actingUser.can_override_budget) {
+          return res.status(403).json({
+            error: 'You do not have permission to override the budget.'
+          });
+        }
+        if (!comments || !comments.trim()) {
+          return res.status(400).json({
+            error: 'A justification comment is required when overriding the budget.'
+          });
+        }
+        auditAction = 'md-approved-with-override';
+      }
+    } else {
+      // MD reject: release the commitment locked by Finance approve.
+      await releaseCommit(pr.department, amountZMW);
+    }
 
     const newStatus = approve ? 'approved' : 'rejected';
     await db.updateRequisitionStatus(reqId, newStatus);
@@ -1538,6 +1674,16 @@ app.put('/api/requisitions/:id/md-approve', authenticate, async (req, res) => {
     });
 
     res.json({ success: true, message: approve ? 'Approved by MD' : 'Rejected by MD' });
+
+    logAudit(req, {
+      entity_type: 'Requisition',
+      entity_id: reqId,
+      action: auditAction,
+      from_status: 'pending_md',
+      to_status: newStatus,
+      comments,
+      metadata: { amount_zmw: amountZMW }
+    });
 
     // Fire-and-forget email notification
     db.Requisition.findOne({ id: reqId }).lean().then(requisition => {
@@ -2219,10 +2365,36 @@ app.get('/api/purchase-orders', authenticate, async (req, res) => {
 });
 
 // Budget endpoints
+// Enrich a Department doc with derived `available` = budget - spent - committed.
+// Emits both the canonical field names (budget/spent/committed/available) and
+// the legacy names the frontend BudgetManagement component was coded against
+// (allocated_amount/committed_amount/available_amount/etc.).
+function withAvailable(dept) {
+  if (!dept) return null;
+  const committed = dept.committed || 0;
+  const spent = dept.spent || 0;
+  const budget = dept.budget || 0;
+  const available = budget - spent - committed;
+  const utilization = budget > 0 ? ((spent + committed) / budget) * 100 : 0;
+  return {
+    ...dept,
+    budget, spent, committed, available,
+    // Legacy names consumed by BudgetManagement:
+    department: dept.name,
+    budget_id: dept._id,
+    dept_code: dept.name,
+    allocated_amount: budget,
+    spent_amount: spent,
+    committed_amount: committed,
+    available_amount: available,
+    utilization_percentage: utilization
+  };
+}
+
 app.get('/api/budgets/all-departments', authenticate, async (req, res) => {
   try {
     const departments = await db.Department.find().lean();
-    res.json(departments);
+    res.json(departments.map(withAvailable));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -2231,9 +2403,17 @@ app.get('/api/budgets/all-departments', authenticate, async (req, res) => {
 app.get('/api/budgets/overview', authenticate, async (req, res) => {
   try {
     const departments = await db.Department.find().lean();
-    const totalBudget = departments.reduce((sum, d) => sum + (d.budget || 0), 0);
-    const totalSpent = departments.reduce((sum, d) => sum + (d.spent || 0), 0);
-    res.json({ totalBudget, totalSpent, departments });
+    const enriched = departments.map(withAvailable);
+    const totalBudget = enriched.reduce((sum, d) => sum + (d.budget || 0), 0);
+    const totalSpent = enriched.reduce((sum, d) => sum + (d.spent || 0), 0);
+    const totalCommitted = enriched.reduce((sum, d) => sum + (d.committed || 0), 0);
+    res.json({
+      totalBudget,
+      totalSpent,
+      totalCommitted,
+      totalAvailable: totalBudget - totalSpent - totalCommitted,
+      departments: enriched
+    });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -2242,7 +2422,7 @@ app.get('/api/budgets/overview', authenticate, async (req, res) => {
 app.get('/api/budgets/department/:department', authenticate, async (req, res) => {
   try {
     const dept = await db.Department.findOne({ name: req.params.department }).lean();
-    res.json(dept || { budget: 0, spent: 0 });
+    res.json(withAvailable(dept) || { budget: 0, spent: 0, committed: 0, available: 0 });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -2975,6 +3155,31 @@ app.put('/api/stores/grns/:id/approve', authenticate, async (req, res) => {
     if (!grn) {
       // Lost the race: another approver committed first.
       return res.status(409).json({ error: 'GRN was just updated by another approver. Refresh and try again.' });
+    }
+
+    // Shift committed -> spent on the linked PR's department. Idempotent via
+    // Requisition.budget_settled: only the first approved GRN for a PR moves
+    // the money. Best-effort — if this fails we log but do not fail the
+    // approval (GRN status is already flipped).
+    if (action === 'approved' && grn.pr_id) {
+      try {
+        const Requisition = require('./models/Requisition');
+        const settled = await Requisition.findOneAndUpdate(
+          { id: grn.pr_id, budget_settled: { $ne: true } },
+          { $set: { budget_settled: true } },
+          { new: false }
+        ).lean();
+        if (settled) {
+          const amtZMW = await getRequisitionAmountZMW(settled);
+          await shiftCommitToSpent(settled.department, amtZMW);
+        }
+      } catch (err) {
+        logError(err, {
+          type: 'BUDGET_SHIFT_ON_GRN_APPROVE_FAILED',
+          grn_id: req.params.id,
+          pr_id: grn.pr_id
+        });
+      }
     }
 
     res.json({ message: `GRN ${action} successfully`, grn });
