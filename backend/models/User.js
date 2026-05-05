@@ -13,6 +13,15 @@ const userSchema = new mongoose.Schema({
   supervisor_name: { type: String },  // Supervisor's full name for lookup
   can_access_stores: { type: Boolean, default: false },
   can_override_budget: { type: Boolean, default: false },
+  must_change_password: { type: Boolean, default: true },
+  security_questions: {
+    type: [{
+      question_id: { type: String, required: true },
+      answer_hash: { type: String, required: true }
+    }],
+    default: []
+  },
+  password_changed_at: { type: Date },
   created_at: { type: Date, default: Date.now }
 });
 

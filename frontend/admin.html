@@ -367,6 +367,34 @@
                 }
             };
 
+            const [resetResult, setResetResult] = useState(null);
+
+            const handleResetPassword = async (userId, username) => {
+                if (!confirm(`Reset password for "${username}"? They will be required to change it at next login.`)) return;
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_URL}/admin/users/${userId}/reset-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        setResetResult({ username: data.username, tempPassword: data.tempPassword });
+                    } else {
+                        alert('Error: ' + (data.error || 'Reset failed'));
+                    }
+                } catch (err) {
+                    alert('Error resetting password: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
             return (
                 <div>
                     <div className="d-flex justify-content-between align-items-center mb-3">
@@ -408,6 +436,13 @@
                                             onClick={() => handleEdit(user)}
                                         >
                                             Edit
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-secondary"
+                                            onClick={() => handleResetPassword(user.id, user.username)}
+                                            title="Reset password and force change at next login"
+                                        >
+                                            Reset PW
                                         </button>
                                         <button
                                             className="btn btn-sm btn-danger"
@@ -548,6 +583,36 @@
                                         >
                                             {loading ? 'Saving...' : 'Save'}
                                         </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {resetResult && (
+                        <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                            <div className="modal-dialog">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">Temporary password</h5>
+                                        <button type="button" className="btn-close" onClick={() => setResetResult(null)}></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <p className="mb-2">A new temporary password has been set for <strong>{resetResult.username}</strong>.</p>
+                                        <p className="text-muted small">Copy this and share it with the user via a secure channel. They will be required to change it at next login. This is the only time it will be shown.</p>
+                                        <div className="d-flex align-items-center gap-2 my-3">
+                                            <code className="px-3 py-2 bg-light border rounded flex-grow-1" style={{fontSize: '1.1rem'}}>{resetResult.tempPassword}</code>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-primary"
+                                                onClick={() => navigator.clipboard.writeText(resetResult.tempPassword)}
+                                            >
+                                                Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button type="button" className="btn btn-primary" onClick={() => setResetResult(null)}>Done</button>
                                     </div>
                                 </div>
                             </div>

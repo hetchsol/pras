@@ -29,7 +29,14 @@ const PORT = process.env.PORT || 3001;
 // express-rate-limit keys all requests to the proxy IP, making limits useless.
 app.set('trust proxy', 1);
 
-const { loginLimiter } = require('./middleware/rateLimiter');
+const { loginLimiter, passwordResetLimiter } = require('./middleware/rateLimiter');
+const {
+  SECURITY_QUESTIONS,
+  REQUIRED_ANSWER_COUNT,
+  hashAnswer,
+  verifyAnswer,
+  isValidQuestionId
+} = require('./utils/securityQuestions');
 const { logger, logError } = require('./utils/logger');
 const { validateLogin } = require('./middleware/validation');
 const { assertTransition } = require('./utils/statusTransitions');
@@ -462,7 +469,9 @@ app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res) => {
         department: user.department,
         employee_number: user.employee_number || '',
         is_hod: user.is_hod,
-        can_access_stores: user.can_access_stores || false
+        can_access_stores: user.can_access_stores || false,
+        must_change_password: !!user.must_change_password,
+        has_security_questions: Array.isArray(user.security_questions) && user.security_questions.length >= REQUIRED_ANSWER_COUNT
       }
     });
   } catch (error) {
@@ -499,12 +508,235 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
       department: user.department,
       is_hod: user.is_hod,
       employee_number: user.employee_number,
-      can_access_stores: user.can_access_stores || false
+      can_access_stores: user.can_access_stores || false,
+      must_change_password: !!user.must_change_password,
+      has_security_questions: Array.isArray(user.security_questions) && user.security_questions.length >= REQUIRED_ANSWER_COUNT
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// ============================================
+// PASSWORD CHANGE / RESET
+// ============================================
+
+const MIN_PASSWORD_LENGTH = 8;
+
+function validateNewPassword(newPassword, currentPassword) {
+  if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+    return `New password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  }
+  if (currentPassword && newPassword === currentPassword) {
+    return 'New password must be different from current password';
+  }
+  return null;
+}
+
+async function buildSecurityQuestionEntries(securityQuestions) {
+  if (!Array.isArray(securityQuestions) || securityQuestions.length < REQUIRED_ANSWER_COUNT) {
+    return { error: `Please answer at least ${REQUIRED_ANSWER_COUNT} security questions` };
+  }
+  const seen = new Set();
+  const entries = [];
+  for (const item of securityQuestions) {
+    if (!item || !isValidQuestionId(item.question_id)) {
+      return { error: 'Invalid security question selected' };
+    }
+    if (seen.has(item.question_id)) {
+      return { error: 'Each security question can only be used once' };
+    }
+    if (typeof item.answer !== 'string' || item.answer.trim().length < 2) {
+      return { error: 'Security answers must be at least 2 characters' };
+    }
+    seen.add(item.question_id);
+    entries.push({
+      question_id: item.question_id,
+      answer_hash: await hashAnswer(item.answer)
+    });
+  }
+  return { entries };
+}
+
+// Public: list of available security questions (for dropdowns).
+app.get('/api/auth/security-questions', (req, res) => {
+  res.json({ questions: SECURITY_QUESTIONS });
+});
+
+// Authenticated: change password (forced first-login OR voluntary).
+// On first-login (must_change_password=true), security questions are required.
+app.post('/api/auth/change-password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, securityQuestions } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password required' });
+    }
+
+    const user = await db.User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    const pwError = validateNewPassword(newPassword, currentPassword);
+    if (pwError) return res.status(400).json({ error: pwError });
+
+    const update = {
+      password: await bcrypt.hash(newPassword, 10),
+      must_change_password: false,
+      password_changed_at: new Date()
+    };
+
+    const needsQuestions = user.must_change_password ||
+      !Array.isArray(user.security_questions) ||
+      user.security_questions.length < REQUIRED_ANSWER_COUNT;
+
+    if (needsQuestions || securityQuestions) {
+      if (needsQuestions && !securityQuestions) {
+        return res.status(400).json({ error: 'Security questions are required on first password change' });
+      }
+      const built = await buildSecurityQuestionEntries(securityQuestions);
+      if (built.error) return res.status(400).json({ error: built.error });
+      update.security_questions = built.entries;
+    }
+
+    await db.User.updateOne({ _id: user._id }, { $set: update });
+
+    logAudit(req, {
+      entity_type: 'user',
+      entity_id: user._id,
+      action: 'password_changed',
+      metadata: { self_service: true, security_questions_set: !!update.security_questions }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Public, rate-limited: returns the question IDs the user previously chose,
+// so the frontend can show those specific questions during reset.
+app.post('/api/auth/forgot-password', passwordResetLimiter, async (req, res) => {
+  try {
+    const { username } = req.body || {};
+    if (!username) return res.status(400).json({ error: 'Username required' });
+
+    const user = await db.getUserByUsername(username);
+    if (!user || !Array.isArray(user.security_questions) || user.security_questions.length < REQUIRED_ANSWER_COUNT) {
+      return res.status(404).json({
+        error: 'Self-service reset is not available for this account. Please contact an administrator.'
+      });
+    }
+
+    const questions = user.security_questions.map(q => {
+      const def = SECURITY_QUESTIONS.find(d => d.id === q.question_id);
+      return { question_id: q.question_id, text: def ? def.text : q.question_id };
+    });
+
+    res.json({ questions });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Public, rate-limited: verify all answers and set a new password.
+app.post('/api/auth/reset-password', passwordResetLimiter, async (req, res) => {
+  try {
+    const { username, answers, newPassword } = req.body || {};
+    if (!username || !Array.isArray(answers) || !newPassword) {
+      return res.status(400).json({ error: 'Username, answers, and new password are required' });
+    }
+
+    const pwError = validateNewPassword(newPassword);
+    if (pwError) return res.status(400).json({ error: pwError });
+
+    const user = await db.getUserByUsername(username);
+    if (!user || !Array.isArray(user.security_questions) || user.security_questions.length < REQUIRED_ANSWER_COUNT) {
+      return res.status(400).json({ error: 'Unable to reset password' });
+    }
+
+    if (answers.length !== user.security_questions.length) {
+      return res.status(400).json({ error: 'All security questions must be answered' });
+    }
+
+    for (const stored of user.security_questions) {
+      const provided = answers.find(a => a && a.question_id === stored.question_id);
+      if (!provided) return res.status(400).json({ error: 'Missing answer for one or more questions' });
+      const ok = await verifyAnswer(provided.answer, stored.answer_hash);
+      if (!ok) return res.status(401).json({ error: 'One or more answers are incorrect' });
+    }
+
+    await db.User.updateOne(
+      { _id: user._id },
+      { $set: {
+          password: await bcrypt.hash(newPassword, 10),
+          must_change_password: false,
+          password_changed_at: new Date()
+        }
+      }
+    );
+
+    logAudit(
+      { user: { id: user._id, full_name: user.full_name, role: user.role, username: user.username }, ip: req.ip, get: (h) => req.get(h) },
+      { entity_type: 'user', entity_id: user._id, action: 'password_reset_self_service' }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin: reset a user's password to a temporary value and force change at next login.
+app.post('/api/admin/users/:id/reset-password', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { tempPassword: providedTemp } = req.body || {};
+    const user = await db.User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const tempPassword = providedTemp || generateTempPassword();
+    const pwError = validateNewPassword(tempPassword);
+    if (pwError) return res.status(400).json({ error: pwError });
+
+    await db.User.updateOne(
+      { _id: user._id },
+      { $set: {
+          password: await bcrypt.hash(tempPassword, 10),
+          must_change_password: true,
+          password_changed_at: new Date()
+        }
+      }
+    );
+
+    logAudit(req, {
+      entity_type: 'user',
+      entity_id: user._id,
+      action: 'password_reset_by_admin',
+      metadata: { target_username: user.username }
+    });
+
+    res.json({ success: true, tempPassword, username: user.username });
+  } catch (error) {
+    console.error('Admin reset password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+function generateTempPassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const all = upper + lower + digits;
+  const pick = (set) => set[Math.floor(Math.random() * set.length)];
+  let pw = pick(upper) + pick(lower) + pick(digits);
+  for (let i = 0; i < 9; i++) pw += pick(all);
+  return pw.split('').sort(() => Math.random() - 0.5).join('');
+}
 
 // ============================================
 // USER ROUTES
@@ -617,6 +849,8 @@ app.put('/api/admin/users/:id', authenticate, authorize('admin'), async (req, re
 
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
+      updateData.must_change_password = true;
+      updateData.password_changed_at = new Date();
     }
 
     await db.User.findByIdAndUpdate(req.params.id, updateData);

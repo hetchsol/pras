@@ -1133,6 +1133,44 @@ const api = {
     const res = await fetchWithAuth(`${API_URL}/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error('Search failed');
     return res.json();
+  },
+
+  getSecurityQuestions: async () => {
+    const res = await fetch(`${API_URL}/auth/security-questions`);
+    if (!res.ok) throw new Error('Failed to load questions');
+    return res.json();
+  },
+
+  changePassword: async ({ currentPassword, newPassword, securityQuestions }) => {
+    const res = await fetchWithAuth(`${API_URL}/auth/change-password`, {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword, securityQuestions })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Password change failed');
+    return data;
+  },
+
+  forgotPassword: async (username) => {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Unable to start password reset');
+    return data;
+  },
+
+  resetPassword: async ({ username, answers, newPassword }) => {
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, answers, newPassword })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Password reset failed');
+    return data;
   }
 };
 
@@ -1330,6 +1368,16 @@ function App() {
     return React.createElement(LoginScreen, { setCurrentUser, setView });
   }
 
+  if (currentUser.must_change_password) {
+    return React.createElement(ChangePasswordScreen, {
+      user: currentUser,
+      setCurrentUser,
+      setView,
+      logout,
+      forced: true
+    });
+  }
+
   if (loading) {
     return React.createElement('div', {
       className: "min-h-screen flex items-center justify-center transition-colors",
@@ -1354,8 +1402,9 @@ function App() {
   },
     React.createElement(Sidebar, { user: currentUser, logout, setView, view }),
     React.createElement('div', { className: "flex-1" },
-      React.createElement(TopBar, { user: currentUser, logout }),
+      React.createElement(TopBar, { user: currentUser, logout, setView }),
       React.createElement('div', { className: "container mx-auto px-6 py-6" },
+        view === 'change-password' && React.createElement(ChangePasswordScreen, { user: currentUser, setCurrentUser, setView, logout, forced: false }),
         view === 'dashboard' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
         view === 'requisitions' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
         view === 'approval-console' && React.createElement(ApprovalConsole, { user: currentUser, setView, setSelectedReq, loadData }),
@@ -1390,11 +1439,330 @@ function App() {
   );
 }
 
+function ChangePasswordScreen({ user, setCurrentUser, setView, logout, forced }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [picks, setPicks] = useState([
+    { question_id: '', answer: '' },
+    { question_id: '', answer: '' },
+    { question_id: '', answer: '' }
+  ]);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const needsQuestions = forced || !user.has_security_questions;
+
+  useEffect(() => {
+    if (!needsQuestions) return;
+    api.getSecurityQuestions()
+      .then(data => setQuestions(data.questions || []))
+      .catch(() => setError('Failed to load security questions'));
+  }, [needsQuestions]);
+
+  const updatePick = (idx, field, value) => {
+    setPicks(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
+  };
+
+  const availableFor = (idx) => {
+    const taken = new Set(picks.map((p, i) => i !== idx ? p.question_id : null).filter(Boolean));
+    return questions.filter(q => !taken.has(q.id));
+  };
+
+  const handleSubmit = async () => {
+    setError('');
+    setSuccess('');
+
+    if (!currentPassword || !newPassword) {
+      setError('Please fill in all password fields');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setError('New password must be different from current password');
+      return;
+    }
+
+    let payload = { currentPassword, newPassword };
+    if (needsQuestions) {
+      const cleaned = picks.map(p => ({ question_id: p.question_id, answer: (p.answer || '').trim() }));
+      if (cleaned.some(p => !p.question_id)) { setError('Please select 3 different security questions'); return; }
+      const ids = new Set(cleaned.map(p => p.question_id));
+      if (ids.size !== cleaned.length) { setError('Each security question can only be used once'); return; }
+      if (cleaned.some(p => p.answer.length < 2)) { setError('Each security answer must be at least 2 characters'); return; }
+      payload.securityQuestions = cleaned;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.changePassword(payload);
+      const updated = { ...user, must_change_password: false, has_security_questions: needsQuestions ? true : user.has_security_questions };
+      setUserData(updated);
+      setCurrentUser(updated);
+      setSuccess('Password changed successfully.');
+      if (forced) {
+        setTimeout(() => setView('dashboard'), 600);
+      } else {
+        setTimeout(() => setView('dashboard'), 1200);
+      }
+    } catch (err) {
+      setError(err.message || 'Password change failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const wrapper = forced
+    ? { className: "min-h-screen flex items-center justify-center p-4", style: { background: 'linear-gradient(135deg, #0070AF 0%, #58A6D0 50%, #D0E3F2 100%)' } }
+    : { className: "p-4" };
+
+  return React.createElement('div', wrapper,
+    React.createElement('div', {
+      className: "rounded-lg p-8 w-full max-w-xl mx-auto",
+      style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' }
+    },
+      React.createElement('h2', {
+        className: "text-2xl font-bold mb-2",
+        style: { color: 'var(--text-primary)' }
+      }, forced ? 'Set a new password' : 'Change Password'),
+      React.createElement('p', {
+        className: "text-sm mb-6",
+        style: { color: 'var(--text-secondary)' }
+      }, forced
+        ? 'For security, please choose a new password and set up security questions before continuing.'
+        : 'Update your password.'),
+
+      React.createElement('div', { className: "space-y-4" },
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium mb-1", style: { color: 'var(--text-secondary)' } }, 'Current password'),
+          React.createElement('input', {
+            type: 'password', value: currentPassword,
+            onChange: (e) => setCurrentPassword(e.target.value),
+            className: "w-full px-4 py-2 border rounded-lg",
+            style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+          })
+        ),
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium mb-1", style: { color: 'var(--text-secondary)' } }, 'New password (min 8 chars)'),
+          React.createElement('input', {
+            type: 'password', value: newPassword,
+            onChange: (e) => setNewPassword(e.target.value),
+            className: "w-full px-4 py-2 border rounded-lg",
+            style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+          })
+        ),
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium mb-1", style: { color: 'var(--text-secondary)' } }, 'Confirm new password'),
+          React.createElement('input', {
+            type: 'password', value: confirmPassword,
+            onChange: (e) => setConfirmPassword(e.target.value),
+            className: "w-full px-4 py-2 border rounded-lg",
+            style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+          })
+        ),
+
+        needsQuestions && React.createElement('div', { className: "mt-4 pt-4 border-t", style: { borderColor: 'var(--border-color)' } },
+          React.createElement('h3', { className: "text-lg font-semibold mb-1", style: { color: 'var(--text-primary)' } }, 'Security questions'),
+          React.createElement('p', { className: "text-xs mb-4", style: { color: 'var(--text-secondary)' } },
+            'Pick 3 different questions and answers. You will use these to reset your password if you forget it. Answers are not case-sensitive.'),
+          picks.map((p, idx) => React.createElement('div', { key: idx, className: "mb-3" },
+            React.createElement('select', {
+              value: p.question_id,
+              onChange: (e) => updatePick(idx, 'question_id', e.target.value),
+              className: "w-full px-3 py-2 border rounded-lg mb-2",
+              style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+            },
+              React.createElement('option', { value: '' }, `-- Select question ${idx + 1} --`),
+              availableFor(idx).map(q => React.createElement('option', { key: q.id, value: q.id }, q.text))
+            ),
+            React.createElement('input', {
+              type: 'text', value: p.answer,
+              onChange: (e) => updatePick(idx, 'answer', e.target.value),
+              placeholder: 'Your answer',
+              className: "w-full px-3 py-2 border rounded-lg",
+              style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+            })
+          ))
+        ),
+
+        error && React.createElement('div', {
+          className: "px-4 py-3 rounded-lg text-sm",
+          style: { backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger-dark)' }
+        }, error),
+        success && React.createElement('div', {
+          className: "px-4 py-3 rounded-lg text-sm",
+          style: { backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success-dark)' }
+        }, success),
+
+        React.createElement('div', { className: "flex gap-3 pt-2" },
+          React.createElement('button', {
+            onClick: handleSubmit,
+            disabled: submitting,
+            className: "flex-1 text-white py-3 rounded-lg font-semibold disabled:opacity-50",
+            style: { backgroundColor: 'var(--color-primary)' }
+          }, submitting ? 'Saving...' : 'Save'),
+          !forced && React.createElement('button', {
+            onClick: () => setView('dashboard'),
+            disabled: submitting,
+            className: "px-4 py-3 rounded-lg font-semibold",
+            style: { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }
+          }, 'Cancel'),
+          forced && React.createElement('button', {
+            onClick: logout,
+            disabled: submitting,
+            className: "px-4 py-3 rounded-lg font-semibold",
+            style: { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }
+          }, 'Sign out')
+        )
+      )
+    )
+  );
+}
+
+function ForgotPasswordModal({ onClose }) {
+  const [step, setStep] = useState(1);
+  const [username, setUsername] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState([]);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const startReset = async () => {
+    setError('');
+    if (!username.trim()) { setError('Enter your username'); return; }
+    setBusy(true);
+    try {
+      const data = await api.forgotPassword(username.trim());
+      setQuestions(data.questions || []);
+      setAnswers((data.questions || []).map(q => ({ question_id: q.question_id, answer: '' })));
+      setStep(2);
+    } catch (err) {
+      setError(err.message || 'Reset not available');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitReset = async () => {
+    setError('');
+    if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (answers.some(a => !a.answer || a.answer.trim().length < 1)) { setError('Please answer all questions'); return; }
+    setBusy(true);
+    try {
+      await api.resetPassword({
+        username: username.trim(),
+        answers: answers.map(a => ({ question_id: a.question_id, answer: a.answer.trim() })),
+        newPassword
+      });
+      setStep(3);
+    } catch (err) {
+      setError(err.message || 'Reset failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const updateAnswer = (idx, value) => {
+    setAnswers(prev => prev.map((a, i) => i === idx ? { ...a, answer: value } : a));
+  };
+
+  return React.createElement('div', {
+    className: "fixed inset-0 flex items-center justify-center p-4 z-50",
+    style: { backgroundColor: 'rgba(0,0,0,0.5)' }
+  },
+    React.createElement('div', {
+      className: "rounded-lg p-6 w-full max-w-md",
+      style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' }
+    },
+      React.createElement('div', { className: "flex justify-between items-center mb-4" },
+        React.createElement('h3', { className: "text-xl font-bold", style: { color: 'var(--text-primary)' } }, 'Reset password'),
+        React.createElement('button', { onClick: onClose, className: "text-2xl leading-none", style: { color: 'var(--text-secondary)' } }, '×')
+      ),
+
+      step === 1 && React.createElement('div', { className: "space-y-4" },
+        React.createElement('p', { className: "text-sm", style: { color: 'var(--text-secondary)' } }, 'Enter your username to retrieve your security questions.'),
+        React.createElement('input', {
+          type: 'text', value: username,
+          onChange: (e) => setUsername(e.target.value),
+          placeholder: 'Username',
+          className: "w-full px-4 py-2 border rounded-lg",
+          style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+        }),
+        error && React.createElement('div', { className: "px-3 py-2 rounded text-sm", style: { backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger-dark)' } }, error),
+        React.createElement('button', {
+          onClick: startReset, disabled: busy,
+          className: "w-full text-white py-2 rounded-lg font-semibold disabled:opacity-50",
+          style: { backgroundColor: 'var(--color-primary)' }
+        }, busy ? 'Loading...' : 'Continue')
+      ),
+
+      step === 2 && React.createElement('div', { className: "space-y-3" },
+        React.createElement('p', { className: "text-sm", style: { color: 'var(--text-secondary)' } }, 'Answer your security questions and set a new password.'),
+        questions.map((q, idx) => React.createElement('div', { key: q.question_id },
+          React.createElement('label', { className: "block text-sm font-medium mb-1", style: { color: 'var(--text-primary)' } }, q.text),
+          React.createElement('input', {
+            type: 'text',
+            value: answers[idx] ? answers[idx].answer : '',
+            onChange: (e) => updateAnswer(idx, e.target.value),
+            className: "w-full px-3 py-2 border rounded-lg",
+            style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+          })
+        )),
+        React.createElement('div', { className: "pt-2 border-t", style: { borderColor: 'var(--border-color)' } },
+          React.createElement('label', { className: "block text-sm font-medium mb-1 mt-2", style: { color: 'var(--text-primary)' } }, 'New password'),
+          React.createElement('input', {
+            type: 'password', value: newPassword,
+            onChange: (e) => setNewPassword(e.target.value),
+            className: "w-full px-3 py-2 border rounded-lg mb-2",
+            style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+          }),
+          React.createElement('label', { className: "block text-sm font-medium mb-1", style: { color: 'var(--text-primary)' } }, 'Confirm new password'),
+          React.createElement('input', {
+            type: 'password', value: confirmPassword,
+            onChange: (e) => setConfirmPassword(e.target.value),
+            className: "w-full px-3 py-2 border rounded-lg",
+            style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+          })
+        ),
+        error && React.createElement('div', { className: "px-3 py-2 rounded text-sm", style: { backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger-dark)' } }, error),
+        React.createElement('button', {
+          onClick: submitReset, disabled: busy,
+          className: "w-full text-white py-2 rounded-lg font-semibold disabled:opacity-50",
+          style: { backgroundColor: 'var(--color-primary)' }
+        }, busy ? 'Resetting...' : 'Reset password')
+      ),
+
+      step === 3 && React.createElement('div', { className: "space-y-4 text-center" },
+        React.createElement('p', { className: "text-base", style: { color: 'var(--text-primary)' } }, 'Your password has been reset.'),
+        React.createElement('p', { className: "text-sm", style: { color: 'var(--text-secondary)' } }, 'You can now sign in with your new password.'),
+        React.createElement('button', {
+          onClick: onClose,
+          className: "w-full text-white py-2 rounded-lg font-semibold",
+          style: { backgroundColor: 'var(--color-primary)' }
+        }, 'Back to sign in')
+      )
+    )
+  );
+}
+
 function LoginScreen({ setCurrentUser, setView }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -1404,7 +1772,7 @@ function LoginScreen({ setCurrentUser, setView }) {
       const user = response.user;
       if (user && user.role) user.role = user.role.toLowerCase();
       setCurrentUser(user);
-      setView('dashboard');
+      setView(user.must_change_password ? 'change-password' : 'dashboard');
     } catch (err) {
       setError('Invalid username or password. Make sure backend server is running.');
     } finally {
@@ -1498,7 +1866,16 @@ function LoginScreen({ setCurrentUser, setView }) {
             backgroundColor: 'var(--color-primary)',
             boxShadow: 'var(--shadow-md)'
           }
-        }, loading ? 'Signing in...' : 'Sign In')
+        }, loading ? 'Signing in...' : 'Sign In'),
+        React.createElement('div', { className: "text-center mt-2" },
+          React.createElement('button', {
+            onClick: () => setShowForgot(true),
+            type: 'button',
+            className: "text-sm hover:underline",
+            style: { color: 'var(--color-primary)', background: 'transparent' }
+          }, 'Forgot password?')
+        ),
+        showForgot && React.createElement(ForgotPasswordModal, { onClose: () => setShowForgot(false) })
       )
       // Demo Accounts section commented out for production
       // React.createElement('div', {
@@ -1989,7 +2366,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
 }
 
 // Top Bar Component - User Info and Context
-function TopBar({ user, logout }) {
+function TopBar({ user, logout, setView }) {
   return React.createElement('div', {
     className: "px-6 py-4 transition-colors",
     style: {
@@ -2013,6 +2390,18 @@ function TopBar({ user, logout }) {
         // Logout button and Theme toggle row
         React.createElement('div', { className: "flex items-center gap-3" },
           React.createElement(ThemeToggle),
+          setView && React.createElement('button', {
+            onClick: () => setView('change-password'),
+            className: "px-4 py-2 rounded-lg hover:opacity-90 transition-all text-sm font-medium flex items-center gap-2",
+            style: {
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)'
+            },
+            title: 'Change your password'
+          },
+            React.createElement('span', null, 'Change Password')
+          ),
           React.createElement('button', {
             onClick: logout,
             className: "px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all text-sm font-medium flex items-center gap-2",
@@ -2021,7 +2410,6 @@ function TopBar({ user, logout }) {
               boxShadow: 'var(--shadow-sm)'
             }
           },
-            React.createElement('span', null, '🚪'),
             React.createElement('span', null, 'Logout')
           )
         ),
