@@ -57,6 +57,19 @@
             --shadow-sm: 0 1px 2px 0 rgba(11, 18, 32, 0.05);
             --shadow-md: 0 4px 6px -1px rgba(11, 18, 32, 0.1), 0 2px 4px -1px rgba(11, 18, 32, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(11, 18, 32, 0.1), 0 4px 6px -2px rgba(11, 18, 32, 0.05);
+
+            /* Sidebar (carries the login screen's blue identity into the
+               app chrome). White text on a vertical KSB-blue gradient,
+               with active items as white pills containing blue text. */
+            --sidebar-bg: linear-gradient(180deg, #0070AF 0%, #005A8C 100%);
+            --sidebar-text: #FFFFFF;
+            --sidebar-text-muted: rgba(255, 255, 255, 0.78);
+            --sidebar-text-subtle: rgba(255, 255, 255, 0.6);
+            --sidebar-hover: rgba(255, 255, 255, 0.14);
+            --sidebar-group-bg: rgba(255, 255, 255, 0.08);
+            --sidebar-active-bg: #FFFFFF;
+            --sidebar-active-text: #005A8C;
+            --sidebar-border: rgba(255, 255, 255, 0.15);
         }
 
         /* Dark Mode Colors */
@@ -95,6 +108,19 @@
             --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.6);
             --shadow-md: 0 6px 14px -2px rgba(0, 0, 0, 0.65), 0 3px 6px -2px rgba(0, 0, 0, 0.5);
             --shadow-lg: 0 16px 28px -6px rgba(0, 0, 0, 0.7), 0 8px 12px -4px rgba(0, 0, 0, 0.55);
+
+            /* Sidebar in dark mode — slightly deeper blue gradient so it
+               still ties to the brand but doesn't blow out against the
+               near-black page surface. */
+            --sidebar-bg: linear-gradient(180deg, #005A8C 0%, #102032 100%);
+            --sidebar-text: #FFFFFF;
+            --sidebar-text-muted: rgba(255, 255, 255, 0.75);
+            --sidebar-text-subtle: rgba(255, 255, 255, 0.55);
+            --sidebar-hover: rgba(255, 255, 255, 0.10);
+            --sidebar-group-bg: rgba(255, 255, 255, 0.06);
+            --sidebar-active-bg: #FFFFFF;
+            --sidebar-active-text: #005A8C;
+            --sidebar-border: rgba(255, 255, 255, 0.10);
         }
 
         /* Prevent flash of unstyled content */

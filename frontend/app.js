@@ -2093,8 +2093,10 @@ function ThemeToggle() {
 function Sidebar({ user, logout, setView, view, setSelectedReq }) {
   const [expandedMenus, setExpandedMenus] = useState({});
 
+  // Accordion: opening a group collapses any other open group, so the
+  // menu never grows beyond the viewport.
   const toggleMenu = (menuId) => {
-    setExpandedMenus(prev => ({ ...prev, [menuId]: !prev[menuId] }));
+    setExpandedMenus(prev => prev[menuId] ? {} : { [menuId]: true });
   };
 
   const menuItems = [
@@ -2175,25 +2177,26 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
   ];
 
   return React.createElement('aside', {
-    className: "w-64 shadow-lg min-h-screen flex flex-col relative transition-colors",
+    className: "w-64 shadow-lg h-screen sticky top-0 flex flex-col relative transition-colors",
     style: {
-      backgroundColor: 'var(--bg-primary)',
-      borderRight: '1px solid var(--border-color)',
+      background: 'var(--sidebar-bg)',
+      color: 'var(--sidebar-text)',
+      borderRight: '1px solid var(--sidebar-border)',
       boxShadow: 'var(--shadow-lg)'
     }
   },
     // Logo and Title
     React.createElement('div', {
       className: "p-6 transition-colors",
-      style: { borderBottom: '1px solid var(--border-color)' }
+      style: { borderBottom: '1px solid var(--sidebar-border)' }
     },
       React.createElement('h1', {
         className: "text-xl font-bold",
-        style: { color: 'var(--color-primary)' }
+        style: { color: 'var(--sidebar-text)' }
       }, "Purchase Requisition"),
       React.createElement('p', {
         className: "text-xs mt-1 transition-colors",
-        style: { color: 'var(--text-tertiary)' }
+        style: { color: 'var(--sidebar-text-subtle)' }
       }, "System")
     ),
 
@@ -2203,9 +2206,9 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
         onClick: () => setView('dashboard'),
         className: "w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-all",
         style: {
-          color: view === 'dashboard' ? 'white' : 'var(--color-primary)',
-          backgroundColor: view === 'dashboard' ? 'var(--color-primary)' : 'var(--bg-secondary)',
-          border: view === 'dashboard' ? 'none' : '1px solid var(--border-color)'
+          color: view === 'dashboard' ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+          backgroundColor: view === 'dashboard' ? 'var(--sidebar-active-bg)' : 'var(--sidebar-group-bg)',
+          border: '1px solid var(--sidebar-border)'
         }
       },
         React.createElement('span', { className: "text-lg" }, '\u{1F3E0}'),
@@ -2230,14 +2233,14 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
               onClick: () => toggleMenu(item.id),
               className: "w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all",
               style: {
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-secondary)'
+                color: 'var(--sidebar-text)',
+                backgroundColor: 'var(--sidebar-group-bg)'
               },
               onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)';
               },
               onMouseLeave: (e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                e.currentTarget.style.backgroundColor = 'var(--sidebar-group-bg)';
               }
             },
               React.createElement('div', { className: "flex items-center gap-3" },
@@ -2258,12 +2261,12 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                     href: child.href,
                     className: "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     style: {
-                      color: 'var(--text-secondary)',
+                      color: 'var(--sidebar-text-muted)',
                       backgroundColor: 'transparent',
                       textDecoration: 'none'
                     },
                     onMouseEnter: (e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                      e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)';
                     },
                     onMouseLeave: (e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
@@ -2277,16 +2280,16 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                     onClick: () => setView(child.id),
                     className: "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     style: view === child.id ? {
-                      backgroundColor: 'var(--color-primary)',
-                      color: '#FFFFFF',
+                      backgroundColor: 'var(--sidebar-active-bg)',
+                      color: 'var(--sidebar-active-text)',
                       boxShadow: 'var(--shadow-sm)'
                     } : {
-                      color: 'var(--text-secondary)',
+                      color: 'var(--sidebar-text-muted)',
                       backgroundColor: 'transparent'
                     },
                     onMouseEnter: (e) => {
                       if (view !== child.id) {
-                        e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                        e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)';
                       }
                     },
                     onMouseLeave: (e) => {
@@ -2308,21 +2311,21 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
             onClick: () => !item.disabled && setView(item.id),
             className: "w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-lg font-medium transition-all",
             style: item.disabled ? {
-              color: 'var(--text-tertiary)',
+              color: 'var(--sidebar-text-subtle)',
               backgroundColor: 'transparent',
               opacity: 0.5,
               cursor: 'not-allowed'
             } : view === item.id ? {
-              backgroundColor: 'var(--color-primary)',
-              color: '#FFFFFF',
+              backgroundColor: 'var(--sidebar-active-bg)',
+              color: 'var(--sidebar-active-text)',
               boxShadow: 'var(--shadow-md)'
             } : {
-              color: 'var(--text-primary)',
+              color: 'var(--sidebar-text)',
               backgroundColor: 'transparent'
             },
             onMouseEnter: (e) => {
               if (!item.disabled && view !== item.id) {
-                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)';
               }
             },
             onMouseLeave: (e) => {
@@ -2342,22 +2345,25 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     // User Info at bottom
     React.createElement('div', {
       className: "p-4 border-t mt-auto transition-colors",
-      style: { backgroundColor: 'var(--bg-secondary)' }
+      style: {
+        backgroundColor: 'var(--sidebar-group-bg)',
+        borderTop: '1px solid var(--sidebar-border)'
+      }
     },
       React.createElement('div', null,
         React.createElement('p', {
           className: "text-sm font-medium truncate transition-colors",
-          style: { color: 'var(--text-primary)' }
+          style: { color: 'var(--sidebar-text)' }
         }, user.full_name || user.name),
         React.createElement('p', {
           className: "text-xs transition-colors",
-          style: { color: 'var(--text-secondary)' }
+          style: { color: 'var(--sidebar-text-muted)' }
         }, user.department),
         React.createElement('span', {
           className: "inline-block mt-1 px-2 py-1 text-xs rounded-full font-medium",
           style: {
-            backgroundColor: 'var(--color-primary-light)',
-            color: 'var(--color-primary)'
+            backgroundColor: 'var(--sidebar-active-bg)',
+            color: 'var(--sidebar-active-text)'
           }
         }, user.role ? user.role.toUpperCase() : 'USER')
       )
@@ -2371,7 +2377,7 @@ function TopBar({ user, logout, setView }) {
     className: "px-6 py-4 transition-colors",
     style: {
       backgroundColor: 'var(--bg-primary)',
-      borderBottom: '1px solid var(--border-color)',
+      borderBottom: '3px solid var(--color-primary)',
       boxShadow: 'var(--shadow-sm)'
     }
   },
@@ -3232,10 +3238,16 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   return React.createElement('div', { className: "space-y-6" },
     // Header with Initiate Requisition button for procurement
     user.role === 'procurement' && React.createElement('div', { className: "flex justify-between items-center" },
-      React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Dashboard"),
+      React.createElement('h2', {
+        className: "text-2xl font-bold",
+        style: { color: 'var(--text-primary)' }
+      }, "Dashboard"),
       React.createElement('button', {
         onClick: () => setView('create'),
-        className: "px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+        className: "px-6 py-3 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2",
+        style: { backgroundColor: 'var(--color-primary)' },
+        onMouseEnter: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'; },
+        onMouseLeave: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary)'; }
       },
         React.createElement('span', { className: "text-lg" }, "➕"),
         "Initiate Purchase Requisition"
@@ -3246,7 +3258,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       React.createElement('div', {
         className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:shadow-lg transition-all",
         style: {
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-medium) 100%)',
           borderColor: 'transparent'
         },
         onClick: () => setShowBreakdown('total')
@@ -3272,7 +3284,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       React.createElement('div', {
         className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:shadow-lg transition-all",
         style: {
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          background: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-dark) 100%)',
           borderColor: 'transparent'
         },
         onClick: () => setShowBreakdown('pending')
@@ -3298,7 +3310,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       React.createElement('div', {
         className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:shadow-lg transition-all",
         style: {
-          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+          background: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%)',
           borderColor: 'transparent'
         },
         onClick: () => setShowBreakdown('approved')
@@ -3325,7 +3337,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         onClick: () => setShowBreakdown('rejected'),
         className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:opacity-90 transition-opacity",
         style: {
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          background: 'linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-dark) 100%)',
           borderColor: 'transparent'
         }
       },
@@ -3350,7 +3362,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       !hasRole(user.role, 'initiator') && React.createElement('div', {
         className: "rounded-lg shadow-sm border p-6",
         style: {
-          background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+          background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, #102032 100%)',
           borderColor: 'transparent'
         }
       },
