@@ -78,6 +78,14 @@ temp/
 *-old-*
 nul
 
+# Office temp / manual-copy artifacts
+~$*
+* - Copy.*
+*_.xlsx
+
+# Ad-hoc generator test outputs
+backend/test-*.pdf
+
 # Documentation (optional - comment out if you want to include)
 # CONVERSATION_SUMMARY.md
 # *_STATUS.md
