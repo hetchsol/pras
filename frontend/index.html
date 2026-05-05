@@ -19,12 +19,17 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 
     <style>
-        /* Theme CSS Variables */
+        /* Theme CSS Variables
+           Identity is blue / white / black. Neutrals carry a faint blue
+           undertone so the whole app reads as one family. Semantic colors
+           (success/danger/warning) are kept for meaning-bearing UI only —
+           status badges, validation, etc. — not decoration. */
         :root {
-            /* Brand Colors */
+            /* Brand Colors — KSB blue scale */
             --color-primary: #0070AF;
-            --color-primary-light: #D0E3F2;
+            --color-primary-dark: #005A8C;
             --color-primary-medium: #58A6D0;
+            --color-primary-light: #D0E3F2;
 
             /* Semantic Colors - Light Mode */
             --color-success: #10B981;
@@ -39,23 +44,31 @@
             --color-info: #0070AF;
             --color-info-bg: #D0E3F2;
 
-            /* Light Mode Colors */
+            /* Light Mode — white card on blue-tinted neutral page,
+               near-black text with a slight blue undertone. */
             --bg-primary: #FFFFFF;
-            --bg-secondary: #F8FAFC;
-            --bg-tertiary: #F1F5F9;
-            --bg-hover: #E2E8F0;
-            --text-primary: #1E293B;
-            --text-secondary: #475569;
-            --text-tertiary: #64748B;
-            --border-color: #E2E8F0;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --bg-secondary: #F4F7FB;
+            --bg-tertiary: #E6EDF5;
+            --bg-hover: #D8E3EF;
+            --text-primary: #0B1220;
+            --text-secondary: #2A3441;
+            --text-tertiary: #5A6573;
+            --border-color: #DCE4EE;
+            --shadow-sm: 0 1px 2px 0 rgba(11, 18, 32, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(11, 18, 32, 0.1), 0 2px 4px -1px rgba(11, 18, 32, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(11, 18, 32, 0.1), 0 4px 6px -2px rgba(11, 18, 32, 0.05);
         }
 
         /* Dark Mode Colors */
         [data-theme="dark"] {
-            /* Semantic Colors - Dark Mode (slightly adjusted for dark backgrounds) */
+            /* Brand — same blue, plus a slightly brighter hover tone for
+               readability on the deep-black surfaces. */
+            --color-primary: #0070AF;
+            --color-primary-dark: #1E8AC9;
+            --color-primary-medium: #58A6D0;
+            --color-primary-light: rgba(0, 112, 175, 0.18);
+
+            /* Semantic Colors - Dark Mode */
             --color-success: #10B981;
             --color-success-dark: #059669;
             --color-success-bg: rgba(16, 185, 129, 0.1);
@@ -69,11 +82,12 @@
             --color-info-bg: rgba(0, 112, 175, 0.1);
 
             /* Cards (--bg-primary) sit a step lighter than the page
-               (--bg-secondary) so shadows lift them visibly off the surface. */
-            --bg-primary: #1E293B;
-            --bg-secondary: #0B1220;
-            --bg-tertiary: #334155;
-            --bg-hover: #475569;
+               (--bg-secondary) so shadows lift them visibly off the surface.
+               Both surfaces carry a subtle blue undertone to match the brand. */
+            --bg-primary: #102032;
+            --bg-secondary: #050A12;
+            --bg-tertiary: #1B2D44;
+            --bg-hover: #284866;
             --text-primary: #FFFFFF;
             --text-secondary: #E2E8F0;
             --text-tertiary: #CBD5E1;
