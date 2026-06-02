@@ -1514,7 +1514,7 @@ function App() {
     React.createElement(Sidebar, { user: currentUser, logout, setView, view }),
     React.createElement('div', { className: "flex-1" },
       React.createElement(TopBar, { user: currentUser, logout, setView }),
-      React.createElement('div', { className: "container mx-auto px-6 py-6" },
+      React.createElement('div', { className: "container mx-auto px-8 py-10" },
         view === 'change-password' && React.createElement(ChangePasswordScreen, { user: currentUser, setCurrentUser, setView, logout, forced: false }),
         view === 'dashboard' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
         view === 'requisitions' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
@@ -2315,16 +2315,13 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     React.createElement('div', { className: "px-4 pt-4" },
       React.createElement('button', {
         onClick: () => setView('dashboard'),
-        className: "w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-all",
+        className: "w-full px-4 py-3 rounded-lg font-semibold transition-all text-left",
         style: {
           color: view === 'dashboard' ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
-          backgroundColor: view === 'dashboard' ? 'var(--sidebar-active-bg)' : 'var(--sidebar-group-bg)',
-          border: '1px solid var(--sidebar-border)'
+          backgroundColor: view === 'dashboard' ? 'var(--sidebar-active-bg)' : 'transparent',
+          border: view === 'dashboard' ? 'none' : '1px solid var(--sidebar-border)'
         }
-      },
-        React.createElement('span', { className: "text-lg" }, '\u{1F3E0}'),
-        React.createElement('span', null, 'Home')
-      )
+      }, 'Home')
     ),
 
     // Global Search Bar
@@ -2354,14 +2351,11 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                 e.currentTarget.style.backgroundColor = 'var(--sidebar-group-bg)';
               }
             },
-              React.createElement('div', { className: "flex items-center gap-3" },
-                React.createElement('span', { className: "text-lg" }, item.icon),
-                React.createElement('span', null, item.label)
-              ),
+              React.createElement('span', null, item.label),
               React.createElement('span', {
-                className: "text-sm transition-transform",
-                style: { transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }
-              }, '▶')
+                className: "text-xs transition-transform",
+                style: { transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', opacity: 0.5 }
+              }, '›')
             ),
             // Children - shown when expanded
             isExpanded && React.createElement('div', { className: "ml-4 mt-1 space-y-1" },
@@ -2370,7 +2364,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                   React.createElement('a', {
                     key: child.id,
                     href: child.href,
-                    className: "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    className: "block w-full px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     style: {
                       color: 'var(--sidebar-text-muted)',
                       backgroundColor: 'transparent',
@@ -2382,18 +2376,14 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                     onMouseLeave: (e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }
-                  },
-                    React.createElement('span', null, child.icon),
-                    React.createElement('span', null, child.label)
-                  ) :
+                  }, child.label) :
                   React.createElement('button', {
                     key: child.id,
                     onClick: () => setView(child.id),
-                    className: "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    className: "block w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     style: view === child.id ? {
                       backgroundColor: 'var(--sidebar-active-bg)',
-                      color: 'var(--sidebar-active-text)',
-                      boxShadow: 'var(--shadow-sm)'
+                      color: 'var(--sidebar-active-text)'
                     } : {
                       color: 'var(--sidebar-text-muted)',
                       backgroundColor: 'transparent'
@@ -2408,10 +2398,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                         e.currentTarget.style.backgroundColor = 'transparent';
                       }
                     }
-                  },
-                    React.createElement('span', null, child.icon),
-                    React.createElement('span', null, child.label)
-                  )
+                  }, child.label)
               )
             )
           );
@@ -2420,7 +2407,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
           return React.createElement('button', {
             key: item.id,
             onClick: () => !item.disabled && setView(item.id),
-            className: "w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-lg font-medium transition-all",
+            className: "block w-full text-left px-4 py-3 mb-2 rounded-lg font-medium transition-all",
             style: item.disabled ? {
               color: 'var(--sidebar-text-subtle)',
               backgroundColor: 'transparent',
@@ -2428,8 +2415,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
               cursor: 'not-allowed'
             } : view === item.id ? {
               backgroundColor: 'var(--sidebar-active-bg)',
-              color: 'var(--sidebar-active-text)',
-              boxShadow: 'var(--shadow-md)'
+              color: 'var(--sidebar-active-text)'
             } : {
               color: 'var(--sidebar-text)',
               backgroundColor: 'transparent'
@@ -2445,10 +2431,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
               }
             },
             disabled: item.disabled
-          },
-            React.createElement('span', { className: "text-lg" }, item.icon),
-            React.createElement('span', null, item.label)
-          );
+          }, item.label);
         }
       })
     ),
@@ -2485,11 +2468,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
 // Top Bar Component - User Info and Context
 function TopBar({ user, logout, setView }) {
   return React.createElement('div', {
-    className: "px-6 py-4 transition-colors",
+    className: "px-8 py-5 transition-colors",
     style: {
       backgroundColor: 'var(--bg-primary)',
-      borderBottom: '3px solid var(--color-primary)',
-      boxShadow: 'var(--shadow-sm)'
+      borderBottom: '1px solid var(--border-color)'
     }
   },
     React.createElement('div', { className: "flex items-center justify-between" },
@@ -3356,305 +3338,101 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       }, "Dashboard"),
       React.createElement('button', {
         onClick: () => setView('create'),
-        className: "px-6 py-3 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2",
+        className: "px-6 py-3 text-white rounded-lg font-medium transition-colors",
         style: { backgroundColor: 'var(--color-primary)' },
         onMouseEnter: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'; },
         onMouseLeave: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary)'; }
-      },
-        React.createElement('span', { className: "text-lg" }, "➕"),
-        "Initiate Purchase Requisition"
-      )
+      }, "Initiate Purchase Requisition")
     ),
-    React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-4" },
-      // Total Requisitions Card - Clickable
-      React.createElement('div', {
-        className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:shadow-lg transition-all",
+    // Summary metric cards — white surfaces with a single brand-blue accent
+    // strip on the left. Status communicated via inline label only; no icons,
+    // no coloured backgrounds, no decorative shadows.
+    (function renderSummaryCards() {
+      const metricCard = (label, value, onClick) => React.createElement('div', {
+        key: label,
+        onClick: onClick,
+        className: "rounded-lg p-6 transition-all" + (onClick ? " cursor-pointer hover:shadow-md" : ""),
         style: {
-          background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-medium) 100%)',
-          borderColor: 'transparent'
-        },
-        onClick: () => setShowBreakdown('total')
-      },
-        React.createElement('div', { className: "flex items-center justify-between" },
-          React.createElement('div', null,
-            React.createElement('p', {
-              className: "text-sm mb-1",
-              style: { color: 'rgba(255, 255, 255, 0.9)' }
-            }, "Total Requisitions"),
-            React.createElement('p', {
-              className: "text-2xl font-bold",
-              style: { color: '#FFFFFF' }
-            }, allRequisitions.length)
-          ),
-          React.createElement('span', {
-            className: "text-2xl",
-            style: { opacity: 0.9 }
-          }, '📊')
-        )
-      ),
-      // Pending Approvals Card - Clickable
-      React.createElement('div', {
-        className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:shadow-lg transition-all",
-        style: {
-          background: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-dark) 100%)',
-          borderColor: 'transparent'
-        },
-        onClick: () => setShowBreakdown('pending')
-      },
-        React.createElement('div', { className: "flex items-center justify-between" },
-          React.createElement('div', null,
-            React.createElement('p', {
-              className: "text-sm mb-1",
-              style: { color: 'rgba(255, 255, 255, 0.9)' }
-            }, "Pending Approvals"),
-            React.createElement('p', {
-              className: "text-2xl font-bold",
-              style: { color: '#FFFFFF' }
-            }, pendingApprovals)
-          ),
-          React.createElement('span', {
-            className: "text-2xl",
-            style: { opacity: 0.9 }
-          }, '⏳')
-        )
-      ),
-      // Approved Card - Clickable
-      React.createElement('div', {
-        className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:shadow-lg transition-all",
-        style: {
-          background: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%)',
-          borderColor: 'transparent'
-        },
-        onClick: () => setShowBreakdown('approved')
-      },
-        React.createElement('div', { className: "flex items-center justify-between" },
-          React.createElement('div', null,
-            React.createElement('p', {
-              className: "text-sm mb-1",
-              style: { color: 'rgba(255, 255, 255, 0.9)' }
-            }, "Approved"),
-            React.createElement('p', {
-              className: "text-2xl font-bold",
-              style: { color: '#FFFFFF' }
-            }, approvedRequisitions.length)
-          ),
-          React.createElement('span', {
-            className: "text-2xl",
-            style: { opacity: 0.9 }
-          }, '✓')
-        )
-      ),
-      // Rejected Card - Clickable
-      React.createElement('div', {
-        onClick: () => setShowBreakdown('rejected'),
-        className: "rounded-lg shadow-sm border p-6 cursor-pointer hover:opacity-90 transition-opacity",
-        style: {
-          background: 'linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-dark) 100%)',
-          borderColor: 'transparent'
+          backgroundColor: 'var(--bg-primary)',
+          boxShadow: 'var(--shadow-sm)',
+          borderLeft: '3px solid var(--color-primary)'
         }
       },
-        React.createElement('div', { className: "flex items-center justify-between" },
-          React.createElement('div', null,
-            React.createElement('p', {
-              className: "text-sm mb-1",
-              style: { color: 'rgba(255, 255, 255, 0.9)' }
-            }, "Rejected"),
-            React.createElement('p', {
-              className: "text-2xl font-bold",
-              style: { color: '#FFFFFF' }
-            }, rejectedRequisitions.length)
-          ),
-          React.createElement('span', {
-            className: "text-2xl",
-            style: { opacity: 0.9 }
-          }, '❌')
-        )
-      ),
-      // Total Value Card - Not clickable (Hidden for initiators)
-      !hasRole(user.role, 'initiator') && React.createElement('div', {
-        className: "rounded-lg shadow-sm border p-6",
-        style: {
-          background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, #102032 100%)',
-          borderColor: 'transparent'
-        }
-      },
-        React.createElement('div', { className: "flex items-center justify-between" },
-          React.createElement('div', null,
-            React.createElement('p', {
-              className: "text-sm mb-1",
-              style: { color: 'rgba(255, 255, 255, 0.9)' }
-            }, "Total Value"),
-            React.createElement('p', {
-              className: "text-xl font-bold",
-              style: { color: '#FFFFFF' }
-            },
-              `ZMW ${requisitions.reduce((sum, r) => sum + (r.amount || r.total_amount || 0), 0).toLocaleString()}`
-            )
-          ),
-          React.createElement('span', {
-            className: "text-2xl",
-            style: { opacity: 0.9 }
-          }, '💰')
-        )
-      )
-    ),
+        React.createElement('p', {
+          className: "text-xs uppercase tracking-wide mb-2",
+          style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
+        }, label),
+        React.createElement('p', {
+          className: "text-3xl font-semibold",
+          style: { color: 'var(--text-primary)' }
+        }, value)
+      );
+      const totalValue = `ZMW ${requisitions.reduce((sum, r) => sum + (r.amount || r.total_amount || 0), 0).toLocaleString()}`;
+      const cards = [
+        metricCard('Total Requisitions', allRequisitions.length, () => setShowBreakdown('total')),
+        metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending')),
+        metricCard('Approved', approvedRequisitions.length, () => setShowBreakdown('approved')),
+        metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'))
+      ];
+      if (!hasRole(user.role, 'initiator')) cards.push(metricCard('Total Value', totalValue, null));
+      return React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-5" }, cards);
+    })(),
 
     // Quick Actions - Forms Section
-    React.createElement('div', { className: "mt-6" },
+    React.createElement('div', { className: "mt-10" },
       React.createElement('h3', {
-        className: "text-xl font-bold mb-4",
-        style: { color: 'var(--text-primary)' }
-      }, "Quick Actions - Financial Forms"),
-      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
-        // Expense Claim Form Card
-        React.createElement('a', {
-          href: 'expense-claim.html',
-          className: "block rounded-lg shadow-sm border p-4 hover:shadow-lg transition-all cursor-pointer",
-          style: {
-            backgroundColor: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            textDecoration: 'none'
-          }
-        },
-          React.createElement('div', { className: "flex items-start gap-3" },
-            React.createElement('div', {
-              className: "text-3xl flex-shrink-0"
-            }, '📋'),
-            React.createElement('div', { className: "flex-1" },
-              React.createElement('h3', {
-                className: "text-base font-semibold mb-1",
-                style: { color: 'var(--color-primary)' }
-              }, "Expense Claim Form"),
-              React.createElement('p', {
-                className: "text-xs mb-2",
-                style: { color: 'var(--text-secondary)' }
-              }, "Submit travel and expense claims for reimbursement"),
-              React.createElement('span', {
-                className: "inline-block px-2 py-0.5 text-xs rounded-full",
-                style: {
-                  backgroundColor: 'var(--color-info-bg)',
-                  color: 'var(--color-info)'
-                }
-              }, "FM-FI-014")
-            )
-          )
-        ),
-
-        // EFT/Cheque Requisition Form Card (gated by time window)
-        React.createElement(eftAccess.canCreate ? 'a' : 'div', {
-          href: eftAccess.canCreate ? 'eft-requisition.html' : undefined,
-          onClick: eftAccess.canCreate ? undefined : (e) => { e.preventDefault(); },
-          title: eftAccess.canCreate ? '' : `EFT module closed. Next: ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`,
-          className: "block rounded-lg shadow-sm border p-4 transition-all " +
-            (eftAccess.canCreate ? "hover:shadow-lg cursor-pointer" : "cursor-not-allowed"),
-          style: {
-            backgroundColor: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            textDecoration: 'none',
-            opacity: eftAccess.canCreate ? 1 : 0.55,
-            position: 'relative'
-          }
-        },
-          React.createElement('div', { className: "flex items-start gap-3" },
-            React.createElement('div', {
-              className: "text-3xl flex-shrink-0"
-            }, '💳'),
-            React.createElement('div', { className: "flex-1" },
-              React.createElement('h3', {
-                className: "text-base font-semibold mb-1",
-                style: { color: 'var(--color-primary)' }
-              }, "EFT/Cheque Requisition"),
-              React.createElement('p', {
-                className: "text-xs mb-2",
-                style: { color: 'var(--text-secondary)' }
-              }, "Request electronic payment or cheque issuance"),
-              React.createElement('span', {
-                className: "inline-block px-2 py-0.5 text-xs rounded-full",
-                style: eftAccess.canCreate ? {
-                  backgroundColor: 'var(--color-success-bg)',
-                  color: 'var(--color-success)'
-                } : {
-                  backgroundColor: 'var(--color-warning-bg)',
-                  color: 'var(--color-warning-dark)'
-                }
-              }, eftAccess.canCreate
-                ? "Electronic Transfer"
-                : `Closed — opens ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`)
-            )
-          )
-        ),
-
-        // Petty Cash Requisition Form Card
-        React.createElement('a', {
-          href: 'petty-cash-requisition.html',
-          className: "block rounded-lg shadow-sm border p-4 hover:shadow-lg transition-all cursor-pointer",
-          style: {
-            backgroundColor: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            textDecoration: 'none'
-          }
-        },
-          React.createElement('div', { className: "flex items-start gap-3" },
-            React.createElement('div', {
-              className: "text-3xl flex-shrink-0"
-            }, '💰'),
-            React.createElement('div', { className: "flex-1" },
-              React.createElement('h3', {
-                className: "text-base font-semibold mb-1",
-                style: { color: 'var(--color-primary)' }
-              }, "Petty Cash Requisition"),
-              React.createElement('p', {
-                className: "text-xs mb-2",
-                style: { color: 'var(--text-secondary)' }
-              }, "Request petty cash for minor expenses"),
-              React.createElement('span', {
-                className: "inline-block px-2 py-0.5 text-xs rounded-full",
-                style: {
-                  backgroundColor: 'var(--color-warning-bg)',
-                  color: 'var(--color-warning)'
-                }
-              }, "Cash Payment")
-            )
-          )
-        ),
-
-        // Purchase Requisition Card (existing functionality)
-        hasRole(user.role, 'initiator', 'procurement') && React.createElement('a', {
-          onClick: (e) => {
-            e.preventDefault();
-            setView('create');
-          },
-          className: "block rounded-lg shadow-sm border p-4 hover:shadow-lg transition-all cursor-pointer",
-          style: {
-            backgroundColor: 'var(--bg-primary)',
-            borderColor: 'var(--border-color)',
-            textDecoration: 'none'
-          }
-        },
-          React.createElement('div', { className: "flex items-start gap-3" },
-            React.createElement('div', {
-              className: "text-3xl flex-shrink-0"
-            }, '🛒'),
-            React.createElement('div', { className: "flex-1" },
-              React.createElement('h3', {
-                className: "text-base font-semibold mb-1",
-                style: { color: 'var(--color-primary)' }
-              }, "Purchase Requisition"),
-              React.createElement('p', {
-                className: "text-xs mb-2",
-                style: { color: 'var(--text-secondary)' }
-              }, "Create new purchase requisition for goods/services"),
-              React.createElement('span', {
-                className: "inline-block px-2 py-0.5 text-xs rounded-full",
-                style: {
-                  backgroundColor: 'var(--color-warning-bg)',
-                  color: 'var(--color-warning)'
-                }
-              }, "Procurement")
-            )
-          )
-        )
-      )
+        className: "text-lg font-semibold mb-5 uppercase tracking-wide",
+        style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
+      }, "Quick Actions"),
+      // Quick-action cards — title + description only. No icons, no chips.
+      // Borders dropped; subtle shadow does the lifting (option 8A).
+      (function renderQuickActions() {
+        const actionCard = (key, title, description, props) => React.createElement(
+          props.tag || 'a',
+          Object.assign({
+            key,
+            className: "block rounded-lg p-5 transition-all " + (props.disabled ? "cursor-not-allowed" : "hover:shadow-md cursor-pointer"),
+            style: Object.assign({
+              backgroundColor: 'var(--bg-primary)',
+              boxShadow: 'var(--shadow-sm)',
+              textDecoration: 'none',
+              opacity: props.disabled ? 0.55 : 1
+            }, props.style || {})
+          }, props.attrs || {}),
+            React.createElement('h3', {
+              className: "text-base font-semibold mb-1",
+              style: { color: 'var(--text-primary)' }
+            }, title),
+            React.createElement('p', {
+              className: "text-sm",
+              style: { color: 'var(--text-secondary)' }
+            }, props.disabled && props.disabledText ? props.disabledText : description)
+        );
+        const cards = [
+          actionCard('expense', 'Expense Claim', 'Submit travel and expense claims for reimbursement', {
+            attrs: { href: 'expense-claim.html' }
+          }),
+          actionCard('eft', 'EFT / Cheque Requisition', 'Request electronic payment or cheque issuance', {
+            tag: eftAccess.canCreate ? 'a' : 'div',
+            disabled: !eftAccess.canCreate,
+            disabledText: `Closed — opens ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`,
+            attrs: {
+              href: eftAccess.canCreate ? 'eft-requisition.html' : undefined,
+              onClick: eftAccess.canCreate ? undefined : (e) => e.preventDefault(),
+              title: eftAccess.canCreate ? '' : 'EFT module is currently closed'
+            }
+          }),
+          actionCard('petty', 'Petty Cash Requisition', 'Request petty cash for minor expenses', {
+            attrs: { href: 'petty-cash-requisition.html' }
+          })
+        ];
+        if (hasRole(user.role, 'initiator', 'procurement')) {
+          cards.push(actionCard('pr', 'Purchase Requisition', 'Create new purchase requisition for goods or services', {
+            attrs: { onClick: (e) => { e.preventDefault(); setView('create'); } }
+          }));
+        }
+        return React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-5" }, cards);
+      })()
     ),
 
     // Breakdown Modal
