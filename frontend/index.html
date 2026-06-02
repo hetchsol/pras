@@ -122,6 +122,79 @@
             --sidebar-border: rgba(255, 255, 255, 0.06);
         }
 
+        /* ===================================================================
+           Brand button override layer (option 9A).
+
+           Tailwind's saturated 500–700 action shades — bg-blue-N, bg-green-N,
+           bg-purple-N, bg-orange-N, bg-yellow-N — were sprinkled across ~100
+           buttons during early development, none of them matching the KSB
+           blue palette. Rather than touch every call site, collapse them all
+           into the brand tokens here. Side effect: any *new* code using these
+           Tailwind classes automatically gets the brand treatment too.
+
+           Light 100/200 shades (used for outline-style status pills) are
+           intentionally not overridden — only the action/CTA shades.
+
+           Red 500–700 is left alone because:
+             - the Rejected status pill needs to stay solid red,
+             - Reject buttons get a separate targeted conversion to
+               outline red in app.js (preserves the danger signal
+               without the heavy filled treatment).
+           =================================================================== */
+
+        .bg-blue-500, .bg-blue-600, .bg-blue-700 {
+            background-color: var(--color-primary) !important;
+        }
+        .hover\:bg-blue-600:hover,
+        .hover\:bg-blue-700:hover,
+        .hover\:bg-blue-800:hover {
+            background-color: var(--color-primary-dark) !important;
+        }
+
+        .bg-green-500, .bg-green-600, .bg-green-700 {
+            background-color: var(--color-primary) !important;
+        }
+        .hover\:bg-green-600:hover,
+        .hover\:bg-green-700:hover,
+        .hover\:bg-green-800:hover {
+            background-color: var(--color-primary-dark) !important;
+        }
+
+        .bg-purple-500, .bg-purple-600, .bg-purple-700 {
+            background-color: var(--color-primary) !important;
+        }
+        .hover\:bg-purple-700:hover,
+        .hover\:bg-purple-800:hover {
+            background-color: var(--color-primary-dark) !important;
+        }
+
+        .bg-orange-500, .bg-orange-600, .bg-orange-700 {
+            background-color: var(--color-primary) !important;
+        }
+        .hover\:bg-orange-700:hover,
+        .hover\:bg-orange-800:hover {
+            background-color: var(--color-primary-dark) !important;
+        }
+
+        .bg-yellow-500, .bg-yellow-600, .bg-yellow-700 {
+            background-color: var(--color-primary) !important;
+        }
+        .hover\:bg-yellow-700:hover {
+            background-color: var(--color-primary-dark) !important;
+        }
+
+        /* Text accents tighter to brand */
+        .text-blue-600, .text-blue-700 { color: var(--color-primary) !important; }
+        .text-blue-800, .text-blue-900 { color: var(--color-primary-dark) !important; }
+        .hover\:text-blue-700:hover,
+        .hover\:text-blue-800:hover,
+        .hover\:text-blue-900:hover { color: var(--color-primary-dark) !important; }
+
+        /* Tailwind blue-100/200 tints (used for active sidebar pills, info
+           banners) → translucent brand blue so they stay subtle. */
+        .bg-blue-50  { background-color: rgba(0, 112, 175, 0.06) !important; }
+        .bg-blue-100 { background-color: rgba(0, 112, 175, 0.10) !important; }
+
         /* Prevent flash of unstyled content */
         body {
             margin: 0;

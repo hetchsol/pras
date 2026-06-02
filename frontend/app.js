@@ -6898,7 +6898,7 @@ function Reports({ data }) {
         }, "Download Excel Report"),
         React.createElement('button', {
           onClick: handleDownloadPDF,
-          className: "flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
+          className: "flex-1 px-6 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg font-semibold hover:bg-red-50"
         }, "Download PDF Report")
       )
     )
@@ -8049,7 +8049,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
           React.createElement('button', {
             onClick: handleReject,
             disabled: loading,
-            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors font-medium"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
@@ -8229,7 +8229,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
             onClick: handleReject,
             disabled: loading || !eftAccess.canApprove,
             title: eftAccess.canApprove ? '' : 'EFT module is currently closed',
-            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
@@ -8412,7 +8412,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
           React.createElement('button', {
             onClick: handleReject,
             disabled: loading,
-            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors font-medium"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
@@ -8609,7 +8609,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                         }, 'Approve'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
-                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                          className: "px-2 py-1 bg-transparent border border-red-600 text-red-600 text-xs rounded hover:bg-red-50"
                         }, 'Reject'),
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handlePreviewPDF(req),
@@ -8815,7 +8815,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                         }, 'Approve'),
                         canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(claim),
-                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                          className: "px-2 py-1 bg-transparent border border-red-600 text-red-600 text-xs rounded hover:bg-red-50"
                         }, 'Reject'),
                         isApproved(claim.status) && React.createElement('button', {
                           onClick: () => handlePreviewPDF(claim),
@@ -9021,7 +9021,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                         }, 'Approve'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
-                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                          className: "px-2 py-1 bg-transparent border border-red-600 text-red-600 text-xs rounded hover:bg-red-50"
                         }, 'Reject'),
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handlePreviewPDF(req),
@@ -9986,7 +9986,7 @@ function BudgetManagement({ user }) {
           }, "Download Excel"),
           React.createElement('button', {
             onClick: () => api.downloadBudgetPDF(fiscalYear),
-            className: "px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className: "px-4 py-2 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
           }, "Download PDF")
         )
       ),
@@ -11017,7 +11017,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                         }, "Download PDF"),
                         canUploadQuotes && !adjudication && React.createElement('button', {
                           onClick: () => handleDeleteQuote(quote.id),
-                          className: "px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                          className: "px-3 py-1 bg-transparent border border-red-600 text-red-600 text-sm rounded hover:bg-red-50"
                         }, "Delete")
                       )
                     )
@@ -11724,7 +11724,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
           canTakeAction() && React.createElement('button', {
             onClick: handleReject,
             disabled: loading,
-            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors font-medium"
           }, loading ? 'Processing...' : 'Reject'),
           slipData.status === 'approved' && React.createElement('button', {
             onClick: handlePreviewPDF,
@@ -12237,7 +12237,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
             React.createElement('button', {
               onClick: () => handleApproval('rejected'),
               disabled: approving,
-              className: "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              className: "px-6 py-2 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-medium disabled:opacity-50"
             }, approving ? 'Processing...' : 'Reject GRN')
           )
         )
