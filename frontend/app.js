@@ -2014,14 +2014,19 @@ function LoginScreen({ setCurrentUser, setView }) {
 // Get theme-aware colors for charts
 const getChartColors = () => {
   const isDark = getTheme() === 'dark';
+  // Decorative series collapse to a KSB-blue progression. Status colors
+  // (success / warning / danger) stay distinct because they convey meaning
+  // when used on status-coded charts. `info` and `neutral` were generic
+  // blues / grays — fold them into the brand and the gray respectively.
   return {
-    primary: '#0070AF',
-    primaryLight: '#58A6D0',
-    primaryPale: '#D0E3F2',
+    primary: '#0070AF',          // KSB blue
+    primaryLight: '#58A6D0',     // mid blue
+    primaryPale: '#D0E3F2',      // pale blue
+    primaryDark: '#005A8C',      // deep blue (for 4-stop series)
     success: '#10B981',
     warning: '#F59E0B',
     danger: '#EF4444',
-    info: '#3B82F6',
+    info: '#0070AF',             // same as primary — was the off-brand #3B82F6
     neutral: '#6B7280',
     text: isDark ? '#F1F5F9' : '#1E293B',
     grid: isDark ? '#334155' : '#E2E8F0',
@@ -3593,7 +3598,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                       },
                       className: "px-2 py-1 text-xs font-medium rounded hover:opacity-80 transition-all flex items-center gap-1",
                       style: {
-                        backgroundColor: '#3B82F6',
+                        backgroundColor: 'var(--color-primary)',
                         color: '#FFFFFF'
                       },
                       title: `Preview ${req.displayType || 'Requisition'} PDF`
@@ -3655,10 +3660,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     e.stopPropagation();
                     await handleQuickAction(req, 'reject');
                   },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded border transition-all",
                   style: {
-                    backgroundColor: '#EF4444',
-                    color: '#FFFFFF'
+                    backgroundColor: 'transparent',
+                    borderColor: 'var(--color-danger)',
+                    color: 'var(--color-danger)'
                   }
                 }, 'Reject')
               ),
@@ -3675,7 +3681,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   },
                   className: "w-full px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
                   style: {
-                    backgroundColor: '#8B5CF6',
+                    backgroundColor: 'var(--color-primary)',
                     color: '#FFFFFF'
                   }
                 }, 'Adjudicate')
@@ -3692,7 +3698,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   },
                   className: "w-full px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
                   style: {
-                    backgroundColor: '#F59E0B',
+                    backgroundColor: 'var(--color-primary)',
                     color: '#FFFFFF'
                   }
                 }, 'Admin Reroute')
@@ -3868,18 +3874,18 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             onClick: () => handleRerouteSubmit('skip_stage'),
             className: "w-full px-4 py-3 rounded text-left hover:opacity-90 transition-all",
             style: {
-              backgroundColor: '#F59E0B',
+              backgroundColor: 'var(--color-primary)',
               color: '#FFFFFF'
             }
           },
-            React.createElement('div', { className: "font-semibold" }, '⏭️ Skip Current Approval Stage'),
+            React.createElement('div', { className: "font-semibold" }, 'Skip Current Approval Stage'),
             React.createElement('div', { className: "text-sm opacity-90" }, 'Move to next approval stage')
           ),
           React.createElement('button', {
             onClick: () => handleRerouteSubmit('reassign_hod'),
             className: "w-full px-4 py-3 rounded text-left hover:opacity-90 transition-all",
             style: {
-              backgroundColor: '#8B5CF6',
+              backgroundColor: 'var(--color-primary-dark)',
               color: '#FFFFFF'
             }
           },
@@ -3890,7 +3896,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             onClick: () => handleRerouteSubmit('assign_to_user'),
             className: "w-full px-4 py-3 rounded text-left hover:opacity-90 transition-all",
             style: {
-              backgroundColor: '#10B981',
+              backgroundColor: 'var(--color-primary-medium)',
               color: '#FFFFFF'
             }
           },
