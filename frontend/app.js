@@ -1517,7 +1517,8 @@ function App() {
       React.createElement('div', { className: "container mx-auto px-8 py-10" },
         view === 'change-password' && React.createElement(ChangePasswordScreen, { user: currentUser, setCurrentUser, setView, logout, forced: false }),
         view === 'dashboard' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
-        view === 'requisitions' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
+        view === 'requisitions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq }),
+        view === 'my-submissions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq }),
         view === 'approval-console' && React.createElement(ApprovalConsole, { user: currentUser, setView, setSelectedReq, loadData }),
         view === 'rejected' && React.createElement(RejectedRequisitions, { user: currentUser, setView, setSelectedReq, loadData }),
         view === 'create' && React.createElement(CreateRequisition, { user: currentUser, setView, loadData }),
@@ -2245,7 +2246,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       show: true,
       isGroup: true,
       children: [
-        { id: 'requisitions', label: 'My Requisitions', show: true },
+        { id: 'requisitions', label: 'My Submissions', show: true },
         { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
         { id: 'purchase-orders', label: 'Approved Requisitions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
@@ -8444,6 +8445,217 @@ function ApprovePettyCash({ requisition, user, setView }) {
           }, 'Cancel')
         )
       )
+    )
+  );
+}
+
+// ============================================
+// MY SUBMISSIONS — unified tracker across all four form types
+// Sidebar entry "My Submissions" lands here. Approvers still use the
+// Approval Console for inbound work; this view is what the initiator
+// of any form sees to track their own submissions in one place.
+// ============================================
+function MySubmissions({ user, setView, setSelectedReq }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => { fetchAll(); }, []);
+
+  const fetchAll = async () => {
+    setLoading(true);
+    const userId = String(user.id || user._id || '');
+    const safe = (p) => p.then(r => r.ok ? r.json() : []).catch(() => []);
+    try {
+      const [pr, eft, pc, ec] = await Promise.all([
+        safe(fetchWithAuth(`${API_URL}/requisitions?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(user.role || '')}`)),
+        safe(fetchWithAuth(`${API_URL}/forms/eft-requisitions`)),
+        safe(fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`)),
+        safe(fetchWithAuth(`${API_URL}/forms/expense-claims`))
+      ]);
+      const ownedBy = (r) => String(r.initiator_id || r.created_by || '') === userId;
+      const mine = [
+        ...(Array.isArray(pr) ? pr : []).filter(ownedBy).map(r => ({
+          _row: r, _formType: 'purchase', _formLabel: 'Purchase Req',
+          _description: r.title || r.description || 'N/A',
+          _amount: r.amount || r.total_amount || 0,
+          _viewName: 'approve'
+        })),
+        ...(Array.isArray(eft) ? eft : []).filter(ownedBy).map(r => ({
+          _row: r, _formType: 'eft', _formLabel: 'EFT',
+          _description: r.purpose || r.description || r.in_favour_of || 'N/A',
+          _amount: r.amount || 0,
+          _viewName: 'approve-eft-requisition'
+        })),
+        ...(Array.isArray(pc) ? pc : []).filter(ownedBy).map(r => ({
+          _row: r, _formType: 'pettyCash', _formLabel: 'Petty Cash',
+          _description: r.purpose || r.description || 'N/A',
+          _amount: r.amount || 0,
+          _viewName: 'approve-petty-cash'
+        })),
+        ...(Array.isArray(ec) ? ec : []).filter(ownedBy).map(r => ({
+          _row: r, _formType: 'expense', _formLabel: 'Expense Claim',
+          _description: r.description || r.purpose || 'N/A',
+          _amount: r.amount || r.total_amount || 0,
+          _viewName: 'approve-expense-claim'
+        }))
+      ];
+      mine.sort((a, b) => new Date(b._row.created_at || 0) - new Date(a._row.created_at || 0));
+      setRows(mine);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filters = [
+    { id: 'all',       label: 'All' },
+    { id: 'purchase',  label: 'Purchase Req' },
+    { id: 'eft',       label: 'EFT' },
+    { id: 'pettyCash', label: 'Petty Cash' },
+    { id: 'expense',   label: 'Expense Claim' }
+  ];
+
+  const filtered = filter === 'all' ? rows : rows.filter(r => r._formType === filter);
+
+  const handleView = (row) => {
+    setSelectedReq(row._row);
+    setView(row._viewName);
+  };
+
+  const handlePreviewPDF = async (row) => {
+    try {
+      let blob;
+      const id = row._row.id || row._row._id;
+      switch (row._formType) {
+        case 'purchase':  blob = await api.downloadRequisitionPDF(id); break;
+        case 'eft':       blob = await api.downloadEFTRequisitionPDF(id); break;
+        case 'pettyCash': blob = await api.downloadPettyCashPDF(id); break;
+        case 'expense':   blob = await api.downloadExpenseClaimPDF(id); break;
+      }
+      if (blob) window.open(window.URL.createObjectURL(blob), '_blank');
+    } catch (e) {
+      alert('Preview failed: ' + (e.message || 'unknown error'));
+    }
+  };
+
+  const statusPill = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'rejected') return 'bg-red-600 text-white';
+    if (s === 'approved' || s === 'completed' || s.endsWith('_approved')) return 'border border-green-500 text-green-700 bg-transparent';
+    if (s === 'draft') return 'border border-gray-300 text-gray-600 bg-transparent';
+    return 'border border-yellow-400 text-yellow-700 bg-transparent';
+  };
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', {
+      className: "rounded-lg p-6",
+      style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-sm)' }
+    },
+      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('h2', {
+          className: "text-2xl font-bold",
+          style: { color: 'var(--text-primary)' }
+        }, "My Submissions"),
+        React.createElement('button', {
+          onClick: fetchAll,
+          className: "px-4 py-2 rounded-lg text-sm font-medium",
+          style: {
+            backgroundColor: 'transparent',
+            border: '1px solid var(--color-primary)',
+            color: 'var(--color-primary)'
+          }
+        }, 'Refresh')
+      ),
+
+      // Filter chips
+      React.createElement('div', { className: "flex flex-wrap gap-2 mb-6" },
+        filters.map(f => {
+          const active = filter === f.id;
+          const count = f.id === 'all' ? rows.length : rows.filter(r => r._formType === f.id).length;
+          return React.createElement('button', {
+            key: f.id,
+            onClick: () => setFilter(f.id),
+            className: "px-3 py-1.5 text-sm font-medium rounded-full transition-all",
+            style: active ? {
+              backgroundColor: 'var(--color-primary)',
+              color: '#FFFFFF',
+              border: '1px solid var(--color-primary)'
+            } : {
+              backgroundColor: 'transparent',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)'
+            }
+          }, `${f.label} (${count})`);
+        })
+      ),
+
+      // Table or empty / loading state
+      loading ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-secondary)' } }, 'Loading…')
+      : filtered.length === 0 ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-tertiary)' } },
+          filter === 'all' ? "You haven't submitted any forms yet." : 'No submissions of this type.'
+        )
+      : React.createElement('div', { className: "overflow-x-auto" },
+          React.createElement('table', { className: "w-full text-sm" },
+            React.createElement('thead', null,
+              React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                ['Type','ID','Description','Amount','Status','Date','Actions'].map(h =>
+                  React.createElement('th', {
+                    key: h,
+                    className: "text-left px-3 py-3 text-xs font-semibold uppercase tracking-wide",
+                    style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
+                  }, h)
+                )
+              )
+            ),
+            React.createElement('tbody', null,
+              filtered.map((row, idx) => React.createElement('tr', {
+                key: (row._row.id || row._row._id || idx) + '-' + row._formType,
+                style: { borderBottom: '1px solid var(--border-color)' }
+              },
+                React.createElement('td', { className: "px-3 py-3" },
+                  React.createElement('span', {
+                    className: "px-2 py-0.5 text-xs font-semibold rounded-full border bg-transparent",
+                    style: { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                  }, row._formLabel)
+                ),
+                React.createElement('td', { className: "px-3 py-3 font-medium", style: { color: 'var(--text-primary)' } }, row._row.id || '—'),
+                React.createElement('td', { className: "px-3 py-3 max-w-xs truncate", style: { color: 'var(--text-secondary)' } }, row._description),
+                React.createElement('td', { className: "px-3 py-3 font-semibold", style: { color: 'var(--text-primary)' } },
+                  `K ${parseFloat(row._amount || 0).toLocaleString()}`
+                ),
+                React.createElement('td', { className: "px-3 py-3" },
+                  React.createElement('span', {
+                    className: `px-2 py-0.5 text-xs font-semibold rounded-full ${statusPill(row._row.status)}`
+                  }, String(row._row.status || 'pending').replace(/_/g, ' ').toUpperCase())
+                ),
+                React.createElement('td', { className: "px-3 py-3", style: { color: 'var(--text-tertiary)' } },
+                  row._row.created_at ? new Date(row._row.created_at).toLocaleDateString() : '—'
+                ),
+                React.createElement('td', { className: "px-3 py-3" },
+                  React.createElement('div', { className: "flex gap-2" },
+                    React.createElement('button', {
+                      onClick: () => handleView(row),
+                      className: "text-xs px-2 py-1 rounded",
+                      style: {
+                        backgroundColor: 'var(--color-primary)',
+                        color: '#FFFFFF'
+                      }
+                    }, 'View'),
+                    React.createElement('button', {
+                      onClick: () => handlePreviewPDF(row),
+                      className: "text-xs px-2 py-1 rounded border",
+                      style: {
+                        backgroundColor: 'transparent',
+                        borderColor: 'var(--color-primary)',
+                        color: 'var(--color-primary)'
+                      }
+                    }, 'PDF')
+                  )
+                )
+              ))
+            )
+          )
+        )
     )
   );
 }
