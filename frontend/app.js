@@ -2936,21 +2936,24 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   const rejectedForms = allForms.filter(f => f.status === 'rejected');
   const rejectedRequisitions = [...rejectedPurchaseRequisitions, ...rejectedForms];
 
+  // Outline-only status pills (option 4D). Rejected stays filled red so
+  // it still stands out as the danger state; everything else is a quiet
+  // 1px border + tinted text on a transparent fill.
   const getStatusColor = (status) => {
     const colors = {
-      draft: 'bg-gray-100 text-gray-700',
-      pending_hod: 'bg-yellow-100 text-yellow-700',
-      pending_procurement: 'bg-blue-100 text-blue-700',
-      pending_finance: 'bg-purple-100 text-purple-700',
-      pending_md: 'bg-orange-100 text-orange-700',
-      approved: 'bg-green-100 text-green-700',
-      completed: 'bg-green-100 text-green-700',
-      hod_approved: 'bg-green-100 text-green-700',
-      finance_approved: 'bg-green-100 text-green-700',
-      md_approved: 'bg-green-100 text-green-700',
-      rejected: 'bg-red-100 text-red-700'
+      draft:               'border border-gray-300 text-gray-600 bg-transparent',
+      pending_hod:         'border border-yellow-400 text-yellow-700 bg-transparent',
+      pending_procurement: 'border border-blue-400 text-blue-700 bg-transparent',
+      pending_finance:     'border border-blue-400 text-blue-700 bg-transparent',
+      pending_md:          'border border-orange-400 text-orange-700 bg-transparent',
+      approved:            'border border-green-500 text-green-700 bg-transparent',
+      completed:           'border border-green-500 text-green-700 bg-transparent',
+      hod_approved:        'border border-green-500 text-green-700 bg-transparent',
+      finance_approved:    'border border-green-500 text-green-700 bg-transparent',
+      md_approved:         'border border-green-500 text-green-700 bg-transparent',
+      rejected:            'bg-red-600 text-white'
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || 'border border-gray-300 text-gray-600 bg-transparent';
   };
 
   const getStatusText = (status) => {
@@ -5149,7 +5152,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           adjudication && React.createElement('div', { className: "mt-6 pt-6 border-t border-purple-300" },
             React.createElement('h4', { className: "font-semibold text-gray-900 mb-3 flex items-center gap-2" },
               "Adjudication Summary",
-              React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "Complete")
+              React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-green-500 text-green-700 bg-transparent" }, "Complete")
             ),
             React.createElement('div', { className: "bg-green-50 p-4 rounded-lg border border-green-200 space-y-3" },
               React.createElement('div', null,
@@ -6236,7 +6239,7 @@ function AdminPanel({ data, loadData }) {
               React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.country || '-'),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', {
-                  className: `px-2 py-1 text-xs rounded ${vendor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`
+                  className: `px-2 py-1 text-xs rounded ${vendor.status === 'active' ? 'border border-green-500 text-green-700 bg-transparent' : 'border border-gray-300 text-gray-600 bg-transparent'}`
                 }, vendor.status || 'active')
               ),
               React.createElement('td', { className: "py-2 px-4" },
@@ -6348,7 +6351,7 @@ function AdminPanel({ data, loadData }) {
               React.createElement('td', { className: "px-4 py-2" }, dept.description || '-'),
               React.createElement('td', { className: "px-4 py-2" },
                 React.createElement('span', {
-                  className: `px-2 py-1 rounded text-xs ${dept.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`
+                  className: `px-2 py-1 rounded text-xs ${dept.is_active ? 'border border-green-500 text-green-700 bg-transparent' : 'bg-red-600 text-white'}`
                 }, dept.is_active ? 'Active' : 'Inactive')
               ),
               React.createElement('td', { className: "px-4 py-2" },
@@ -6453,7 +6456,7 @@ function AdminPanel({ data, loadData }) {
               React.createElement('td', { className: "px-4 py-2" }, code.description || '-'),
               React.createElement('td', { className: "px-4 py-2" },
                 React.createElement('span', {
-                  className: `px-2 py-1 rounded text-xs ${code.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`
+                  className: `px-2 py-1 rounded text-xs ${code.is_active ? 'border border-green-500 text-green-700 bg-transparent' : 'bg-red-600 text-white'}`
                 }, code.is_active ? 'Active' : 'Inactive')
               ),
               React.createElement('td', { className: "px-4 py-2" },
@@ -6742,7 +6745,7 @@ function AdminPanel({ data, loadData }) {
               React.createElement('td', { className: "py-2 px-4 text-sm" }, client.country || '-'),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', {
-                  className: `px-2 py-1 text-xs rounded ${client.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`
+                  className: `px-2 py-1 text-xs rounded ${client.status === 'active' ? 'border border-green-500 text-green-700 bg-transparent' : 'border border-gray-300 text-gray-600 bg-transparent'}`
                 }, client.status || 'active')
               ),
               React.createElement('td', { className: "py-2 px-4" },
@@ -7728,30 +7731,31 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
   // Filter items based on selected filter
   const filteredItems = filter === 'all' ? allItems : allItems.filter(item => item.formType === filter);
 
+  // Outline-only status pills (option 4D). Approved/Rejected handled
+  // through getStatusColor; this map covers pending sub-states only.
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'pending_hod': { label: 'Pending HOD', color: 'bg-yellow-100 text-yellow-800' },
-      'pending_finance': { label: 'Pending Finance', color: 'bg-blue-100 text-blue-800' },
-      'pending_md': { label: 'Pending MD', color: 'bg-purple-100 text-purple-800' },
-      'hod_approved': { label: 'HOD Approved', color: 'bg-green-100 text-green-800' },
-      'finance_approved': { label: 'Finance Approved', color: 'bg-green-100 text-green-800' }
+      'pending_hod':      { label: 'Pending HOD',     color: 'border border-yellow-400 text-yellow-700 bg-transparent' },
+      'pending_finance':  { label: 'Pending Finance', color: 'border border-blue-400 text-blue-700 bg-transparent' },
+      'pending_md':       { label: 'Pending MD',      color: 'border border-orange-400 text-orange-700 bg-transparent' },
+      'hod_approved':     { label: 'HOD Approved',     color: 'border border-green-500 text-green-700 bg-transparent' },
+      'finance_approved': { label: 'Finance Approved', color: 'border border-green-500 text-green-700 bg-transparent' },
+      'approved':         { label: 'Approved',         color: 'border border-green-500 text-green-700 bg-transparent' },
+      'rejected':         { label: 'Rejected',         color: 'bg-red-600 text-white' }
     };
-    const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
+    const config = statusConfig[status] || { label: status, color: 'border border-gray-300 text-gray-600 bg-transparent' };
     return React.createElement('span', {
       className: `px-2 py-1 text-xs font-semibold rounded-full ${config.color}`
     }, config.label);
   };
 
+  // Type pills (Purchase Req / Expense Claim / EFT / etc.) are *categorisation*,
+  // not status. Single neutral outline keeps them quiet while still differentiating
+  // from status badges visually.
   const getTypeBadge = (displayType) => {
-    const typeColors = {
-      'Purchase Req': 'bg-indigo-100 text-indigo-800',
-      'Expense Claim': 'bg-pink-100 text-pink-800',
-      'EFT': 'bg-cyan-100 text-cyan-800',
-      'Petty Cash': 'bg-orange-100 text-orange-800',
-      'Issue Slip': 'bg-emerald-100 text-emerald-800'
-    };
     return React.createElement('span', {
-      className: `px-2 py-1 text-xs font-semibold rounded-full ${typeColors[displayType] || 'bg-gray-100 text-gray-800'}`
+      className: "px-2 py-1 text-xs font-semibold rounded-full border bg-transparent",
+      style: { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }
     }, displayType);
   };
 
@@ -8144,7 +8148,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review EFT Requisition"),
         React.createElement('span', {
-          className: `px-4 py-2 rounded-full text-sm font-medium bg-cyan-100 text-cyan-700`
+          className: `px-4 py-2 rounded-full text-sm font-medium border border-cyan-500 text-cyan-700 bg-transparent`
         }, requisition.status?.replace('_', ' ').toUpperCase() || 'PENDING')
       ),
 
@@ -8322,7 +8326,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Petty Cash Requisition"),
         React.createElement('span', {
-          className: `px-4 py-2 rounded-full text-sm font-medium bg-orange-100 text-orange-700`
+          className: `px-4 py-2 rounded-full text-sm font-medium border border-orange-400 text-orange-700 bg-transparent`
         }, requisition.status?.replace('_', ' ').toUpperCase() || 'PENDING')
       ),
 
@@ -8584,9 +8588,9 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
-                          req.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          req.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          req.status === 'approved' ? 'border border-green-500 text-green-700 bg-transparent' :
+                          req.status === 'rejected' ? 'bg-red-600 text-white' :
+                          'border border-yellow-400 text-yellow-700 bg-transparent'
                         }`
                       }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
@@ -8790,9 +8794,9 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
-                          claim.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          claim.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          claim.status === 'approved' ? 'border border-green-500 text-green-700 bg-transparent' :
+                          claim.status === 'rejected' ? 'bg-red-600 text-white' :
+                          'border border-yellow-400 text-yellow-700 bg-transparent'
                         }`
                       }, claim.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
@@ -8996,9 +9000,9 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
-                          req.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          req.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          req.status === 'approved' ? 'border border-green-500 text-green-700 bg-transparent' :
+                          req.status === 'rejected' ? 'bg-red-600 text-white' :
+                          'border border-yellow-400 text-yellow-700 bg-transparent'
                         }`
                       }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
@@ -9186,9 +9190,9 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
                     React.createElement('td', { className: "px-6 py-4 whitespace-nowrap" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
-                          req.urgency === 'Emergency' ? 'bg-red-100 text-red-800' :
-                          req.urgency === 'High' ? 'bg-orange-100 text-orange-800' :
-                          'bg-green-100 text-green-800'
+                          req.urgency === 'Emergency' ? 'bg-red-600 text-white' :
+                          req.urgency === 'High' ? 'border border-orange-400 text-orange-700 bg-transparent' :
+                          'border border-green-500 text-green-700 bg-transparent'
                         }`
                       }, req.urgency || 'Standard')
                     ),
@@ -10709,9 +10713,9 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                       React.createElement('p', { className: "text-sm text-gray-600" }, req.title || req.description),
                       React.createElement('div', { className: "flex gap-2 mt-2" },
                         React.createElement('span', { className: "text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded" }, req.department),
-                        req.status === 'pending_procurement' && !req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded" }, "Needs Quotes"),
-                        req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "Quotes"),
-                        req.has_adjudication && React.createElement('span', { className: "text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded" }, "Adjudication")
+                        req.status === 'pending_procurement' && !req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-yellow-400 text-yellow-700 bg-transparent" }, "Needs Quotes"),
+                        req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-green-500 text-green-700 bg-transparent" }, "Quotes"),
+                        req.has_adjudication && React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-blue-400 text-blue-700 bg-transparent" }, "Adjudication")
                       )
                     ),
                     React.createElement('button', {
@@ -11196,7 +11200,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
         adjudication && React.createElement('div', { className: "border-t pt-6" },
           React.createElement('h4', { className: "font-semibold text-gray-900 mb-4 flex items-center gap-2" },
             "Adjudication Summary",
-            React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "Complete")
+            React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-green-500 text-green-700 bg-transparent" }, "Complete")
           ),
           React.createElement('div', { className: "bg-green-50 p-6 rounded-lg border border-green-200 space-y-4" },
             React.createElement('div', { className: "pb-4 border-b" },
