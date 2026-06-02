@@ -2022,16 +2022,27 @@ const getChartColors = () => {
     primary: '#0070AF',          // KSB blue
     primaryLight: '#58A6D0',     // mid blue
     primaryPale: '#D0E3F2',      // pale blue
-    primaryDark: '#005A8C',      // deep blue (for 4-stop series)
+    primaryDark: '#005A8C',      // deep blue
+    primaryDeeper: '#003C5C',    // navy (for 5+ stop series)
     success: '#10B981',
     warning: '#F59E0B',
     danger: '#EF4444',
     info: '#0070AF',             // same as primary — was the off-brand #3B82F6
     neutral: '#6B7280',
+    neutralLight: '#9CA3AF',     // lighter neutral for 6-slot series
     text: isDark ? '#F1F5F9' : '#1E293B',
     grid: isDark ? '#334155' : '#E2E8F0',
     background: isDark ? '#1E293B' : '#FFFFFF'
   };
+};
+
+// Blue progression for *categorical* charts (departments, stages, etc.).
+// Status-bearing charts should use the semantic colors directly.
+const brandSeriesColors = (count) => {
+  const palette = ['#0070AF', '#005A8C', '#58A6D0', '#D0E3F2', '#003C5C', '#9CA3AF'];
+  const out = [];
+  for (let i = 0; i < count; i++) out.push(palette[i % palette.length]);
+  return out;
 };
 
 // Create line chart
@@ -3949,7 +3960,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                 onClick: () => handleRerouteSubmit('assign_to_user'),
                 className: "flex-1 px-4 py-2 rounded font-semibold hover:opacity-90 transition-all",
                 style: {
-                  backgroundColor: '#10B981',
+                  backgroundColor: 'var(--color-primary)',
                   color: '#FFFFFF'
                 }
               }, 'Submit Assignment'),
@@ -7138,14 +7149,7 @@ function AnalyticsDashboard({ user }) {
           labels: departmentBreakdown.map(d => d.department),
           datasets: [{
             data: departmentBreakdown.map(d => d.total_amount),
-            backgroundColor: [
-              colors.primary,
-              colors.primaryLight,
-              colors.success,
-              colors.warning,
-              colors.info,
-              colors.neutral
-            ]
+            backgroundColor: brandSeriesColors(departmentBreakdown.length)
           }]
         }, 'doughnut', deptClickHandler);
       }
@@ -7199,12 +7203,7 @@ function AnalyticsDashboard({ user }) {
             datasets: [{
               label: 'Average Days',
               data: durations,
-              backgroundColor: [
-                colors.primary,
-                colors.primaryLight,
-                colors.info,
-                colors.success
-              ]
+              backgroundColor: brandSeriesColors(stages.length)
             }]
           }, { horizontal: true });
         }
@@ -11933,9 +11932,8 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'grn.html',
-            className: "px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700",
-            style: { backgroundColor: '#d97706' }
-          }, '+ New GRN'),
+            className: "px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+          }, 'New GRN'),
           React.createElement('button', {
             onClick: fetchGRNs,
             className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -12006,8 +12004,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(grn),
-                          className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700",
-                          style: { backgroundColor: '#d97706' }
+                          className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
                         }, 'View'),
                         canApprove && React.createElement('button', {
                           onClick: () => handleView(grn),
