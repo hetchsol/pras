@@ -1174,6 +1174,117 @@ const api = {
   }
 };
 
+// =============================================================================
+// EFT_SCHEDULE — keep in sync with backend/utils/eftSchedule.js
+// Africa/Lusaka time, weekdays only. 05:00–11:00 create, 05:00–12:30 approve.
+// 60s soft grace. Admin bypasses approve, follows create like everyone else.
+// =============================================================================
+const EFT_TZ = 'Africa/Lusaka';
+const EFT_LUSAKA_OFFSET_HOURS = 2;
+const EFT_WEEKDAYS = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+const EFT_OPEN_SEC = 5 * 3600;
+const EFT_CREATE_END_SEC = 11 * 3600 + 60;
+const EFT_APPROVE_END_SEC = 12 * 3600 + 30 * 60 + 60;
+
+function eftLusakaParts(date) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: EFT_TZ, weekday: 'short',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  });
+  const m = {};
+  for (const p of fmt.formatToParts(date)) m[p.type] = p.value;
+  return {
+    weekday: m.weekday,
+    year: +m.year, month: +m.month, day: +m.day,
+    hour: (+m.hour) % 24, minute: +m.minute, second: +m.second
+  };
+}
+
+function eftSecondsOfDay(p) { return p.hour * 3600 + p.minute * 60 + p.second; }
+function eftIsWeekday(wd) { return EFT_WEEKDAYS.has(wd); }
+function eftUtcForLusaka(y, mo, d, h, mi) {
+  return new Date(Date.UTC(y, mo - 1, d, h - EFT_LUSAKA_OFFSET_HOURS, mi, 0));
+}
+
+function eftNextOpening(now, action) {
+  const cutoff = action === 'create' ? EFT_CREATE_END_SEC : EFT_APPROVE_END_SEC;
+  const p = eftLusakaParts(now);
+  const s = eftSecondsOfDay(p);
+  const weekend = !eftIsWeekday(p.weekday);
+  if (!weekend && s >= EFT_OPEN_SEC && s < cutoff) return null;
+  if (!weekend && s < EFT_OPEN_SEC) return eftUtcForLusaka(p.year, p.month, p.day, 5, 0);
+  for (let i = 1; i <= 7; i++) {
+    const probeUtc = new Date(eftUtcForLusaka(p.year, p.month, p.day, 12, 0).getTime() + i * 86400000);
+    const probe = eftLusakaParts(probeUtc);
+    if (eftIsWeekday(probe.weekday)) return eftUtcForLusaka(probe.year, probe.month, probe.day, 5, 0);
+  }
+  return null;
+}
+
+function getEFTAccessClient(role, now) {
+  now = now || new Date();
+  const isAdmin = String(role || '').toLowerCase() === 'admin';
+  const p = eftLusakaParts(now);
+  const s = eftSecondsOfDay(p);
+  const weekend = !eftIsWeekday(p.weekday);
+  const canCreate = !weekend && s >= EFT_OPEN_SEC && s < EFT_CREATE_END_SEC;
+  const canApprove = isAdmin || (!weekend && s >= EFT_OPEN_SEC && s < EFT_APPROVE_END_SEC);
+  return {
+    canCreate,
+    canApprove,
+    isAdmin,
+    nextCreateOpen: canCreate ? null : eftNextOpening(now, 'create'),
+    nextApproveOpen: canApprove ? null : eftNextOpening(now, 'approve')
+  };
+}
+
+function eftFormatNextOpen(date) {
+  if (!date) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: EFT_TZ, weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(date) + ' (CAT)';
+}
+
+// Returns access state and re-evaluates every 30s so the UI updates as the
+// window opens / closes without the user reloading.
+function useEFTAccess(role) {
+  const [access, setAccess] = useState(() => getEFTAccessClient(role));
+  useEffect(() => {
+    const tick = () => setAccess(getEFTAccessClient(role));
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, [role]);
+  return access;
+}
+
+function EFTLockBanner({ action, access }) {
+  const blocked = action === 'create' ? !access.canCreate : !access.canApprove;
+  if (!blocked) return null;
+  const nextOpen = action === 'create' ? access.nextCreateOpen : access.nextApproveOpen;
+  const verb = action === 'create' ? 'Creating new EFT requisitions' : 'Approving EFT requisitions';
+  const window = action === 'create'
+    ? '05:00–11:00 (Mon–Fri, CAT)'
+    : '05:00–12:30 (Mon–Fri, CAT)';
+  return React.createElement('div', {
+    className: "mb-4 p-4 rounded-lg border-l-4 flex items-start gap-3",
+    style: {
+      backgroundColor: 'var(--color-warning-bg)',
+      borderColor: 'var(--color-warning)',
+      color: 'var(--text-primary)'
+    }
+  },
+    React.createElement('span', { style: { fontSize: '1.5rem', lineHeight: 1 } }, '⏰'),
+    React.createElement('div', null,
+      React.createElement('p', { className: "font-semibold mb-1" },
+        `${verb} is currently closed.`),
+      React.createElement('p', { className: "text-sm" },
+        `Window: ${window}. ` + (nextOpen ? `Next available: ${eftFormatNextOpen(nextOpen)}.` : ''))
+    )
+  );
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('login');
@@ -2734,6 +2845,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [rerouteReason, setRerouteReason] = useState('');
   const [showUserSelection, setShowUserSelection] = useState(false);
+  const eftAccess = useEFTAccess(user && user.role);
 
   const getRequisitionsForUser = () => {
     let filtered;
@@ -3428,14 +3540,19 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           )
         ),
 
-        // EFT/Cheque Requisition Form Card
-        React.createElement('a', {
-          href: 'eft-requisition.html',
-          className: "block rounded-lg shadow-sm border p-4 hover:shadow-lg transition-all cursor-pointer",
+        // EFT/Cheque Requisition Form Card (gated by time window)
+        React.createElement(eftAccess.canCreate ? 'a' : 'div', {
+          href: eftAccess.canCreate ? 'eft-requisition.html' : undefined,
+          onClick: eftAccess.canCreate ? undefined : (e) => { e.preventDefault(); },
+          title: eftAccess.canCreate ? '' : `EFT module closed. Next: ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`,
+          className: "block rounded-lg shadow-sm border p-4 transition-all " +
+            (eftAccess.canCreate ? "hover:shadow-lg cursor-pointer" : "cursor-not-allowed"),
           style: {
             backgroundColor: 'var(--bg-primary)',
             borderColor: 'var(--border-color)',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            opacity: eftAccess.canCreate ? 1 : 0.55,
+            position: 'relative'
           }
         },
           React.createElement('div', { className: "flex items-start gap-3" },
@@ -3453,11 +3570,16 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, "Request electronic payment or cheque issuance"),
               React.createElement('span', {
                 className: "inline-block px-2 py-0.5 text-xs rounded-full",
-                style: {
+                style: eftAccess.canCreate ? {
                   backgroundColor: 'var(--color-success-bg)',
                   color: 'var(--color-success)'
+                } : {
+                  backgroundColor: 'var(--color-warning-bg)',
+                  color: 'var(--color-warning-dark)'
                 }
-              }, "Electronic Transfer")
+              }, eftAccess.canCreate
+                ? "Electronic Transfer"
+                : `Closed — opens ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`)
             )
           )
         ),
@@ -8166,6 +8288,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
 function ApproveEFTRequisition({ requisition, user, setView }) {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const eftAccess = useEFTAccess(user && user.role);
 
   if (!requisition) {
     return React.createElement('div', { className: "text-center py-12" },
@@ -8241,6 +8364,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
   };
 
   return React.createElement('div', { className: "max-w-4xl mx-auto" },
+    React.createElement(EFTLockBanner, { action: 'approve', access: eftAccess }),
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review EFT Requisition"),
@@ -8318,13 +8442,15 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         React.createElement('div', { className: "flex gap-4 mt-6" },
           React.createElement('button', {
             onClick: handleApprove,
-            disabled: loading,
-            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+            disabled: loading || !eftAccess.canApprove,
+            title: eftAccess.canApprove ? '' : 'EFT module is currently closed',
+            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           }, loading ? 'Processing...' : 'Approve'),
           React.createElement('button', {
             onClick: handleReject,
-            disabled: loading,
-            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+            disabled: loading || !eftAccess.canApprove,
+            title: eftAccess.canApprove ? '' : 'EFT module is currently closed',
+            className: "flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
@@ -9155,13 +9281,38 @@ function CreateExpenseClaim({ user, setView }) {
 // CREATE EFT REQUISITION COMPONENT (Redirect to HTML)
 // ============================================
 function CreateEFTRequisition({ user, setView }) {
+  const access = useEFTAccess(user && user.role);
+
   useEffect(() => {
-    // Redirect to the HTML form
-    window.location.href = 'eft-requisition.html';
-  }, []);
+    if (access.canCreate) {
+      window.location.href = 'eft-requisition.html';
+    }
+  }, [access.canCreate]);
+
+  if (!access.canCreate) {
+    return React.createElement('div', { className: "max-w-2xl mx-auto" },
+      React.createElement(EFTLockBanner, { action: 'create', access }),
+      React.createElement('div', {
+        className: "rounded-lg shadow-sm border p-6 text-center",
+        style: { backgroundColor: 'var(--bg-primary)' }
+      },
+        React.createElement('p', {
+          className: "mb-4",
+          style: { color: 'var(--text-secondary)' }
+        }, "You can still view existing EFT requisitions while the module is closed."),
+        React.createElement('button', {
+          onClick: () => setView('eft-requisitions'),
+          className: "px-6 py-2 text-white rounded-lg font-medium",
+          style: { backgroundColor: 'var(--color-primary)' }
+        }, "View EFT Requisitions")
+      )
+    );
+  }
 
   return React.createElement('div', { className: "text-center py-12" },
-    React.createElement('p', { className: "text-gray-600" }, "Redirecting to EFT Requisition form...")
+    React.createElement('p', {
+      style: { color: 'var(--text-secondary)' }
+    }, "Redirecting to EFT Requisition form...")
   );
 }
 

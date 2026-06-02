@@ -42,6 +42,20 @@ const { validateLogin } = require('./middleware/validation');
 const { assertTransition } = require('./utils/statusTransitions');
 const { getPaginationParams, paginateFind } = require('./utils/pagination');
 const { logAudit } = require('./utils/audit');
+const { getEFTAccess, lockoutMessage } = require('./utils/eftSchedule');
+
+// EFT module is time-gated (Africa/Lusaka, weekdays only). Returns
+// 423 Locked outside the window. Admin bypasses approve checks but
+// still follows the create window — see backend/utils/eftSchedule.js.
+const requireEFTAccess = (action) => (req, res, next) => {
+  const access = getEFTAccess(req.user && req.user.role);
+  const allowed = action === 'create' ? access.canCreate : access.canApprove;
+  if (allowed) return next();
+  return res.status(423).json({
+    error: lockoutMessage(action, access),
+    eft_schedule: access
+  });
+};
 const {
   getRequisitionAmountZMW,
   checkBudget,
@@ -2029,7 +2043,14 @@ app.get('/api/eft-requisitions', authenticate, async (req, res) => {
   }
 });
 
-app.post('/api/eft-requisitions', authenticate, async (req, res) => {
+// Authoritative time-window state for the EFT module. Frontend reads
+// this to grey out controls; backend re-checks on every mutation.
+app.get('/api/eft-requisitions/schedule', authenticate, (req, res) => {
+  const access = getEFTAccess(req.user && req.user.role);
+  res.json(access);
+});
+
+app.post('/api/eft-requisitions', authenticate, requireEFTAccess('create'), async (req, res) => {
   try {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -2172,7 +2193,7 @@ app.post('/api/forms/expense-claims', authenticate, async (req, res) => {
 });
 
 // POST forms - create EFT requisitions
-app.post('/api/forms/eft-requisitions', authenticate, async (req, res) => {
+app.post('/api/forms/eft-requisitions', authenticate, requireEFTAccess('create'), async (req, res) => {
   try {
     const user = await db.getUserById(req.user.id);
     const date = new Date();
@@ -2440,7 +2461,7 @@ app.put('/api/forms/expense-claims/:id/approve', authenticate, async (req, res) 
 });
 
 // Approve/Reject EFT Requisition
-app.put('/api/forms/eft-requisitions/:id/approve', authenticate, async (req, res) => {
+app.put('/api/forms/eft-requisitions/:id/approve', authenticate, requireEFTAccess('approve'), async (req, res) => {
   try {
     const { approved, approver_role, approver_name, comments } = req.body;
     const reqId = req.params.id;

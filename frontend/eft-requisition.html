@@ -264,6 +264,11 @@
     <div class="container">
         <h1>💰 EFT / Cheque Requisition Form</h1>
 
+        <div id="eftLockBanner" style="display:none; padding:14px 16px; margin-bottom:16px; border-left:4px solid #D97706; background:#FEF3C7; color:#1E293B; border-radius:6px;">
+            <strong>⏰ EFT module is currently closed.</strong>
+            <div id="eftLockBannerText" style="margin-top:4px; font-size:14px;"></div>
+        </div>
+
         <div id="alert" class="alert"></div>
         <div id="loading" class="loading">
             <div class="spinner"></div>
@@ -377,7 +382,51 @@
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             document.getElementById('initiator_name').value = userData.full_name || '';
             document.getElementById('initiator_department').value = userData.department || '';
+            refreshEFTSchedule();
+            setInterval(refreshEFTSchedule, 30000);
         });
+
+        // Time-window gate: matches backend/utils/eftSchedule.js. Backend
+        // re-checks on submit; this is just UX.
+        let eftCanCreate = true;
+        async function refreshEFTSchedule() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const res = await fetch(`${API_URL}/eft-requisitions/schedule`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const access = await res.json();
+                eftCanCreate = !!access.canCreate;
+                const banner = document.getElementById('eftLockBanner');
+                const submitBtn = document.querySelector('#eftForm button[type="submit"]');
+                if (!access.canCreate) {
+                    const next = access.nextCreateOpen ? new Date(access.nextCreateOpen) : null;
+                    const nextStr = next ? new Intl.DateTimeFormat('en-GB', {
+                        timeZone: 'Africa/Lusaka', weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false
+                    }).format(next) + ' (CAT)' : '';
+                    document.getElementById('eftLockBannerText').textContent =
+                        'Window: 05:00–11:00 (Mon–Fri, CAT). ' + (nextStr ? 'Next available: ' + nextStr + '.' : '');
+                    banner.style.display = 'block';
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.55';
+                        submitBtn.style.cursor = 'not-allowed';
+                        submitBtn.title = 'EFT module is currently closed';
+                    }
+                } else {
+                    banner.style.display = 'none';
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '';
+                        submitBtn.style.cursor = '';
+                        submitBtn.title = '';
+                    }
+                }
+            } catch (e) {
+                // Network error — leave state alone; backend will still reject if closed.
+            }
+        }
 
         // Toggle pay to myself
         function togglePayToMyself() {
@@ -464,6 +513,11 @@
         // Form submission
         document.getElementById('eftForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            if (!eftCanCreate) {
+                showAlert('The EFT module is currently closed. Please try again during the next open window.', 'error');
+                return;
+            }
 
             const amount = parseFloat(document.getElementById('amount').value);
             if (!amount || amount <= 0) {
