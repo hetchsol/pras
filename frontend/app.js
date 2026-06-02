@@ -2215,11 +2215,26 @@ function ThemeToggle() {
 // Sidebar Component - Left Navigation
 function Sidebar({ user, logout, setView, view, setSelectedReq }) {
   const [expandedMenus, setExpandedMenus] = useState({});
+  const eftAccess = useEFTAccess(user && user.role);
 
   // Accordion: opening a group collapses any other open group, so the
   // menu never grows beyond the viewport.
   const toggleMenu = (menuId) => {
     setExpandedMenus(prev => prev[menuId] ? {} : { [menuId]: true });
+  };
+
+  // Resolve the time-gate flag on a link item. Currently only EFT-create
+  // is gated; other 'gated' values are reserved for future modules.
+  const isItemLocked = (child) => {
+    if (child.gated === 'eft-create') return !eftAccess.canCreate;
+    return false;
+  };
+  const itemLockMessage = (child) => {
+    if (child.gated === 'eft-create' && !eftAccess.canCreate) {
+      const next = eftAccess.nextCreateOpen ? eftFormatNextOpen(eftAccess.nextCreateOpen) : '';
+      return next ? `Closed — opens ${next}` : 'Currently closed';
+    }
+    return '';
   };
 
   const menuItems = [
@@ -2238,16 +2253,18 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
         { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
       ]
     },
-    // Financial Forms Group - All form-related items
+    // Financial Forms Group — mirrors the Dashboard's Quick Actions.
+    // Each entry links straight to the relevant create form; EFT carries
+    // the same time-gate (greyed out when canCreate is false).
     {
       id: 'forms-group',
       label: 'Financial Forms',
       show: true,
       isGroup: true,
       children: [
-        { id: 'expense-claims', label: 'Expense Claims', show: true },
-        { id: 'eft-requisitions', label: 'EFT Requisitions', show: true },
-        { id: 'petty-cash-requisitions', label: 'Petty Cash', show: true },
+        { id: 'expense-claims', label: 'Expense Claim', isLink: true, href: 'expense-claim.html', show: true },
+        { id: 'eft-requisitions', label: 'EFT / Cheque Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
+        { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
       ]
     },
@@ -2368,22 +2385,36 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
             isExpanded && React.createElement('div', { className: "ml-4 mt-1 space-y-1" },
               item.children.filter(child => child.show).map(child =>
                 child.isLink ?
-                  React.createElement('a', {
-                    key: child.id,
-                    href: child.href,
-                    className: "block w-full px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                    style: {
-                      color: 'var(--sidebar-text-muted)',
-                      backgroundColor: 'transparent',
-                      textDecoration: 'none'
+                  (function renderLink() {
+                    const locked = isItemLocked(child);
+                    const lockMsg = itemLockMessage(child);
+                    return React.createElement('a', {
+                      key: child.id,
+                      href: locked ? undefined : child.href,
+                      onClick: locked ? (e) => e.preventDefault() : undefined,
+                      title: locked ? lockMsg : '',
+                      className: "block w-full px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                      style: {
+                        color: 'var(--sidebar-text-muted)',
+                        backgroundColor: 'transparent',
+                        textDecoration: 'none',
+                        opacity: locked ? 0.5 : 1,
+                        cursor: locked ? 'not-allowed' : 'pointer'
+                      },
+                      onMouseEnter: (e) => {
+                        if (!locked) e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)';
+                      },
+                      onMouseLeave: (e) => {
+                        if (!locked) e.currentTarget.style.backgroundColor = 'transparent';
+                      }
                     },
-                    onMouseEnter: (e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)';
-                    },
-                    onMouseLeave: (e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }, child.label) :
+                      React.createElement('span', null, child.label),
+                      locked && React.createElement('span', {
+                        className: "block text-xs mt-0.5",
+                        style: { color: 'var(--sidebar-text-subtle)' }
+                      }, lockMsg)
+                    );
+                  })() :
                   React.createElement('button', {
                     key: child.id,
                     onClick: () => setView(child.id),
