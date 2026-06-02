@@ -2172,15 +2172,11 @@ function ThemeToggle() {
       backgroundColor: 'var(--bg-tertiary)'
     }
   },
-    React.createElement('span', {
-      className: "text-xs font-medium transition-colors",
-      style: { color: 'var(--text-secondary)' }
-    }, isDark ? '🌙' : '☀️'),
     React.createElement('button', {
       onClick: handleToggle,
       className: "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",
       style: {
-        backgroundColor: isDark ? '#0070AF' : '#58A6D0',
+        backgroundColor: 'var(--color-primary)',
         boxShadow: 'var(--shadow-sm)'
       },
       'aria-label': 'Toggle theme'
@@ -2195,7 +2191,7 @@ function ThemeToggle() {
     ),
     React.createElement('span', {
       className: "text-xs font-medium transition-colors",
-      style: { color: 'var(--text-tertiary)' }
+      style: { color: 'var(--text-secondary)' }
     }, isDark ? 'Dark' : 'Light')
   );
 }
@@ -2215,76 +2211,71 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     {
       id: 'procurement-group',
       label: 'Procurement',
-      icon: '🛒',
       show: true,
       isGroup: true,
       children: [
-        { id: 'requisitions', label: 'My Requisitions', icon: '📋', show: true },
-        { id: 'create', label: 'Create Requisition', icon: '➕', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
-        { id: 'approval-console', label: 'Pending Approvals', icon: '⏳', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
-        { id: 'purchase-orders', label: 'Approved Requisitions', icon: '✓', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
-        { id: 'rejected', label: 'Rejected Requisitions', icon: '❌', show: hasRole(user.role, 'procurement', 'admin') },
-        { id: 'quotes-adjudication', label: 'Adjudication', icon: '⚖️', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
+        { id: 'requisitions', label: 'My Requisitions', show: true },
+        { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
+        { id: 'purchase-orders', label: 'Approved Requisitions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
+        { id: 'rejected', label: 'Rejected Requisitions', show: hasRole(user.role, 'procurement', 'admin') },
+        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
       ]
     },
     // Financial Forms Group - All form-related items
     {
       id: 'forms-group',
       label: 'Financial Forms',
-      icon: '💳',
       show: true,
       isGroup: true,
       children: [
-        { id: 'expense-claims', label: 'Expense Claims', icon: '📋', show: true },
-        { id: 'eft-requisitions', label: 'EFT Requisitions', icon: '💳', show: true },
-        { id: 'petty-cash-requisitions', label: 'Petty Cash', icon: '💰', show: true },
-        { id: 'approval-console', label: 'Pending Approvals', icon: '✅', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
+        { id: 'expense-claims', label: 'Expense Claims', show: true },
+        { id: 'eft-requisitions', label: 'EFT Requisitions', show: true },
+        { id: 'petty-cash-requisitions', label: 'Petty Cash', show: true },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
       ]
     },
     // Stores Management Group - Issue Slips & Picking Slips
     {
       id: 'stores-group',
       label: 'Stores',
-      icon: '📦',
       show: user.can_access_stores || hasAnyRole(user.role, ['admin', 'hod', 'finance']),
       isGroup: true,
       children: [
-        { id: 'grns', label: 'Goods Receipt Notes', icon: '📋', show: true },
-        { id: 'create-grn', label: 'Create GRN', icon: '➕', show: user.can_access_stores, isLink: true, href: 'grn.html' },
-        { id: 'stock-register', label: 'Real-Time Stock Register', icon: '📊', show: true },
-        { id: 'stock-items', label: 'Stock Items', icon: '📦', show: user.can_access_stores || user.role === 'admin' || user.role === 'hod' || user.role === 'finance' },
-        { id: 'issue-slips', label: 'Issue Slips', icon: '📤', show: true },
-        { id: 'create-issue-slip', label: 'Create Issue Slip', icon: '➕', show: user.can_access_stores, isLink: true, href: 'issue-slip.html' },
-        { id: 'picking-slips', label: 'Picking Slips', icon: '📥', show: true },
-        { id: 'create-picking-slip', label: 'Create Picking Slip', icon: '➕', show: user.can_access_stores, isLink: true, href: 'picking-slip.html' }
+        { id: 'grns', label: 'Goods Receipt Notes', show: true },
+        { id: 'create-grn', label: 'Create GRN', show: user.can_access_stores, isLink: true, href: 'grn.html' },
+        { id: 'stock-register', label: 'Real-Time Stock Register', show: true },
+        { id: 'stock-items', label: 'Stock Items', show: user.can_access_stores || user.role === 'admin' || user.role === 'hod' || user.role === 'finance' },
+        { id: 'issue-slips', label: 'Issue Slips', show: true },
+        { id: 'create-issue-slip', label: 'Create Issue Slip', show: user.can_access_stores, isLink: true, href: 'issue-slip.html' },
+        { id: 'picking-slips', label: 'Picking Slips', show: true },
+        { id: 'create-picking-slip', label: 'Create Picking Slip', show: user.can_access_stores, isLink: true, href: 'picking-slip.html' }
       ]
     },
     // Financial Planning Group - Budget and FX rates
     {
       id: 'fin-planning-group',
       label: 'Financial Planning',
-      icon: '💼',
       show: hasRole(user.role, 'finance', 'md', 'admin'),
       isGroup: true,
       children: [
-        { id: 'budget', label: 'Budgets', icon: '💰', show: hasRole(user.role, 'finance', 'md', 'admin') },
-        { id: 'fx-rates', label: 'FX Rates', icon: '💱', show: hasRole(user.role, 'finance', 'md', 'procurement', 'admin') }
+        { id: 'budget', label: 'Budgets', show: hasRole(user.role, 'finance', 'md', 'admin') },
+        { id: 'fx-rates', label: 'FX Rates', show: hasRole(user.role, 'finance', 'md', 'procurement', 'admin') }
       ]
     },
     // Reports & Analytics Group
     {
       id: 'insights-group',
       label: 'Reports & Analytics',
-      icon: '📊',
       show: !hasRole(user.role, 'initiator'), // Hide entire group from initiators
       isGroup: true,
       children: [
-        { id: 'reports', label: 'Reports', icon: '📈', show: true },
-        { id: 'analytics', label: 'Analytics', icon: '📊', show: hasRole(user.role, 'finance', 'md', 'admin') }
+        { id: 'reports', label: 'Reports', show: true },
+        { id: 'analytics', label: 'Analytics', show: hasRole(user.role, 'finance', 'md', 'admin') }
       ]
     },
     // Admin Panel
-    { id: 'admin', label: 'Administration', icon: '⚙️', show: hasRole(user.role, 'admin') }
+    { id: 'admin', label: 'Administration', show: hasRole(user.role, 'admin') }
   ];
 
   return React.createElement('aside', {
@@ -2610,7 +2601,7 @@ function GlobalSearch({ setView, setSelectedReq }) {
       React.createElement('div', {
         className: 'absolute right-3 top-2.5',
         style: { color: 'var(--text-tertiary)' }
-      }, isSearching ? '⏳' : '🔍')
+      }, isSearching ? React.createElement('span', { style: { fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }, '...') : null)
     ),
 
     showResults && searchResults && React.createElement('div', {
@@ -3687,7 +3678,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     backgroundColor: '#8B5CF6',
                     color: '#FFFFFF'
                   }
-                }, '⚖️ Adjudicate')
+                }, 'Adjudicate')
               ),
               // Admin Reroute Button (ONLY for purchase requisitions, not forms)
               showBreakdown === 'pending' &&
@@ -4131,7 +4122,7 @@ function CreateRequisition({ user, setView, loadData }) {
       let msg = 'Requisition saved as draft successfully!';
       if (response && response.budget_warning) {
         const w = response.budget_warning;
-        msg += `\n\n⚠ Budget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
+        msg += `\n\nBudget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
       }
       alert(msg);
       setView('dashboard');
@@ -4216,7 +4207,7 @@ function CreateRequisition({ user, setView, loadData }) {
       let msg = 'Requisition submitted for approval successfully!';
       if (response && response.budget_warning) {
         const w = response.budget_warning;
-        msg += `\n\n⚠ Budget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
+        msg += `\n\nBudget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
       }
       alert(msg);
       setView('dashboard');
@@ -4278,11 +4269,8 @@ function CreateRequisition({ user, setView, loadData }) {
             React.createElement('button', {
               onClick: addLineItem,
               disabled: lineItems.length >= 15,
-              className: "px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-            },
-              React.createElement('span', null, '➕'),
-              'Add Item'
-            )
+              className: "px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            }, 'Add Item')
           ),
           React.createElement('div', { className: "space-y-4" },
             lineItems.map((item, index) =>
@@ -9141,7 +9129,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
     // Header
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, '⚙️ Requisition Adjudication'),
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, 'Requisition Adjudication'),
         React.createElement('button', {
           onClick: fetchPendingRequisitions,
           className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -9367,7 +9355,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
         React.createElement('h2', {
           className: "text-2xl font-bold",
           style: { color: 'var(--text-primary)' }
-        }, '❌ Rejected Requisitions'),
+        }, 'Rejected Requisitions'),
         React.createElement('button', {
           onClick: fetchRejectedRequisitions,
           className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -9436,11 +9424,11 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                     React.createElement('button', {
                       onClick: () => handleEdit(req),
                       className: "px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors font-medium"
-                    }, '✏️ Edit'),
+                    }, 'Edit'),
                     React.createElement('button', {
                       onClick: () => handleResubmit(req),
                       className: "px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
-                    }, '↩️ Resubmit')
+                    }, 'Resubmit')
                   )
                 ),
 
@@ -9455,7 +9443,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                   React.createElement('p', {
                     className: "text-sm font-semibold",
                     style: { color: 'rgb(185, 28, 28)' }
-                  }, '⚠️ Rejection Reason:'),
+                  }, 'Rejection Reason:'),
                   React.createElement('p', {
                     className: "text-sm mt-1",
                     style: { color: 'var(--text-primary)' }
