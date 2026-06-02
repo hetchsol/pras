@@ -11961,10 +11961,14 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 grns.map(grn => {
+                  // Outline-only status pills (consistent with the rest of the
+                  // app post-4D). Rejected keeps a solid red fill so the
+                  // danger state still reads at a glance.
                   const statusStyles = {
-                    pending_approval: { backgroundColor: '#FEF3C7', color: '#92400E' },
-                    approved: { backgroundColor: '#D1FAE5', color: '#065F46' },
-                    rejected: { backgroundColor: '#FEE2E2', color: '#991B1B' }
+                    pending_approval: { backgroundColor: 'transparent', color: '#B45309', border: '1px solid #F59E0B' },
+                    approved:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' },
+                    rejected:         { backgroundColor: '#DC2626',     color: '#FFFFFF', border: '1px solid #DC2626' },
+                    received:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' }
                   };
                   const statusLabels = {
                     pending_approval: 'Pending Approval',
@@ -11972,7 +11976,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     rejected: 'Rejected',
                     received: 'Received'
                   };
-                  const style = statusStyles[grn.status] || { backgroundColor: '#E5E7EB', color: '#374151' };
+                  const style = statusStyles[grn.status] || { backgroundColor: 'transparent', color: '#475569', border: '1px solid #CBD5E1' };
                   const canApprove = grn.status === 'pending_approval' && (
                     grn.assigned_approver === (user.full_name || user.name) ||
                     ['admin', 'finance', 'finance_manager', 'md'].includes(user.role)
@@ -11993,7 +11997,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                       grn.customer
                         ? React.createElement('span', {
                             className: "px-2 py-1 text-xs rounded",
-                            style: { backgroundColor: '#FEF3C7', color: '#92400E' }
+                            style: { backgroundColor: 'transparent', color: '#B45309', border: '1px solid #F59E0B' }
                           }, grn.customer)
                         : 'N/A'
                     ),
@@ -12114,10 +12118,13 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
     );
   }
 
+  // Outline-only status badges (consistent with the rest of the app).
+  // Rejected stays solid red so the danger state still reads cleanly.
   const statusStyles = {
-    pending_approval: { backgroundColor: '#FEF3C7', color: '#92400E' },
-    approved: { backgroundColor: '#D1FAE5', color: '#065F46' },
-    rejected: { backgroundColor: '#FEE2E2', color: '#991B1B' }
+    pending_approval: { backgroundColor: 'transparent', color: '#B45309', border: '1px solid #F59E0B' },
+    approved:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' },
+    rejected:         { backgroundColor: '#DC2626',     color: '#FFFFFF', border: '1px solid #DC2626' },
+    received:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' }
   };
   const statusLabels = {
     pending_approval: 'PENDING APPROVAL',
@@ -12125,7 +12132,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
     rejected: 'REJECTED',
     received: 'RECEIVED'
   };
-  const badgeStyle = statusStyles[grnData.status] || { backgroundColor: '#E5E7EB', color: '#374151' };
+  const badgeStyle = statusStyles[grnData.status] || { backgroundColor: 'transparent', color: '#475569', border: '1px solid #CBD5E1' };
 
   const userName = user.full_name || user.name;
   const canApprove = grnData.status === 'pending_approval' && (
@@ -12185,29 +12192,29 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         )
       ),
 
-      // Approval Section
-      React.createElement('div', { className: "mb-6 p-4 rounded-lg border",
-        style: grnData.status === 'approved' ? { backgroundColor: '#F0FDF4', borderColor: '#22C55E' }
-             : grnData.status === 'rejected' ? { backgroundColor: '#FEF2F2', borderColor: '#EF4444' }
-             : { backgroundColor: '#FFFBEB', borderColor: '#F59E0B' }
+      // Approval Section — plain card with subtle border; the status pill
+      // above already carries the colour signal.
+      React.createElement('div', {
+        className: "mb-6 p-4 rounded-lg border",
+        style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }
       },
-        React.createElement('h3', { className: "font-semibold text-gray-800 mb-2" }, "Finance Approval"),
-        grnData.assigned_approver && React.createElement('p', { className: "text-sm text-gray-600 mb-1" },
+        React.createElement('h3', { className: "font-semibold mb-2", style: { color: 'var(--text-primary)' } }, "Finance Approval"),
+        grnData.assigned_approver && React.createElement('p', { className: "text-sm mb-1", style: { color: 'var(--text-secondary)' } },
           'Assigned Approver: ' + grnData.assigned_approver
         ),
         approval && approval.action !== 'pending' && React.createElement('div', null,
           React.createElement('p', { className: "text-sm font-medium",
-            style: { color: approval.action === 'approved' ? '#065F46' : '#991B1B' }
+            style: { color: approval.action === 'approved' ? 'var(--color-success-dark)' : 'var(--color-danger-dark)' }
           }, `${approval.action === 'approved' ? 'Approved' : 'Rejected'} by: ${approval.name}`),
-          approval.date && React.createElement('p', { className: "text-sm text-gray-500" },
+          approval.date && React.createElement('p', { className: "text-sm", style: { color: 'var(--text-tertiary)' } },
             'Date: ' + new Date(approval.date).toLocaleString()
           ),
-          approval.comments && React.createElement('p', { className: "text-sm text-gray-600 mt-1" },
+          approval.comments && React.createElement('p', { className: "text-sm mt-1", style: { color: 'var(--text-secondary)' } },
             'Comments: ' + approval.comments
           )
         ),
         (!approval || approval.action === 'pending') && React.createElement('p', {
-          className: "text-sm font-medium", style: { color: '#92400E' }
+          className: "text-sm font-medium", style: { color: 'var(--text-secondary)' }
         }, "Awaiting finance approval"),
 
         // Approve/Reject buttons for authorized users
@@ -12234,15 +12241,21 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         )
       ),
 
-      // Customer Reservation
+      // Customer Reservation — plain card with a left amber accent strip
+      // so the reservation status registers without flooding the whole
+      // surface with colour.
       grnData.customer && React.createElement('div', {
         className: "mb-6 p-4 rounded-lg border",
-        style: { backgroundColor: '#FFFBEB', borderColor: '#F59E0B' }
+        style: {
+          backgroundColor: 'var(--bg-primary)',
+          borderColor: 'var(--border-color)',
+          borderLeft: '3px solid var(--color-warning)'
+        }
       },
-        React.createElement('p', { className: "font-semibold", style: { color: '#92400E' } },
+        React.createElement('p', { className: "font-semibold", style: { color: 'var(--text-primary)' } },
           'Reserved For Customer: ' + grnData.customer
         ),
-        React.createElement('p', { className: "text-sm mt-1", style: { color: '#78350F' } },
+        React.createElement('p', { className: "text-sm mt-1", style: { color: 'var(--text-secondary)' } },
           'Items from this GRN can only be issued to this customer.'
         )
       ),
