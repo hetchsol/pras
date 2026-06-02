@@ -3701,7 +3701,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     backgroundColor: '#F59E0B',
                     color: '#FFFFFF'
                   }
-                }, '🔀 Admin Reroute')
+                }, 'Admin Reroute')
               ),
               React.createElement('p', {
                 className: "text-sm mb-2 transition-colors",
@@ -3844,7 +3844,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           React.createElement('h2', {
             className: "text-xl font-bold transition-colors",
             style: { color: 'var(--text-primary)' }
-          }, '🔀 Admin Reroute'),
+          }, 'Admin Reroute'),
           React.createElement('button', {
             onClick: () => setShowAdminReroute(false),
             className: "text-2xl font-bold hover:opacity-70 transition-colors",
@@ -3889,7 +3889,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               color: '#FFFFFF'
             }
           },
-            React.createElement('div', { className: "font-semibold" }, '🔄 Reassign to Different HOD'),
+            React.createElement('div', { className: "font-semibold" }, 'Reassign to Different HOD'),
             React.createElement('div', { className: "text-sm opacity-90" }, 'Change department/HOD')
           ),
           React.createElement('button', {
@@ -3900,7 +3900,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               color: '#FFFFFF'
             }
           },
-            React.createElement('div', { className: "font-semibold" }, '👤 Assign to Specific User'),
+            React.createElement('div', { className: "font-semibold" }, 'Assign to Specific User'),
             React.createElement('div', { className: "text-sm opacity-90" }, 'Choose a user to assign this form to')
           ),
           // User Selection Interface (shown when assign_to_user is clicked)
@@ -4242,7 +4242,7 @@ function CreateRequisition({ user, setView, loadData }) {
 
       // Auto-generated information section
       React.createElement('div', { className: "mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200" },
-        React.createElement('h3', { className: "text-sm font-semibold text-blue-900 mb-3" }, "📋 Auto-Generated Information"),
+        React.createElement('h3', { className: "text-sm font-semibold text-blue-900 mb-3" }, "Auto-Generated Information"),
         React.createElement('div', { className: "grid grid-cols-3 gap-4" },
           React.createElement('div', null,
             React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "PR Number"),
@@ -4293,11 +4293,8 @@ function CreateRequisition({ user, setView, loadData }) {
                   ),
                   lineItems.length > 1 && React.createElement('button', {
                     onClick: () => removeLineItem(index),
-                    className: "text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-1"
-                  },
-                    React.createElement('span', null, '🗑️'),
-                    'Remove'
-                  )
+                    className: "text-red-600 hover:text-red-800 font-medium text-sm"
+                  }, 'Remove')
                 ),
                 React.createElement('div', { className: "grid grid-cols-12 gap-3" },
                   React.createElement('div', { className: "col-span-2" },
@@ -4366,7 +4363,7 @@ function CreateRequisition({ user, setView, loadData }) {
           ),
           // Totals Summary (only show for procurement or if there are prices)
           (user.role === 'procurement' || calculateTotals().subtotal > 0) && React.createElement('div', { className: "mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" },
-            React.createElement('h4', { className: "text-sm font-semibold text-blue-900 mb-3" }, "💰 Requisition Totals"),
+            React.createElement('h4', { className: "text-sm font-semibold text-blue-900 mb-3" }, "Requisition Totals"),
             hasRole(user.role, 'initiator') && calculateTotals().subtotal === 0 ?
               React.createElement('p', { className: "text-sm text-gray-600 italic" },
                 "Unit prices will be filled by Procurement"
@@ -4912,7 +4909,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
 
         // Editable fields for draft requisitions
         isDraftEditable ? React.createElement('div', { className: "space-y-4 p-6 bg-blue-50 rounded-lg border border-blue-200" },
-          React.createElement('h3', { className: "text-lg font-semibold text-blue-900 mb-4" }, "📝 Edit Requisition Details"),
+          React.createElement('h3', { className: "text-lg font-semibold text-blue-900 mb-4" }, "Edit Requisition Details"),
           React.createElement('div', null,
             React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Item Description *"),
             React.createElement('input', {
@@ -4969,7 +4966,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
 
         // Procurement Details Display (for Finance and MD)
         (user.role === 'finance' || user.role === 'md') && (req.selected_vendor || req.unit_price || selectedVendor || unitPrice) && React.createElement('div', { className: "p-6 bg-purple-50 rounded-lg border border-purple-200" },
-          React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "💰 Procurement Details"),
+          React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "Procurement Details"),
           React.createElement('div', { className: "grid grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Vendor"),
@@ -5014,7 +5011,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         ),
         // Procurement-specific fields with editing capabilities
         user.role === 'procurement' && canApprove && React.createElement('div', { className: "space-y-6 p-6 bg-blue-50 rounded-lg border border-blue-200" },
-          React.createElement('h3', { className: "text-lg font-semibold text-blue-900 mb-4" }, "📋 Procurement Adjudication"),
+          React.createElement('h3', { className: "text-lg font-semibold text-blue-900 mb-4" }, "Procurement Adjudication"),
 
           // Editable description
           React.createElement('div', null,
@@ -5126,7 +5123,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
 
         // Display Quotes and Adjudication for Finance and MD
         ['finance', 'md', 'admin'].includes(user.role) && quotes.length > 0 && React.createElement('div', { className: "space-y-4 p-6 bg-purple-50 rounded-lg border border-purple-200" },
-          React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "📋 Vendor Quotes & Adjudication"),
+          React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "Vendor Quotes & Adjudication"),
 
           // Display quotes
           React.createElement('div', { className: "space-y-3" },
@@ -5152,7 +5149,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           adjudication && React.createElement('div', { className: "mt-6 pt-6 border-t border-purple-300" },
             React.createElement('h4', { className: "font-semibold text-gray-900 mb-3 flex items-center gap-2" },
               "Adjudication Summary",
-              React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "✓ Complete")
+              React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "Complete")
             ),
             React.createElement('div', { className: "bg-green-50 p-4 rounded-lg border border-green-200 space-y-3" },
               React.createElement('div', null,
@@ -7262,7 +7259,7 @@ function AnalyticsDashboard({ user }) {
             backgroundColor: 'var(--bg-tertiary)',
             color: 'var(--text-secondary)'
           }
-        }, "💡 Tip: Click on department chart to filter data")
+        }, "Tip: Click on department chart to filter data")
       ),
 
       // Filters
@@ -7379,7 +7376,7 @@ function AnalyticsDashboard({ user }) {
             color: '#FFFFFF',
             boxShadow: 'var(--shadow-sm)'
           }
-        }, '📄 Export CSV'),
+        }, 'Export CSV'),
         React.createElement('button', {
           onClick: async () => {
             try {
@@ -7395,7 +7392,7 @@ function AnalyticsDashboard({ user }) {
             color: '#FFFFFF',
             boxShadow: 'var(--shadow-sm)'
           }
-        }, '📊 Export Excel'),
+        }, 'Export Excel'),
         React.createElement('button', {
           onClick: () => {
             alert('Generating PDF report...\nThis feature will capture all charts and data into a professional PDF document.');
@@ -7406,7 +7403,7 @@ function AnalyticsDashboard({ user }) {
             color: '#FFFFFF',
             boxShadow: 'var(--shadow-sm)'
           }
-        }, '📑 Export PDF')
+        }, 'Export PDF')
       )
     ),
 
@@ -9144,7 +9141,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
         React.createElement('button', {
           onClick: fetchPendingRequisitions,
           className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        }, '🔄 Refresh')
+        }, 'Refresh')
       ),
 
       // Summary Card
@@ -9370,7 +9367,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
         React.createElement('button', {
           onClick: fetchRejectedRequisitions,
           className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        }, '🔄 Refresh')
+        }, 'Refresh')
       ),
 
       // Summary Card - Optimized colors for both modes
@@ -9687,7 +9684,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                           onClick: () => handleSaveEdit(req.id),
                           disabled: saving,
                           className: "px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
-                        }, saving ? 'Saving...' : '💾 Save Changes')
+                        }, saving ? 'Saving...' : 'Save Changes')
                       )
                     )
                   : React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
@@ -9826,7 +9823,7 @@ function PurchaseOrders({ user }) {
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "📄 Purchase Orders"),
+      React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Purchase Orders"),
 
       pos.length === 0
         ? React.createElement('div', { className: "text-center py-12" },
@@ -10712,9 +10709,9 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                       React.createElement('p', { className: "text-sm text-gray-600" }, req.title || req.description),
                       React.createElement('div', { className: "flex gap-2 mt-2" },
                         React.createElement('span', { className: "text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded" }, req.department),
-                        req.status === 'pending_procurement' && !req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded" }, "⚠ Needs Quotes"),
-                        req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "✓ Quotes"),
-                        req.has_adjudication && React.createElement('span', { className: "text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded" }, "✓ Adjudication")
+                        req.status === 'pending_procurement' && !req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded" }, "Needs Quotes"),
+                        req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "Quotes"),
+                        req.has_adjudication && React.createElement('span', { className: "text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded" }, "Adjudication")
                       )
                     ),
                     React.createElement('button', {
@@ -11029,7 +11026,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
         canUploadQuotes && quotes.length === 3 && !adjudication && React.createElement('div', { className: "border-t pt-6" },
           // Quotes Summary for Reference
           React.createElement('div', { className: "mb-6 bg-gray-50 p-4 rounded-lg" },
-            React.createElement('h4', { className: "font-semibold text-gray-900 mb-3" }, "📊 Uploaded Quotes Summary"),
+            React.createElement('h4', { className: "font-semibold text-gray-900 mb-3" }, "Uploaded Quotes Summary"),
             React.createElement('p', { className: "text-sm text-gray-600 mb-3" }, "Review the quotes below before creating your adjudication:"),
             React.createElement('div', { className: "grid grid-cols-3 gap-3" },
               quotes.map((quote, idx) =>
@@ -11064,7 +11061,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
             className: "bg-purple-50 p-6 rounded-lg border border-purple-200 space-y-4"
           },
             React.createElement('p', { className: "text-sm text-gray-700 mb-4 bg-yellow-50 p-3 rounded border border-yellow-200" },
-              "💡 Manually enter your analysis below. Review the quotes above and provide your professional assessment."
+              "Manually enter your analysis below. Review the quotes above and provide your professional assessment."
             ),
             React.createElement('div', { className: "grid grid-cols-3 gap-4" },
               React.createElement('div', null,
@@ -11199,7 +11196,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
         adjudication && React.createElement('div', { className: "border-t pt-6" },
           React.createElement('h4', { className: "font-semibold text-gray-900 mb-4 flex items-center gap-2" },
             "Adjudication Summary",
-            React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "✓ Complete")
+            React.createElement('span', { className: "text-xs px-2 py-1 bg-green-100 text-green-700 rounded" }, "Complete")
           ),
           React.createElement('div', { className: "bg-green-50 p-6 rounded-lg border border-green-200 space-y-4" },
             React.createElement('div', { className: "pb-4 border-b" },
