@@ -1517,13 +1517,14 @@ function App() {
       React.createElement('div', { className: "container mx-auto px-8 py-10" },
         view === 'change-password' && React.createElement(ChangePasswordScreen, { user: currentUser, setCurrentUser, setView, logout, forced: false }),
         view === 'dashboard' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
-        view === 'requisitions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq }),
-        view === 'my-submissions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq }),
+        view === 'requisitions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'mine' }),
+        view === 'my-submissions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'mine' }),
         view === 'approval-console' && React.createElement(ApprovalConsole, { user: currentUser, setView, setSelectedReq, loadData }),
-        view === 'rejected' && React.createElement(RejectedRequisitions, { user: currentUser, setView, setSelectedReq, loadData }),
+        view === 'rejected' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'rejected' }),
         view === 'create' && React.createElement(CreateRequisition, { user: currentUser, setView, loadData }),
         view === 'approve' && React.createElement(ApproveRequisition, { req: selectedReq, user: currentUser, data, setView, loadData }),
-        view === 'purchase-orders' && React.createElement(PurchaseOrders, { user: currentUser }),
+        view === 'purchase-orders' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'approved' }),
+        view === 'purchase-orders-list' && React.createElement(PurchaseOrders, { user: currentUser }),
         view === 'admin' && React.createElement(AdminPanel, { data, loadData }),
         view === 'budget' && React.createElement(BudgetManagement, { user: currentUser }),
         view === 'fx-rates' && React.createElement(FXRatesManagement, { user: currentUser }),
@@ -2249,8 +2250,8 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
         { id: 'requisitions', label: 'My Submissions', show: true },
         { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
-        { id: 'purchase-orders', label: 'Approved Requisitions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
-        { id: 'rejected', label: 'Rejected Requisitions', show: hasRole(user.role, 'procurement', 'admin') },
+        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
+        { id: 'rejected', label: 'Rejected Submissions', show: true },
         { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
       ]
     },
@@ -8450,17 +8451,30 @@ function ApprovePettyCash({ requisition, user, setView }) {
 }
 
 // ============================================
-// MY SUBMISSIONS — unified tracker across all four form types
-// Sidebar entry "My Submissions" lands here. Approvers still use the
-// Approval Console for inbound work; this view is what the initiator
-// of any form sees to track their own submissions in one place.
+// SUBMISSIONS TRACKER — unified table across all four form types.
+// One component drives three sidebar entries via the `mode` prop:
+//   mode='mine'      → My Submissions (filtered to user's own forms)
+//   mode='approved'  → Approved Submissions (status=approved/completed)
+//   mode='rejected'  → Rejected Submissions (status=rejected)
+// Approvers continue to use the Approval Console for inbound work;
+// these views are about looking at what's already settled.
 // ============================================
-function MySubmissions({ user, setView, setSelectedReq }) {
+function MySubmissions({ user, setView, setSelectedReq, mode }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => { fetchAll(); }, []);
+  const effectiveMode = mode || 'mine';
+  const title =
+    effectiveMode === 'approved' ? 'Approved Submissions' :
+    effectiveMode === 'rejected' ? 'Rejected Submissions' :
+    'My Submissions';
+  const emptyAll =
+    effectiveMode === 'approved' ? 'No approved submissions yet.' :
+    effectiveMode === 'rejected' ? 'No rejected submissions.' :
+    "You haven't submitted any forms yet.";
+
+  useEffect(() => { fetchAll(); }, [effectiveMode]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -8473,35 +8487,50 @@ function MySubmissions({ user, setView, setSelectedReq }) {
         safe(fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`)),
         safe(fetchWithAuth(`${API_URL}/forms/expense-claims`))
       ]);
+
+      // Mode-dependent predicate. 'mine' only keeps the user's own
+      // submissions; 'approved'/'rejected' keep all forms in that state
+      // the user already has visibility on (server-side filter already
+      // restricts non-admin/finance/MD to their department).
       const ownedBy = (r) => String(r.initiator_id || r.created_by || '') === userId;
-      const mine = [
-        ...(Array.isArray(pr) ? pr : []).filter(ownedBy).map(r => ({
+      const isApproved = (r) => {
+        const s = String(r.status || '').toLowerCase();
+        return s === 'approved' || s === 'completed';
+      };
+      const isRejected = (r) => String(r.status || '').toLowerCase() === 'rejected';
+      const keep =
+        effectiveMode === 'approved' ? isApproved :
+        effectiveMode === 'rejected' ? isRejected :
+        ownedBy;
+
+      const combined = [
+        ...(Array.isArray(pr) ? pr : []).filter(keep).map(r => ({
           _row: r, _formType: 'purchase', _formLabel: 'Purchase Req',
           _description: r.title || r.description || 'N/A',
           _amount: r.amount || r.total_amount || 0,
           _viewName: 'approve'
         })),
-        ...(Array.isArray(eft) ? eft : []).filter(ownedBy).map(r => ({
+        ...(Array.isArray(eft) ? eft : []).filter(keep).map(r => ({
           _row: r, _formType: 'eft', _formLabel: 'EFT',
           _description: r.purpose || r.description || r.in_favour_of || 'N/A',
           _amount: r.amount || 0,
           _viewName: 'approve-eft-requisition'
         })),
-        ...(Array.isArray(pc) ? pc : []).filter(ownedBy).map(r => ({
+        ...(Array.isArray(pc) ? pc : []).filter(keep).map(r => ({
           _row: r, _formType: 'pettyCash', _formLabel: 'Petty Cash',
           _description: r.purpose || r.description || 'N/A',
           _amount: r.amount || 0,
           _viewName: 'approve-petty-cash'
         })),
-        ...(Array.isArray(ec) ? ec : []).filter(ownedBy).map(r => ({
+        ...(Array.isArray(ec) ? ec : []).filter(keep).map(r => ({
           _row: r, _formType: 'expense', _formLabel: 'Expense Claim',
           _description: r.description || r.purpose || 'N/A',
           _amount: r.amount || r.total_amount || 0,
           _viewName: 'approve-expense-claim'
         }))
       ];
-      mine.sort((a, b) => new Date(b._row.created_at || 0) - new Date(a._row.created_at || 0));
-      setRows(mine);
+      combined.sort((a, b) => new Date(b._row.created_at || 0) - new Date(a._row.created_at || 0));
+      setRows(combined);
     } finally {
       setLoading(false);
     }
@@ -8555,7 +8584,7 @@ function MySubmissions({ user, setView, setSelectedReq }) {
         React.createElement('h2', {
           className: "text-2xl font-bold",
           style: { color: 'var(--text-primary)' }
-        }, "My Submissions"),
+        }, title),
         React.createElement('button', {
           onClick: fetchAll,
           className: "px-4 py-2 rounded-lg text-sm font-medium",
@@ -8592,7 +8621,7 @@ function MySubmissions({ user, setView, setSelectedReq }) {
       // Table or empty / loading state
       loading ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-secondary)' } }, 'Loading…')
       : filtered.length === 0 ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-tertiary)' } },
-          filter === 'all' ? "You haven't submitted any forms yet." : 'No submissions of this type.'
+          filter === 'all' ? emptyAll : 'No submissions of this type.'
         )
       : React.createElement('div', { className: "overflow-x-auto" },
           React.createElement('table', { className: "w-full text-sm" },
