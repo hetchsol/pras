@@ -2251,6 +2251,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
         { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
         { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
+        { id: 'purchase-orders-list', label: 'Purchase Orders', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
         { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
       ]
@@ -8463,6 +8464,81 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  // Edit & Resubmit state — lifted from the old RejectedRequisitions
+  // component. Available only on rows the user owns where status is
+  // rejected and the form is a Purchase Requisition.
+  const [editingPR, setEditingPR] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const userIdStr = String(user.id || user._id || '');
+  const canEditResubmit = (row) =>
+    row._formType === 'purchase' &&
+    String(row._row.status || '').toLowerCase() === 'rejected' &&
+    String(row._row.initiator_id || row._row.created_by || '') === userIdStr;
+
+  const openEdit = (row) => {
+    const r = row._row;
+    setEditingPR(r);
+    setEditForm({
+      description: r.description || '',
+      delivery_location: r.delivery_location || '',
+      urgency: r.urgency || 'Standard',
+      required_date: r.required_date || '',
+      account_code: r.account_code || '',
+      quantity: r.quantity || 1,
+      unit_price: r.unit_price || '',
+      selected_vendor: r.selected_vendor || '',
+      vendor_currency: r.vendor_currency || 'ZMW'
+    });
+  };
+  const closeEdit = () => { setEditingPR(null); setEditForm({}); };
+  const saveEdit = async () => {
+    if (!editingPR) return;
+    setSavingEdit(true);
+    try {
+      const totalCost = (parseFloat(editForm.quantity) || 0) * (parseFloat(editForm.unit_price) || 0);
+      const res = await fetchWithAuth(`${API_URL}/requisitions/${editingPR.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm, total_cost: totalCost })
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || 'Failed to save changes');
+      }
+      alert('Changes saved.');
+      closeEdit();
+      fetchAll();
+    } catch (err) {
+      alert(err.message || 'Failed to save');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+  const resubmit = async (row) => {
+    const r = row._row;
+    if (!confirm(`Resubmit ${r.req_number || r.id}? This sends it back to HOD for approval.`)) return;
+    try {
+      const res = await fetchWithAuth(`${API_URL}/requisitions/${r.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'pending_hod',
+          rejection_reason: null,
+          rejected_by: null,
+          rejected_at: null
+        })
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || 'Resubmit failed');
+      }
+      alert('Requisition resubmitted.');
+      fetchAll();
+    } catch (err) {
+      alert(err.message || 'Failed to resubmit');
+    }
+  };
 
   const effectiveMode = mode || 'mine';
   const title =
@@ -8661,7 +8737,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
                   row._row.created_at ? new Date(row._row.created_at).toLocaleDateString() : '—'
                 ),
                 React.createElement('td', { className: "px-3 py-3" },
-                  React.createElement('div', { className: "flex gap-2" },
+                  React.createElement('div', { className: "flex gap-2 flex-wrap" },
                     React.createElement('button', {
                       onClick: () => handleView(row),
                       className: "text-xs px-2 py-1 rounded",
@@ -8678,13 +8754,110 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
                         borderColor: 'var(--color-primary)',
                         color: 'var(--color-primary)'
                       }
-                    }, 'PDF')
+                    }, 'PDF'),
+                    canEditResubmit(row) && React.createElement('button', {
+                      onClick: () => openEdit(row),
+                      className: "text-xs px-2 py-1 rounded border",
+                      style: {
+                        backgroundColor: 'transparent',
+                        borderColor: 'var(--color-primary)',
+                        color: 'var(--color-primary)'
+                      },
+                      title: 'Edit and resubmit this rejected requisition'
+                    }, 'Edit'),
+                    canEditResubmit(row) && React.createElement('button', {
+                      onClick: () => resubmit(row),
+                      className: "text-xs px-2 py-1 rounded",
+                      style: {
+                        backgroundColor: 'var(--color-primary)',
+                        color: '#FFFFFF'
+                      },
+                      title: 'Resubmit this requisition to HOD'
+                    }, 'Resubmit')
                   )
                 )
               ))
             )
           )
         )
+    ),
+
+    // Edit modal (only for rejected PRs owned by the user)
+    editingPR && React.createElement('div', {
+      className: "fixed inset-0 flex items-center justify-center p-4 z-50",
+      style: { backgroundColor: 'rgba(0,0,0,0.5)' },
+      onClick: closeEdit
+    },
+      React.createElement('div', {
+        className: "rounded-lg p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto",
+        style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' },
+        onClick: (e) => e.stopPropagation()
+      },
+        React.createElement('div', { className: "flex items-center justify-between mb-4" },
+          React.createElement('h3', { className: "text-xl font-bold", style: { color: 'var(--text-primary)' } },
+            `Edit ${editingPR.req_number || editingPR.id}`
+          ),
+          React.createElement('button', { onClick: closeEdit, className: "text-2xl leading-none", style: { color: 'var(--text-secondary)' } }, '×')
+        ),
+        editingPR.rejection_reason && React.createElement('div', {
+          className: "mb-4 p-3 rounded-lg border-l-4",
+          style: { backgroundColor: 'rgba(239, 68, 68, 0.06)', borderLeftColor: 'rgb(220, 38, 38)' }
+        },
+          React.createElement('p', { className: "text-sm font-semibold", style: { color: 'rgb(185, 28, 28)' } }, 'Rejection reason'),
+          React.createElement('p', { className: "text-sm mt-1", style: { color: 'var(--text-primary)' } }, editingPR.rejection_reason)
+        ),
+
+        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+          [
+            ['description', 'Description', 'text'],
+            ['delivery_location', 'Delivery Location', 'text'],
+            ['urgency', 'Urgency', 'select', ['Standard', 'High', 'Emergency']],
+            ['required_date', 'Required Date', 'date'],
+            ['account_code', 'Account Code', 'text'],
+            ['quantity', 'Quantity', 'number'],
+            ['unit_price', 'Unit Price', 'number'],
+            ['selected_vendor', 'Selected Vendor', 'text']
+          ].map(([key, label, type, options]) => React.createElement('div', { key },
+            React.createElement('label', {
+              className: "block text-xs font-medium mb-1 uppercase tracking-wide",
+              style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
+            }, label),
+            type === 'select'
+              ? React.createElement('select', {
+                  value: editForm[key] || '',
+                  onChange: (e) => setEditForm({ ...editForm, [key]: e.target.value }),
+                  className: "w-full px-3 py-2 border rounded-lg",
+                  style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+                }, options.map(o => React.createElement('option', { key: o, value: o }, o)))
+              : React.createElement('input', {
+                  type,
+                  value: editForm[key] || '',
+                  onChange: (e) => setEditForm({ ...editForm, [key]: e.target.value }),
+                  className: "w-full px-3 py-2 border rounded-lg",
+                  style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+                })
+          ))
+        ),
+
+        React.createElement('div', { className: "flex gap-3 mt-6 pt-4 border-t", style: { borderColor: 'var(--border-color)' } },
+          React.createElement('button', {
+            onClick: saveEdit,
+            disabled: savingEdit,
+            className: "px-4 py-2 rounded-lg text-white font-medium",
+            style: { backgroundColor: 'var(--color-primary)', opacity: savingEdit ? 0.6 : 1 }
+          }, savingEdit ? 'Saving…' : 'Save Changes'),
+          React.createElement('button', {
+            onClick: closeEdit,
+            disabled: savingEdit,
+            className: "px-4 py-2 rounded-lg",
+            style: { backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }
+          }, 'Cancel')
+        ),
+        React.createElement('p', {
+          className: "text-xs mt-3",
+          style: { color: 'var(--text-tertiary)' }
+        }, "Tip: save your changes, then click Resubmit on the row to send this back to HOD for approval.")
+      )
     )
   );
 }
