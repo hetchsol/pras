@@ -81,22 +81,44 @@ code { background: var(--code-bg); padding: 1pt 4pt; border-radius: 3px; }
   justify-content: center;
   min-height: 240mm;
   text-align: center;
+  background: linear-gradient(160deg, #062e5c 0%, #0b4a8a 50%, #1a6fc7 100%);
+  color: white;
+  padding: 25mm 20mm;
+  position: relative;
+  overflow: hidden;
 }
-.cover .kicker { color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase; font-size: 10pt; }
-.cover h1 { font-size: 36pt; color: var(--accent); margin: 10pt 0; }
+.cover::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6pt;
+  background: rgba(255,255,255,0.18);
+}
+.cover::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 6pt;
+  background: rgba(255,255,255,0.18);
+}
+.cover .kicker { color: rgba(255,255,255,0.72); letter-spacing: 0.2em; text-transform: uppercase; font-size: 10pt; }
+.cover h1 { font-size: 36pt; color: white; margin: 10pt 0; }
 .cover .role-badge {
   display: inline-block;
   margin: 14pt auto;
   padding: 10pt 26pt;
-  background: var(--accent);
-  color: white;
+  background: white;
+  color: #0b4a8a;
   font-size: 18pt;
+  font-weight: 700;
   border-radius: 6px;
 }
-.cover .sub { color: var(--muted); font-size: 12pt; margin-top: 12pt; }
-.cover .meta { margin-top: 60pt; font-size: 10pt; color: var(--muted); }
-.cover .meta table { margin: 0 auto; border-collapse: collapse; }
-.cover .meta td { padding: 2pt 12pt; text-align: left; }
+.cover .sub { color: rgba(255,255,255,0.85); font-size: 12pt; margin-top: 12pt; }
+.cover .meta { margin-top: 60pt; font-size: 10pt; color: rgba(255,255,255,0.75); }
+.cover .meta table { margin: 0 auto; border-collapse: collapse; width: auto; }
+.cover .meta th { display: none; }
+.cover .meta td { padding: 2pt 12pt; text-align: left; border: none; background: transparent !important; color: rgba(255,255,255,0.85); }
+.cover .meta td:first-child { color: rgba(255,255,255,0.55); font-weight: 600; }
 
 /* ---------- TOC ---------- */
 .toc ol { counter-reset: sec; list-style: none; padding-left: 0; }
@@ -262,6 +284,12 @@ tr:nth-child(even) td { background: #fafafa; }
     padding: 0;
     box-shadow: none;
   }
+  .page.cover {
+    padding: 40mm 30mm;
+    min-height: 297mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   .section { page-break-before: always; }
   .section:first-of-type { page-break-before: auto; }
   .no-print { display: none !important; }
@@ -273,6 +301,10 @@ tr:nth-child(even) td { background: #fafafa; }
 @page {
   size: A4;
   margin: 18mm 16mm 20mm 16mm;
+}
+
+@page :first {
+  margin: 0;
 }
 
 /* ---------- Print instructions banner (screen only) ---------- */
