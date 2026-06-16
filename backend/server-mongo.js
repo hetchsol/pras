@@ -842,7 +842,8 @@ app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) 
       department,
       is_hod: is_hod || 0,
       can_access_stores: !!can_access_stores,
-      can_override_budget: !!can_override_budget
+      can_override_budget: !!can_override_budget,
+      must_change_password: true
     });
 
     res.status(201).json({ success: true, id: user._id });

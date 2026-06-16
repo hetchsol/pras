@@ -188,7 +188,7 @@
     <h3>4.3 Fill in basic details</h3>
     <ol>
       <li><strong>Username</strong> — 3+ characters. Letters, numbers, dots, underscores, hyphens. Use a consistent convention (e.g. <code>firstname.lastname</code>).</li>
-      <li><strong>Password</strong> — minimum 8 characters with upper, lower, and digit. Use a strong one-time password that the user will change on first login.</li>
+      <li><strong>Password</strong> — minimum 8 characters. This is a temporary password only; the user will be forced to change it on first login.</li>
       <li><strong>Full Name</strong> — as it should appear on approvals and PDFs.</li>
       <li><strong>Email</strong> — the user's real work email address. Must be unique.</li>
       <li><strong>Employee Number</strong> — HR identifier (optional but recommended).</li>
@@ -232,22 +232,20 @@
     <ol>
       <li>Click <strong>Save</strong>.</li>
       <li>The user account is created and active immediately.</li>
-      <li>If email is configured, the user receives a welcome message.</li>
+      <li>The system automatically marks the account as requiring a password change — on their first login the user will be taken straight to the <strong>Change Password</strong> screen and cannot access the system until they set a new password and choose 3 security questions.</li>
     </ol>
   </div>
 
   <div class="task">
-    <h3>4.7 Tell the user their password</h3>
+    <h3>4.7 Tell the user their temporary password</h3>
     <ol>
-      <li>Tell the user their temporary password <em>out-of-band</em> — face-to-face, by phone, or via a secure channel. Not in plain email.</li>
-      <li>Instruct them to change it on first login.</li>
+      <li>Tell the user their temporary password <em>out-of-band</em> — face-to-face or by phone. Not in plain email.</li>
+      <li>They do not need any further instruction — the system will guide them through the change on first login.</li>
     </ol>
   </div>
 
   <div class="warn">
-    Never send passwords in plain email. If your email is intercepted,
-    the attacker has both the username (visible in the From/To header)
-    and the password. Use phone or in-person delivery.
+    Never send passwords in plain email.
   </div>
 
   <div class="task">
@@ -275,17 +273,18 @@
   <div class="task">
     <h3>5.2 Reset action</h3>
     <ol>
-      <li>Click <strong>Reset Password</strong>.</li>
-      <li>Generate a new temporary password that meets the requirements.</li>
+      <li>Click <strong>Reset Password</strong> on the user's profile page.</li>
+      <li>Enter a new temporary password — minimum 8 characters.</li>
       <li>Click <strong>Save</strong>.</li>
+      <li>The system hashes the password, marks the account as requiring a change, and logs the action to the audit trail. The temporary password is shown to you once — copy it before closing.</li>
     </ol>
   </div>
 
   <div class="task">
     <h3>5.3 Notify the user</h3>
     <ol>
-      <li>Tell them the new password face-to-face or by phone.</li>
-      <li>Tell them to change it on first login.</li>
+      <li>Tell the user their temporary password face-to-face or by phone.</li>
+      <li>On their next login the system will automatically take them to the <strong>Change Password</strong> screen — they cannot skip it. They will also be prompted to set 3 security questions if they have not done so already.</li>
     </ol>
   </div>
 

@@ -968,9 +968,9 @@ const api = {
 
   resetUserPassword: async (userId, newPassword) => {
     const res = await fetch(`${API_URL}/admin/users/${userId}/reset-password`, {
-      method: 'PUT',
+      method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ new_password: newPassword })
+      body: JSON.stringify({ tempPassword: newPassword })
     });
     if (!res.ok) throw new Error('Failed to reset password');
     return res.json();
@@ -5846,8 +5846,8 @@ function AdminPanel({ data, loadData }) {
 
   // Password reset handler
   const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      alert('Password must be at least 6 characters');
+    if (!newPassword || newPassword.length < 8) {
+      alert('Password must be at least 8 characters');
       return;
     }
     try {
