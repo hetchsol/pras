@@ -1525,6 +1525,7 @@ function App() {
         view === 'approve' && React.createElement(ApproveRequisition, { req: selectedReq, user: currentUser, data, setView, loadData }),
         view === 'purchase-orders' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'approved' }),
         view === 'purchase-orders-list' && React.createElement(PurchaseOrders, { user: currentUser }),
+        view === 'incoming-prs' && React.createElement(IncomingPRsView, { user: currentUser, setView, setSelectedReq }),
         view === 'admin' && React.createElement(AdminPanel, { data, loadData }),
         view === 'budget' && React.createElement(BudgetManagement, { user: currentUser }),
         view === 'fx-rates' && React.createElement(FXRatesManagement, { user: currentUser }),
@@ -2249,6 +2250,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       children: [
         { id: 'requisitions', label: 'My Submissions', show: true },
         { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
+        { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(user.role, 'procurement', 'admin') },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
         { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
         { id: 'purchase-orders-list', label: 'Purchase Orders', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
@@ -2946,7 +2948,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
     } else if (role === 'md') {
       return status === 'pending_md' || status === 'finance_approved';
     } else if (role === 'procurement') {
-      return status === 'pending_procurement';
+      return status === 'pending_finance' || status === 'pending_md';
     } else if (role === 'admin') {
       // Admin sees all pending items
       return status.includes('pending') || status === 'hod_approved' || status === 'finance_approved';
@@ -3414,7 +3416,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       const totalValue = `ZMW ${requisitions.reduce((sum, r) => sum + (r.amount || r.total_amount || 0), 0).toLocaleString()}`;
       const cards = [
         metricCard('Total Requisitions', allRequisitions.length, () => setShowBreakdown('total')),
-        metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending')),
+        user.role === 'procurement'
+          ? metricCard('PRs In Pipeline', pendingApprovals, () => setView('incoming-prs'))
+          : metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending')),
         metricCard('Approved', approvedRequisitions.length, () => setShowBreakdown('approved')),
         metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'))
       ];
@@ -10215,6 +10219,120 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
             )
           )
     )
+  );
+}
+
+// Incoming PRs View — read-only list of PRs at pending_finance / pending_md for Procurement
+function IncomingPRsView({ user, setView, setSelectedReq }) {
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    api.getRequisitions().then(all => {
+      const incoming = (all || [])
+        .filter(r => r.status === 'pending_finance' || r.status === 'pending_md')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setReqs(incoming);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const filtered = reqs.filter(r => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (r.requisition_id || '').toLowerCase().includes(q) ||
+      (r.title || '').toLowerCase().includes(q) ||
+      (r.department || '').toLowerCase().includes(q)
+    );
+  });
+
+  const statusBadge = status => {
+    if (status === 'pending_finance') {
+      return React.createElement('span', {
+        style: { background: '#dbeafe', color: '#1d4ed8', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }
+      }, 'With Finance');
+    }
+    return React.createElement('span', {
+      style: { background: '#fed7aa', color: '#c2410c', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }
+    }, 'With MD');
+  };
+
+  const totalValue = r => {
+    const items = r.items || [];
+    return items.reduce((sum, i) => sum + ((parseFloat(i.unit_price) || 0) * (parseFloat(i.quantity) || 0)), 0);
+  };
+
+  const fmt = n => n.toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  return React.createElement('div', { style: { padding: '24px' } },
+    React.createElement('h2', { style: { marginBottom: 6, color: '#1e3a5f' } }, 'Incoming Purchase Requisitions'),
+    React.createElement('p', { style: { color: '#555', marginBottom: 16 } },
+      'PRs that have cleared HOD review and are now pending Finance or MD approval. Use this list to begin sourcing quotations or sending out RFQs.'
+    ),
+
+    // Info banner
+    React.createElement('div', {
+      style: { background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 10 }
+    },
+      React.createElement('span', { style: { fontSize: 18, marginTop: 1 } }, 'ℹ️'),
+      React.createElement('div', null,
+        React.createElement('strong', null, 'Read-only view.'),
+        ' These requisitions are currently in the approval pipeline. You can view the full details to prepare quotations or RFQs, but no edits or actions can be made here.'
+      )
+    ),
+
+    // Search bar
+    React.createElement('div', { style: { marginBottom: 16 } },
+      React.createElement('input', {
+        type: 'text',
+        placeholder: 'Search by PR number, title, or department…',
+        value: search,
+        onChange: e => setSearch(e.target.value),
+        style: { padding: '8px 14px', border: '1px solid #d1d5db', borderRadius: 6, width: 340, fontSize: 14 }
+      })
+    ),
+
+    loading
+      ? React.createElement('p', null, 'Loading…')
+      : filtered.length === 0
+        ? React.createElement('div', {
+            style: { textAlign: 'center', padding: 48, color: '#888', background: '#f9fafb', borderRadius: 8 }
+          },
+            React.createElement('div', { style: { fontSize: 40, marginBottom: 12 } }, '📋'),
+            React.createElement('p', { style: { margin: 0 } }, search ? 'No results match your search.' : 'No PRs are currently in the pipeline.')
+          )
+        : React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 14 } },
+            React.createElement('thead', null,
+              React.createElement('tr', { style: { background: '#1e3a5f', color: 'white' } },
+                ['PR Number', 'Title', 'Department', 'Initiated By', 'Date', 'Status', 'Est. Value', ''].map(h =>
+                  React.createElement('th', { key: h, style: { padding: '10px 12px', textAlign: 'left', fontWeight: 600 } }, h)
+                )
+              )
+            ),
+            React.createElement('tbody', null,
+              filtered.map((r, idx) =>
+                React.createElement('tr', { key: r._id, style: { background: idx % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #e5e7eb' } },
+                  React.createElement('td', { style: { padding: '10px 12px', fontFamily: 'monospace', fontSize: 13 } }, r.requisition_id || r._id),
+                  React.createElement('td', { style: { padding: '10px 12px', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, r.title || '—'),
+                  React.createElement('td', { style: { padding: '10px 12px' } }, r.department || '—'),
+                  React.createElement('td', { style: { padding: '10px 12px' } }, r.created_by_name || r.created_by || '—'),
+                  React.createElement('td', { style: { padding: '10px 12px', whiteSpace: 'nowrap' } }, r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'),
+                  React.createElement('td', { style: { padding: '10px 12px' } }, statusBadge(r.status)),
+                  React.createElement('td', { style: { padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace' } },
+                    r.currency ? `${r.currency} ${fmt(totalValue(r))}` : (totalValue(r) > 0 ? `ZMW ${fmt(totalValue(r))}` : '—')
+                  ),
+                  React.createElement('td', { style: { padding: '10px 12px' } },
+                    React.createElement('button', {
+                      onClick: () => { setSelectedReq(r); setView('approve'); },
+                      style: { padding: '5px 14px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 5, cursor: 'pointer', fontSize: 13 }
+                    }, 'View')
+                  )
+                )
+              )
+            )
+          )
   );
 }
 

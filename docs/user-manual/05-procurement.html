@@ -16,12 +16,13 @@
   <div class="kicker">KSB Zambia · Purchase Requisition System</div>
   <h1>User Manual</h1>
   <div class="role-badge">Role 5 — Procurement</div>
-  <p class="sub">Vendor management, quote collection, and adjudication</p>
+  <p class="sub">Vendor management, quote collection, adjudication, and early sourcing</p>
   <div class="meta">
     <table>
-      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
-      <tr><td><strong>Approval role</strong></td><td>None formal — you execute after MD approval</td></tr>
-      <tr><td><strong>Key responsibility</strong></td><td>Vendor selection and order execution</td></tr>
+      <tr><td>Read first</td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td>Approval role</td><td>None formal — you execute after MD approval</td></tr>
+      <tr><td>Early sourcing</td><td>Incoming PRs view — start quotes at pending_finance</td></tr>
+      <tr><td>Key responsibility</td><td>Vendor selection and order execution</td></tr>
     </table>
   </div>
 </div>
@@ -33,14 +34,15 @@
     <li><span>Quick Reference Card</span><span class="pnum">4</span></li>
     <li><span>Workflow from Your Point of View</span><span class="pnum">5</span></li>
     <li><span>What Your Sidebar Looks Like</span><span class="pnum">6</span></li>
-    <li><span>Task 1: Review Approved Requisitions</span><span class="pnum">7</span></li>
-    <li><span>Task 2: Collect and Add Quotes</span><span class="pnum">8</span></li>
-    <li><span>Task 3: Run Adjudication</span><span class="pnum">10</span></li>
-    <li><span>Task 4: Manage Vendors</span><span class="pnum">12</span></li>
-    <li><span>Task 5: Track Rejected Requisitions</span><span class="pnum">13</span></li>
-    <li><span>Task 6: Reports</span><span class="pnum">14</span></li>
-    <li><span>Troubleshooting</span><span class="pnum">15</span></li>
-    <li><span>Appendix</span><span class="pnum">16</span></li>
+    <li><span>Task 1: Monitor Incoming PRs</span><span class="pnum">7</span></li>
+    <li><span>Task 2: Review Approved Requisitions</span><span class="pnum">8</span></li>
+    <li><span>Task 3: Collect and Add Quotes</span><span class="pnum">9</span></li>
+    <li><span>Task 4: Run Adjudication</span><span class="pnum">11</span></li>
+    <li><span>Task 5: Manage Vendors</span><span class="pnum">13</span></li>
+    <li><span>Task 6: Track Rejected Requisitions</span><span class="pnum">14</span></li>
+    <li><span>Task 7: Reports</span><span class="pnum">15</span></li>
+    <li><span>Troubleshooting</span><span class="pnum">16</span></li>
+    <li><span>Appendix</span><span class="pnum">17</span></li>
   </ol>
 </div>
 
@@ -50,6 +52,7 @@
 
   <h3>1.1 What you can do</h3>
   <ul>
+    <li>Monitor <strong>Incoming PRs</strong> — view PRs that have cleared HOD review and are now with Finance or MD, so you can begin sourcing quotations early.</li>
     <li>View every Purchase Requisition across all departments.</li>
     <li>Add supplier quotes to a requisition.</li>
     <li>Run an adjudication (three-quote comparison) to pick a winning vendor.</li>
@@ -61,12 +64,13 @@
   <h3>1.2 What you cannot do</h3>
   <ul>
     <li>You do not approve financial requests — that is HOD / Finance / MD.</li>
-    <li>You cannot change the items or amounts on an approved PR.</li>
+    <li>You cannot change the items or amounts on a PR — the Incoming PRs view is read-only.</li>
     <li>You cannot manage users or system settings (that's Admin).</li>
   </ul>
 
   <h3>1.3 Your responsibilities</h3>
   <ol>
+    <li><strong>Start sourcing early</strong> — monitor Incoming PRs and begin collecting quotes as soon as a PR reaches Finance.</li>
     <li>Collect at least <strong>three quotes</strong> for requisitions above the unquoted limit.</li>
     <li>Run a fair <strong>adjudication</strong> that compares price, quality, and delivery.</li>
     <li>Document the <strong>winning vendor</strong> and the reasoning.</li>
@@ -81,6 +85,7 @@
   <div class="quick-ref">
     <h3>One-page cheat sheet</h3>
 
+    <p><strong>See PRs in the pipeline (early sourcing):</strong> Sidebar &rarr; Procurement &rarr; <strong>Incoming PRs</strong>.</p>
     <p><strong>See all approved PRs:</strong> Sidebar &rarr; Procurement &rarr; Approved Requisitions.</p>
     <p><strong>Add quotes:</strong> open a PR &rarr; Quotes section &rarr; Add Quote.</p>
     <p><strong>Run adjudication:</strong> Sidebar &rarr; Procurement &rarr; Adjudication.</p>
@@ -109,24 +114,27 @@
 
   <div class="diagram">
   [Initiator] --> pending_hod --> pending_finance --> pending_md --> approved
-                                        ^                              |
-                                        |                              v
-                              YOU add quotes here            YOU run adjudication,
-                              (often during pending_finance)  issue PO outside system
+                                        |                              |
+                                        v                              v
+                                 INCOMING PRs VIEW             YOU run adjudication,
+                                 (read-only) — start           issue PO outside system
+                                 collecting quotes here
 
-  OPTIONAL SUB-FLOW:
-    - Collect supplier quotes (email / PDF / website).
-    - Upload quotes into the system via the PR detail page.
-    - Run adjudication to pick winner.
-    - Add winner + rationale to the PR.
-    - After final approval, raise the PO with the vendor.
+  TYPICAL SUB-FLOW:
+    1. PR appears in "Incoming PRs" (status = With Finance or With MD).
+    2. You view the PR details (read-only) to understand requirements.
+    3. You contact vendors externally and collect written quotes.
+    4. Once PR is approved, you open it and upload quotes into the system.
+    5. Run adjudication to pick the winning vendor.
+    6. After final MD approval, raise the PO with the vendor.
   </div>
 
   <h3>3.1 When do you step in?</h3>
-  <p>The system doesn't enforce a specific stage for Procurement. In practice you should:</p>
+  <p>The system gives you an early window via <strong>Incoming PRs</strong>:</p>
   <ul>
-    <li><strong>Get involved at pending_finance</strong> — this is when Finance is scrutinising the request. Add quotes and run adjudication so Finance has full data.</li>
-    <li><strong>Act at approved</strong> — issue the purchase order to the winning vendor.</li>
+    <li><strong>At pending_finance</strong> — the PR appears in your Incoming PRs view (read-only). Begin reaching out to vendors and collecting quotes in the background.</li>
+    <li><strong>At pending_md</strong> — the PR is still visible in Incoming PRs. Adjudication data will support the MD's decision.</li>
+    <li><strong>At approved</strong> — upload formal quotes and record adjudication in the system, then issue the purchase order.</li>
   </ul>
 
   <h3>3.2 What the system records</h3>
@@ -147,6 +155,7 @@
     <div class="section-label">Procurement</div>
     <div class="item highlight">My Requisitions</div>
     <div class="item">Create Requisition</div>
+    <div class="item highlight">Incoming PRs ← NEW</div>
     <div class="item highlight">Approved Requisitions</div>
     <div class="item highlight">Rejected Requisitions</div>
     <div class="item highlight">Adjudication</div>
@@ -172,13 +181,74 @@
     <div class="section-label">Administration</div>
     <div class="item highlight">Vendors</div>
   </div>
+
+  <div class="note">
+    Your Dashboard also shows a <strong>PRs In Pipeline</strong> metric card counting all PRs currently at
+    <em>With Finance</em> or <em>With MD</em> status. Clicking it opens the Incoming PRs view directly.
+  </div>
 </div>
 
 <div class="page section">
-  <h2>5. Task 1 — Review Approved Requisitions</h2>
+  <h2>5. Task 1 — Monitor Incoming PRs</h2>
+  <p>The Incoming PRs view gives you a read-only window into PRs that are actively moving through the Finance and MD approval stages. Use it to start sourcing and preparing quotes before formal approval, so you are ready to act the moment a PR is approved.</p>
 
   <div class="task">
-    <h3>5.1 Open Approved Requisitions</h3>
+    <h3>5.1 Open Incoming PRs</h3>
+    <ol>
+      <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Incoming PRs</strong>.<br>
+          <em>Or</em> click the <strong>PRs In Pipeline</strong> metric card on your Dashboard.</li>
+      <li>The list shows every PR currently at status <strong>With Finance</strong> or <strong>With MD</strong>.</li>
+      <li>Use the search bar to filter by PR number, title, or department.</li>
+    </ol>
+  </div>
+
+  <div class="screenshot">
+    <em>Incoming PRs list with columns: PR Number, Title, Department, Initiated By, Date, Status badge, Estimated Value, View button.</em>
+  </div>
+
+  <div class="task">
+    <h3>5.2 Understand the status badges</h3>
+    <table>
+      <thead><tr><th>Badge</th><th>Meaning</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge" style="background:#dbeafe;color:#1d4ed8;">With Finance</span></td>
+          <td>PR has passed HOD approval; Finance is reviewing budget and figures.</td>
+          <td>Good time to start collecting informal quotes from vendors.</td>
+        </tr>
+        <tr>
+          <td><span class="badge" style="background:#fed7aa;color:#c2410c;">With MD</span></td>
+          <td>Finance has approved; awaiting final MD sign-off.</td>
+          <td>Finalise your vendor shortlist; confirm lead times.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="task">
+    <h3>5.3 View a PR's details</h3>
+    <ol>
+      <li>Click the <strong>View</strong> button on any row.</li>
+      <li>The PR detail page opens in read-only mode.</li>
+      <li>Review items, quantities, required date, and any notes from the initiator or HOD.</li>
+      <li>Note anything that may be difficult to source so you can raise it with the initiator early.</li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    The Incoming PRs view is <strong>read-only</strong>. You cannot add quotes, make edits, or take approval actions here. Wait until the PR is approved before uploading quotes into the system.
+  </div>
+
+  <div class="note">
+    External quote collection (emails, phone calls, RFQ letters) can and should happen while the PR is still in the pipeline. The system records only what you upload — your external work runs in parallel.
+  </div>
+</div>
+
+<div class="page section">
+  <h2>6. Task 2 — Review Approved Requisitions</h2>
+
+  <div class="task">
+    <h3>6.1 Open Approved Requisitions</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Approved Requisitions</strong>.</li>
       <li>The list shows every PR at status <span class="badge badge-approved">approved</span>.</li>
@@ -187,7 +257,7 @@
   </div>
 
   <div class="task">
-    <h3>5.2 Open a PR detail</h3>
+    <h3>6.2 Open a PR detail</h3>
     <ol>
       <li>Click a row.</li>
       <li>Check: vendor selected (if any), winning quote, adjudication outcome.</li>
@@ -200,7 +270,7 @@
   </div>
 
   <div class="task">
-    <h3>5.3 Reach out to the initiator (optional)</h3>
+    <h3>6.3 Reach out to the initiator (optional)</h3>
     <ol>
       <li>If any detail is unclear, contact the initiator before placing the order.</li>
       <li>Document the clarification in the comments section of the PR.</li>
@@ -209,10 +279,10 @@
 </div>
 
 <div class="page section">
-  <h2>6. Task 2 — Collect and Add Quotes</h2>
+  <h2>7. Task 3 — Collect and Add Quotes</h2>
 
   <div class="task">
-    <h3>6.1 Collect quotes externally first</h3>
+    <h3>7.1 Collect quotes externally first</h3>
     <ol>
       <li>Email, phone, or visit each candidate vendor.</li>
       <li>Ask for a written quote including:
@@ -228,8 +298,12 @@
     </ol>
   </div>
 
+  <div class="note">
+    You can start collecting quotes while the PR is still in the Incoming PRs view (pending_finance or pending_md). Upload them into the system once the PR is fully approved.
+  </div>
+
   <div class="task">
-    <h3>6.2 Open the PR detail page</h3>
+    <h3>7.2 Open the PR detail page</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>My Requisitions</strong> or <strong>Approved Requisitions</strong>.</li>
       <li>Click the PR you're working on.</li>
@@ -238,10 +312,10 @@
   </div>
 
   <div class="task">
-    <h3>6.3 Add a quote</h3>
+    <h3>7.3 Add a quote</h3>
     <ol>
       <li>Click <strong>Add Quote</strong>.</li>
-      <li>Select the <strong>Vendor</strong> from the dropdown. If the vendor is new, add them first via Administration &rarr; Vendors (see Task 4).</li>
+      <li>Select the <strong>Vendor</strong> from the dropdown. If the vendor is new, add them first via Administration &rarr; Vendors (see Task 5).</li>
       <li>Enter <strong>Unit Price</strong> for each item in the PR.</li>
       <li>Select <strong>Currency</strong>.</li>
       <li>Attach the <strong>Quote PDF</strong>.</li>
@@ -251,7 +325,7 @@
   </div>
 
   <div class="task">
-    <h3>6.4 Repeat for each quote</h3>
+    <h3>7.4 Repeat for each quote</h3>
     <ol>
       <li>Add at least three quotes for comparison, if the PR requires them.</li>
       <li>If only one quote is possible (sole-source), note the reason in the Comments section.</li>
@@ -264,11 +338,11 @@
 </div>
 
 <div class="page section">
-  <h2>7. Task 3 — Run Adjudication</h2>
+  <h2>8. Task 4 — Run Adjudication</h2>
   <p>Adjudication is the formal process of comparing quotes and choosing a winner.</p>
 
   <div class="task">
-    <h3>7.1 Open the Adjudication page</h3>
+    <h3>8.1 Open the Adjudication page</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Adjudication</strong>.</li>
       <li>The page lists PRs that have multiple quotes but no adjudication yet.</li>
@@ -277,7 +351,7 @@
   </div>
 
   <div class="task">
-    <h3>7.2 Review the side-by-side comparison</h3>
+    <h3>8.2 Review the side-by-side comparison</h3>
     <ol>
       <li>The system shows each quote as a column.</li>
       <li>All non-ZMW prices are automatically converted to ZMW using the current FX rate.</li>
@@ -293,7 +367,7 @@
   </div>
 
   <div class="task">
-    <h3>7.3 Pick the winner</h3>
+    <h3>8.3 Pick the winner</h3>
     <ol>
       <li>Select one quote as <strong>Winner</strong> using the radio button or "Select as winner" action.</li>
       <li>The winning quote does NOT have to be the cheapest. Cheapest, fastest, or best quality are all valid criteria — but you must justify.</li>
@@ -301,7 +375,7 @@
   </div>
 
   <div class="task">
-    <h3>7.4 Record the rationale</h3>
+    <h3>8.4 Record the rationale</h3>
     <ol>
       <li>Fill in the <strong>Rationale</strong> text box.</li>
       <li>Be specific. Examples:
@@ -316,7 +390,7 @@
   </div>
 
   <div class="task">
-    <h3>7.5 After adjudication</h3>
+    <h3>8.5 After adjudication</h3>
     <ol>
       <li>The PR now has a selected vendor locked in.</li>
       <li>Finance and MD see the adjudication data during their approval.</li>
@@ -331,10 +405,10 @@
 </div>
 
 <div class="page section">
-  <h2>8. Task 4 — Manage Vendors</h2>
+  <h2>9. Task 5 — Manage Vendors</h2>
 
   <div class="task">
-    <h3>8.1 Open the Vendor list</h3>
+    <h3>9.1 Open the Vendor list</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Administration</strong> &rarr; <strong>Vendors</strong>.</li>
       <li>Search for an existing vendor by name or code.</li>
@@ -342,7 +416,7 @@
   </div>
 
   <div class="task">
-    <h3>8.2 Add a new vendor</h3>
+    <h3>9.2 Add a new vendor</h3>
     <ol>
       <li>Click <strong>Add Vendor</strong>.</li>
       <li>Fill in:
@@ -362,7 +436,7 @@
   </div>
 
   <div class="task">
-    <h3>8.3 Update a vendor</h3>
+    <h3>9.3 Update a vendor</h3>
     <ol>
       <li>Click the vendor row.</li>
       <li>Change the details.</li>
@@ -371,7 +445,7 @@
   </div>
 
   <div class="task">
-    <h3>8.4 Disable (don't delete) an inactive vendor</h3>
+    <h3>9.4 Disable (don't delete) an inactive vendor</h3>
     <ol>
       <li>Open the vendor.</li>
       <li>Change Status to <code>inactive</code>.</li>
@@ -381,7 +455,7 @@
   </div>
 
   <div class="task">
-    <h3>8.5 Bulk upload from Excel</h3>
+    <h3>9.5 Bulk upload from Excel</h3>
     <ol>
       <li>Download the vendor template from the Vendors page.</li>
       <li>Fill in all columns.</li>
@@ -397,10 +471,10 @@
 </div>
 
 <div class="page section">
-  <h2>9. Task 5 — Track Rejected Requisitions</h2>
+  <h2>10. Task 6 — Track Rejected Requisitions</h2>
 
   <div class="task">
-    <h3>9.1 Open Rejected Requisitions</h3>
+    <h3>10.1 Open Rejected Requisitions</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Procurement</strong> &rarr; <strong>Rejected Requisitions</strong>.</li>
       <li>The list shows every PR at status <span class="badge badge-rejected">rejected</span>.</li>
@@ -408,7 +482,7 @@
   </div>
 
   <div class="task">
-    <h3>9.2 Review rejection reasons</h3>
+    <h3>10.2 Review rejection reasons</h3>
     <ol>
       <li>Click a row.</li>
       <li>Read the approval history comments.</li>
@@ -417,7 +491,7 @@
   </div>
 
   <div class="task">
-    <h3>9.3 Share feedback monthly</h3>
+    <h3>10.3 Share feedback monthly</h3>
     <ol>
       <li>Summarise rejection patterns.</li>
       <li>Share with HODs to improve their team's initial submissions.</li>
@@ -427,10 +501,10 @@
 </div>
 
 <div class="page section">
-  <h2>10. Task 6 — Reports</h2>
+  <h2>11. Task 7 — Reports</h2>
 
   <div class="task">
-    <h3>10.1 Summary Reports</h3>
+    <h3>11.1 Summary Reports</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Reports &amp; Analytics</strong> &rarr; <strong>Reports</strong>.</li>
       <li>Pick a date range (Last 30 Days for monthly view).</li>
@@ -439,7 +513,7 @@
   </div>
 
   <div class="task">
-    <h3>10.2 Useful filters for Procurement</h3>
+    <h3>11.2 Useful filters for Procurement</h3>
     <ol>
       <li>By department — which departments are spending the most?</li>
       <li>By vendor — which vendors are we using most?</li>
@@ -448,7 +522,7 @@
   </div>
 
   <div class="task">
-    <h3>10.3 FX Rates visibility</h3>
+    <h3>11.3 FX Rates visibility</h3>
     <ol>
       <li>Sidebar &rarr; <strong>Financial Planning</strong> &rarr; <strong>FX Rates</strong> (view-only for Procurement).</li>
       <li>Use this to check what rates are being applied to foreign-currency quotes.</li>
@@ -458,35 +532,42 @@
 </div>
 
 <div class="page section">
-  <h2>11. Troubleshooting</h2>
+  <h2>12. Troubleshooting</h2>
 
-  <h3>11.1 I can't add a quote — the Add Quote button is missing</h3>
+  <h3>12.1 I can't see any PRs in Incoming PRs</h3>
+  <ol>
+    <li>There may be no PRs currently at <em>pending_finance</em> or <em>pending_md</em> — this is normal when the pipeline is empty.</li>
+    <li>Try refreshing the page.</li>
+    <li>Check your role — only Procurement and Admin see this view.</li>
+  </ol>
+
+  <h3>12.2 I can't add a quote — the Add Quote button is missing</h3>
   <ol>
     <li>Check your role is Procurement or Admin.</li>
     <li>Check the PR is not already <span class="badge badge-rejected">rejected</span> — quotes can't be added to rejected PRs.</li>
     <li>Try refreshing the page.</li>
   </ol>
 
-  <h3>11.2 A quote I uploaded doesn't appear</h3>
+  <h3>12.3 A quote I uploaded doesn't appear</h3>
   <ol>
     <li>Refresh the PR detail page.</li>
     <li>Check the file size — must be under 10 MB.</li>
     <li>Check the file format — PDF preferred; JPG / PNG / Excel / Word also accepted.</li>
   </ol>
 
-  <h3>11.3 The ZMW total on adjudication is wrong</h3>
+  <h3>12.4 The ZMW total on adjudication is wrong</h3>
   <ol>
     <li>FX rate may be stale. Ask Finance to refresh the rate for that currency.</li>
     <li>Then refresh the adjudication page — the new total will appear.</li>
   </ol>
 
-  <h3>11.4 The vendor dropdown doesn't include the vendor I need</h3>
+  <h3>12.5 The vendor dropdown doesn't include the vendor I need</h3>
   <ol>
     <li>Vendor may be set to <code>inactive</code>. Open Administration &rarr; Vendors, find them, and set to <code>active</code>.</li>
-    <li>Or the vendor doesn't exist yet — add them (Task 4).</li>
+    <li>Or the vendor doesn't exist yet — add them (Task 5).</li>
   </ol>
 
-  <h3>11.5 I selected the wrong winner by mistake</h3>
+  <h3>12.6 I selected the wrong winner by mistake</h3>
   <ol>
     <li>Re-open the adjudication.</li>
     <li>Select the correct quote as winner.</li>
@@ -495,9 +576,9 @@
 </div>
 
 <div class="page section">
-  <h2>12. Appendix</h2>
+  <h2>13. Appendix</h2>
 
-  <h3>12.1 Vendor tiers</h3>
+  <h3>13.1 Vendor tiers</h3>
   <table>
     <thead><tr><th>Tier</th><th>Meaning</th><th>When to use</th></tr></thead>
     <tbody>
@@ -507,7 +588,7 @@
     </tbody>
   </table>
 
-  <h3>12.2 Typical PR lead times</h3>
+  <h3>13.2 Typical PR lead times</h3>
   <table>
     <thead><tr><th>Category</th><th>Typical lead</th></tr></thead>
     <tbody>
@@ -520,7 +601,16 @@
   </table>
   <p>Use these figures to challenge unrealistic Required Dates.</p>
 
-  <h3>12.3 Checklist before closing a PR</h3>
+  <h3>13.3 Incoming PRs vs Approved Requisitions — what's the difference?</h3>
+  <table>
+    <thead><tr><th>View</th><th>Status shown</th><th>Can edit?</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Incoming PRs</td><td>With Finance, With MD</td><td>No — read-only</td><td>Early sourcing: begin collecting quotes before approval</td></tr>
+      <tr><td>Approved Requisitions</td><td>Approved</td><td>Yes (quotes &amp; adjudication)</td><td>Formal procurement: upload quotes, run adjudication, issue PO</td></tr>
+    </tbody>
+  </table>
+
+  <h3>13.4 Checklist before closing a PR</h3>
   <ul>
     <li>All quotes uploaded.</li>
     <li>Adjudication complete with rationale.</li>
