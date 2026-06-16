@@ -20,9 +20,9 @@
   <p class="sub">For any staff member who submits requisitions, EFTs, petty cash, or expense claims</p>
   <div class="meta">
     <table>
-      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
-      <tr><td><strong>Approval role</strong></td><td>None — you are the creator, not an approver</td></tr>
-      <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+      <tr><td>Read first</td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td>Approval role</td><td>None — you are the creator, not an approver</td></tr>
+      <tr><td>Key actions</td><td>Create PRs, EFTs, Petty Cash, Expense Claims; track status</td></tr>
     </table>
   </div>
 </div>
@@ -92,9 +92,9 @@
     <h3>Meaning of each status</h3>
     <ul>
       <li><span class="badge badge-pending">pending_hod</span> At your HOD, not yet approved.</li>
-      <li><span class="badge badge-pending">pending_finance</span> HOD approved, Finance is next.</li>
-      <li><span class="badge badge-pending">pending_md</span> Finance approved, MD is next (high-value PRs).</li>
-      <li><span class="badge badge-approved">approved</span> Fully approved — procurement will action it.</li>
+      <li><span class="badge badge-pending">pending_finance</span> HOD approved; Finance is reviewing. Procurement can now see your PR and may already be contacting suppliers.</li>
+      <li><span class="badge badge-pending">pending_md</span> Finance approved; MD is next (high-value PRs). Procurement is likely finalising their vendor shortlist.</li>
+      <li><span class="badge badge-approved">approved</span> Fully approved — Procurement will raise the purchase order.</li>
       <li><span class="badge badge-rejected">rejected</span> Rejected — read the comments.</li>
     </ul>
 
@@ -117,15 +117,15 @@
                              |
                        approve / reject
                              v
-                        pending_finance
+                        pending_finance  <-- Procurement sees your PR here (read-only)
+                             |                and may already be collecting supplier quotes
+                       approve / reject
+                             v
+                          pending_md   (only if value > MD threshold)
                              |
                        approve / reject
                              v
-                          pending_md   (only if value &gt; MD threshold)
-                             |
-                       approve / reject
-                             v
-                         approved
+                         approved  <-- Procurement raises the purchase order
   </div>
 
   <h3>3.2 EFT / Petty Cash / Expense Claim</h3>
@@ -565,9 +565,9 @@
     <tbody>
       <tr><td>draft</td><td>Saved but not submitted. Usually invisible on lists.</td></tr>
       <tr><td>pending_hod</td><td>Waiting for your Head of Department.</td></tr>
-      <tr><td>pending_finance</td><td>HOD approved, Finance is next.</td></tr>
-      <tr><td>pending_md</td><td>Finance approved, MD is next (high-value PRs only).</td></tr>
-      <tr><td>approved</td><td>Fully approved.</td></tr>
+      <tr><td>pending_finance</td><td>HOD approved, Finance is next. Procurement can see the PR and may already be sourcing quotes.</td></tr>
+      <tr><td>pending_md</td><td>Finance approved, MD is next (high-value PRs only). Procurement is likely finalising vendor options.</td></tr>
+      <tr><td>approved</td><td>Fully approved. Procurement will raise the purchase order.</td></tr>
       <tr><td>rejected</td><td>Rejected at some stage — read the comment.</td></tr>
     </tbody>
   </table>

@@ -19,9 +19,9 @@
   <p class="sub">Head of Department — first-stage approver for your department</p>
   <div class="meta">
     <table>
-      <tr><td><strong>Read first</strong></td><td>All Users manual (00-all-users.pdf)</td></tr>
-      <tr><td><strong>Approval stage</strong></td><td>Stage 1 of 3 (for PRs) / Stage 1 of 2 (for EFT, PC, EC, Issue Slips)</td></tr>
-      <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+      <tr><td>Read first</td><td>All Users manual (00-all-users.pdf)</td></tr>
+      <tr><td>Approval stage</td><td>Stage 1 of 3 (for PRs) / Stage 1 of 2 (for EFT, PC, EC, Issue Slips)</td></tr>
+      <tr><td>Key responsibility</td><td>First check on all department spend; 48-hour turnaround target</td></tr>
     </table>
   </div>
 </div>
@@ -110,7 +110,7 @@
                          |
                          v
           +---------------------------+
-          |  STATUS = pending_hod     | &lt;-- this is your queue
+          |  STATUS = pending_hod     | <-- this is your queue
           |  Your name = the approver |
           +---------------------------+
                          |
@@ -118,8 +118,10 @@
             |                        |
             v                        v
    pending_finance              rejected
-   (Finance takes over)        (initiator sees
-                                 rejection + comment)
+   (Finance reviews;           (initiator sees
+    Procurement sees PR          rejection + comment)
+    read-only and starts
+    collecting quotes)
   </div>
 
   <h3>3.1 Time-to-approve expectations</h3>
@@ -128,7 +130,8 @@
   <h3>3.2 What happens after you approve</h3>
   <ul>
     <li>Status changes to <span class="badge badge-pending">pending_finance</span>.</li>
-    <li>Finance team receives an email.</li>
+    <li>Finance team receives an email notification.</li>
+    <li>For Purchase Requisitions, Procurement immediately gains read-only visibility in their <strong>Incoming PRs</strong> view — they can begin contacting suppliers and preparing quotes while Finance reviews.</li>
     <li>You can still see the request in "Approved Requisitions" for audit purposes.</li>
   </ul>
 

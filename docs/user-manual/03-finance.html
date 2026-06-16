@@ -98,6 +98,11 @@
       <li>Did the HOD leave a meaningful comment? If the HOD approved in silence, ask for context before acting.</li>
     </ol>
 
+    <h3>Procurement coordination</h3>
+    <ul>
+      <li>Procurement sees all PRs at <em>pending_finance</em> (read-only) and may already be sourcing quotes. If they raise a concern about a PR on your queue, it's worth pausing before approving.</li>
+    </ul>
+
     <h3>Emergency escalation</h3>
     <ul>
       <li>Time-critical payments can be marked urgent in the comment; MD will prioritise.</li>
@@ -113,7 +118,11 @@
                      |
                      v
          +--------------------------+
-         | STATUS = pending_finance | &lt;-- your queue
+         | STATUS = pending_finance | <-- your queue
+         | (Procurement can also    |
+         |  see the PR read-only    |
+         |  and may be sourcing     |
+         |  quotes at this stage)   |
          +--------------------------+
                      |
             approve / reject
@@ -123,7 +132,7 @@
        v                           v
     pending_md                 approved
   (only if PR value            (EFT, PC, EC,
-   &gt; MD threshold)              Issue Slip,
+   > MD threshold)              Issue Slip,
                                  or low-value PR)
 
   GRN workflow (separate):
@@ -137,6 +146,7 @@
   <ul>
     <li>If the total exceeds the MD threshold (check your local configuration), status becomes <span class="badge badge-pending">pending_md</span>.</li>
     <li>Otherwise, status becomes <span class="badge badge-approved">approved</span> directly and Procurement takes over.</li>
+    <li>Note: while a PR is at <span class="badge badge-pending">pending_finance</span>, Procurement already has read-only visibility via their <strong>Incoming PRs</strong> view. They may contact you if they anticipate sourcing challenges or if quotes are ready for your consideration.</li>
   </ul>
 
   <h3>3.2 When you approve an EFT / Petty Cash / Expense Claim</h3>
