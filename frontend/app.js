@@ -1275,7 +1275,6 @@ function EFTLockBanner({ action, access }) {
       color: 'var(--text-primary)'
     }
   },
-    React.createElement('span', { style: { fontSize: '1.5rem', lineHeight: 1 } }, '⏰'),
     React.createElement('div', null,
       React.createElement('p', { className: "font-semibold mb-1" },
         `${verb} is currently closed.`),
@@ -4540,7 +4539,7 @@ function CreateRequisition({ user, setView, loadData }) {
           React.createElement('button', {
             onClick: handleSubmitForApproval,
             disabled: loading,
-            className: "flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+            className: "btn-primary btn-lg flex-1"
           }, loading ? 'Submitting...' : 'Submit for Approval'),
           React.createElement('button', {
             onClick: handleSaveAsDraft,
@@ -4550,7 +4549,7 @@ function CreateRequisition({ user, setView, loadData }) {
           React.createElement('button', {
             onClick: () => setView('dashboard'),
             disabled: loading,
-            className: "px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:bg-gray-200"
+            className: "btn-secondary btn-lg"
           }, "Cancel")
         )
       )
@@ -5242,18 +5241,18 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
             React.createElement('button', {
               onClick: handleSubmitDraft,
               disabled: loading,
-              className: "flex-1 min-w-[140px] bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className: "btn-primary btn-lg flex-1 min-w-[140px]"
             }, loading ? 'Submitting...' : 'Submit for Approval'),
             React.createElement('button', {
               onClick: handleUpdateDraft,
               disabled: loading,
-              className: "flex-1 min-w-[140px] bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className: "btn-primary btn-lg flex-1 min-w-[140px]"
             }, loading ? 'Updating...' : 'Update Draft')
           ) : canApprove && !isInitiatorViewingApproved && React.createElement(React.Fragment, null,
             React.createElement('button', {
               onClick: handleApprove,
               disabled: loading || (user.role === 'procurement' && !selectedVendor),
-              className: "flex-1 min-w-[140px] bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className: "btn-primary btn-lg flex-1 min-w-[140px]"
             }, loading ? 'Processing...' : (user.role === 'procurement' ? 'Submit' : 'Approve')),
             React.createElement('button', {
               onClick: handleReject,
@@ -5295,7 +5294,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           ),
           React.createElement('button', {
             onClick: () => setView('dashboard'),
-            className: "px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            className: "btn-secondary btn-lg"
           }, "Back")
         )
       )
@@ -5970,7 +5969,7 @@ function AdminPanel({ data, loadData }) {
               is_hod: 0
             });
           },
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className: "btn-primary"
         }, "+ Add User")
       ),
       showUserForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
@@ -6059,14 +6058,14 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2 mt-4" },
           React.createElement('button', {
             onClick: handleSaveUser,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "Save User"),
           React.createElement('button', {
             onClick: () => {
               setShowUserForm(false);
               setEditingUser(null);
             },
-            className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            className: "btn-secondary"
           }, "Cancel")
         )
       ),
@@ -6141,7 +6140,7 @@ function AdminPanel({ data, loadData }) {
           React.createElement('div', { className: "flex gap-2" },
             React.createElement('button', {
               onClick: handleResetPassword,
-              className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className: "flex-1 btn-primary"
             }, "Reset Password"),
             React.createElement('button', {
               onClick: () => {
@@ -6149,7 +6148,7 @@ function AdminPanel({ data, loadData }) {
                 setResetUserId(null);
                 setNewPassword('');
               },
-              className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+              className: "btn-secondary"
             }, "Cancel")
           )
         )
@@ -6161,7 +6160,7 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2" },
           React.createElement('button', {
             onClick: () => setShowVendorUpload(!showVendorUpload),
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, "Upload XLSX/CSV"),
           React.createElement('button', {
             onClick: () => {
@@ -6169,7 +6168,7 @@ function AdminPanel({ data, loadData }) {
               setEditingVendor(null);
               setVendorForm({ name: '', code: '', email: '', phone: '', address: '', country: '', type: '' });
             },
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "+ Add Vendor")
         )
       ),
@@ -6250,14 +6249,14 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2 mt-4" },
           React.createElement('button', {
             onClick: handleSaveVendor,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "Save Vendor"),
           React.createElement('button', {
             onClick: () => {
               setShowVendorForm(false);
               setEditingVendor(null);
             },
-            className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            className: "btn-secondary"
           }, "Cancel")
         )
       ),
@@ -6325,7 +6324,7 @@ function AdminPanel({ data, loadData }) {
             setEditingDepartment(null);
             setDepartmentForm({ name: '', code: '', description: '', is_active: 1 });
           },
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className: "btn-primary"
         }, "+ Add Department")
       ),
       showDepartmentForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
@@ -6365,14 +6364,14 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2 mt-4" },
           React.createElement('button', {
             onClick: handleSaveDepartment,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "Save Department"),
           React.createElement('button', {
             onClick: () => {
               setShowDepartmentForm(false);
               setEditingDepartment(null);
             },
-            className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            className: "btn-secondary"
           }, "Cancel")
         )
       ),
@@ -6427,7 +6426,7 @@ function AdminPanel({ data, loadData }) {
             setEditingCode(null);
             setCodeForm({ department_id: '', code: '', description: '', is_active: 1 });
           },
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className: "btn-primary"
         }, "+ Add Code")
       ),
       showCodeForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
@@ -6470,14 +6469,14 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2 mt-4" },
           React.createElement('button', {
             onClick: handleSaveCode,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "Save Code"),
           React.createElement('button', {
             onClick: () => {
               setShowCodeForm(false);
               setEditingCode(null);
             },
-            className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            className: "btn-secondary"
           }, "Cancel")
         )
       ),
@@ -6559,7 +6558,7 @@ function AdminPanel({ data, loadData }) {
           React.createElement('div', { className: "flex gap-2" },
             React.createElement('button', {
               onClick: handleReroute,
-              className: "flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className: "flex-1 btn-primary"
             }, "Reroute"),
             React.createElement('button', {
               onClick: () => {
@@ -6567,7 +6566,7 @@ function AdminPanel({ data, loadData }) {
                 setRerouteReqId(null);
                 setRerouteForm({ to_user_id: '', reason: '', new_status: '' });
               },
-              className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+              className: "btn-secondary"
             }, "Cancel")
           )
         )
@@ -6624,7 +6623,7 @@ function AdminPanel({ data, loadData }) {
         ),
         React.createElement('button', {
           onClick: handleSaveGRNApprover,
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className: "btn-primary"
         }, "Save Assignment")
       ),
 
@@ -6663,7 +6662,7 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2" },
           React.createElement('button', {
             onClick: () => setShowClientUpload(!showClientUpload),
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, "Upload XLSX/CSV"),
           React.createElement('button', {
             onClick: () => {
@@ -6671,7 +6670,7 @@ function AdminPanel({ data, loadData }) {
               setEditingClient(null);
               setClientForm({ name: '', code: '', contact_person: '', email: '', phone: '', address: '', country: '' });
             },
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "+ Add Client")
         )
       ),
@@ -6753,14 +6752,14 @@ function AdminPanel({ data, loadData }) {
         React.createElement('div', { className: "flex gap-2 mt-4" },
           React.createElement('button', {
             onClick: handleSaveClient,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, "Save Client"),
           React.createElement('button', {
             onClick: () => {
               setShowClientForm(false);
               setEditingClient(null);
             },
-            className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            className: "btn-secondary"
           }, "Cancel")
         )
       ),
@@ -7830,7 +7829,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
           ),
           React.createElement('button', {
             onClick: fetchAllPendingItems,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -8075,16 +8074,16 @@ function ApproveExpenseClaim({ claim, user, setView }) {
           React.createElement('button', {
             onClick: handleApprove,
             disabled: loading,
-            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+            className: "btn-primary btn-lg flex-1"
           }, loading ? 'Processing...' : 'Approve'),
           React.createElement('button', {
             onClick: handleReject,
             disabled: loading,
-            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors font-medium"
+            className: "btn-danger btn-lg flex-1"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
-            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className: "btn-secondary btn-lg"
           }, 'Cancel')
         )
       )
@@ -8254,17 +8253,17 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
             onClick: handleApprove,
             disabled: loading || !eftAccess.canApprove,
             title: eftAccess.canApprove ? '' : 'EFT module is currently closed',
-            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className: "btn-primary btn-lg flex-1"
           }, loading ? 'Processing...' : 'Approve'),
           React.createElement('button', {
             onClick: handleReject,
             disabled: loading || !eftAccess.canApprove,
             title: eftAccess.canApprove ? '' : 'EFT module is currently closed',
-            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className: "btn-danger btn-lg flex-1"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
-            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className: "btn-secondary btn-lg"
           }, 'Cancel')
         )
       )
@@ -8438,16 +8437,16 @@ function ApprovePettyCash({ requisition, user, setView }) {
           React.createElement('button', {
             onClick: handleApprove,
             disabled: loading,
-            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+            className: "btn-primary btn-lg flex-1"
           }, loading ? 'Processing...' : 'Approve'),
           React.createElement('button', {
             onClick: handleReject,
             disabled: loading,
-            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors font-medium"
+            className: "btn-danger btn-lg flex-1"
           }, loading ? 'Processing...' : 'Reject'),
           React.createElement('button', {
             onClick: () => setView('approval-console'),
-            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className: "btn-secondary btn-lg"
           }, 'Cancel')
         )
       )
@@ -8994,11 +8993,11 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'petty-cash-requisition.html',
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, '+ New Petty Cash'),
           React.createElement('button', {
             onClick: fetchPettyCashRequisitions,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -9043,23 +9042,23 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(req),
-                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                          className: "btn-primary btn-sm"
                         }, 'View'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleApprove(req),
-                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className: "btn-primary btn-sm"
                         }, 'Approve'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
-                          className: "px-2 py-1 bg-transparent border border-red-600 text-red-600 text-xs rounded hover:bg-red-50"
+                          className: "btn-danger btn-sm"
                         }, 'Reject'),
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handlePreviewPDF(req),
-                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          className: "btn-primary btn-sm"
                         }, 'Preview'),
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handleDownloadPDF(req),
-                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          className: "btn-primary btn-sm"
                         }, 'Download')
                       )
                     )
@@ -9200,11 +9199,11 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'expense-claim.html',
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, '+ New Expense Claim'),
           React.createElement('button', {
             onClick: fetchExpenseClaims,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -9249,23 +9248,23 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(claim),
-                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                          className: "btn-primary btn-sm"
                         }, 'View'),
                         canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleApprove(claim),
-                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className: "btn-primary btn-sm"
                         }, 'Approve'),
                         canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(claim),
-                          className: "px-2 py-1 bg-transparent border border-red-600 text-red-600 text-xs rounded hover:bg-red-50"
+                          className: "btn-danger btn-sm"
                         }, 'Reject'),
                         isApproved(claim.status) && React.createElement('button', {
                           onClick: () => handlePreviewPDF(claim),
-                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          className: "btn-primary btn-sm"
                         }, 'Preview'),
                         isApproved(claim.status) && React.createElement('button', {
                           onClick: () => handleDownloadPDF(claim),
-                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          className: "btn-primary btn-sm"
                         }, 'Download')
                       )
                     )
@@ -9406,11 +9405,11 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'eft-requisition.html',
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, '+ New EFT'),
           React.createElement('button', {
             onClick: fetchEFTRequisitions,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -9455,23 +9454,23 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(req),
-                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                          className: "btn-primary btn-sm"
                         }, 'View'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleApprove(req),
-                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className: "btn-primary btn-sm"
                         }, 'Approve'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
-                          className: "px-2 py-1 bg-transparent border border-red-600 text-red-600 text-xs rounded hover:bg-red-50"
+                          className: "btn-danger btn-sm"
                         }, 'Reject'),
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handlePreviewPDF(req),
-                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          className: "btn-primary btn-sm"
                         }, 'Preview'),
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handleDownloadPDF(req),
-                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          className: "btn-primary btn-sm"
                         }, 'Download')
                       )
                     )
@@ -9586,7 +9585,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, 'Requisition Adjudication'),
         React.createElement('button', {
           onClick: fetchPendingRequisitions,
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className: "btn-primary"
         }, 'Refresh')
       ),
 
@@ -9645,7 +9644,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
                     React.createElement('td', { className: "px-6 py-4 whitespace-nowrap" },
                       React.createElement('button', {
                         onClick: () => handleProcess(req),
-                        className: "px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                        className: "btn-primary text-sm"
                       }, 'Adjudicate')
                     )
                   )
@@ -9812,7 +9811,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
         }, 'Rejected Requisitions'),
         React.createElement('button', {
           onClick: fetchRejectedRequisitions,
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className: "btn-primary"
         }, 'Refresh')
       ),
 
@@ -9877,11 +9876,11 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                   editingReq !== req.id && React.createElement('div', { className: "flex gap-2" },
                     React.createElement('button', {
                       onClick: () => handleEdit(req),
-                      className: "px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors font-medium"
+                      className: "btn-primary text-sm"
                     }, 'Edit'),
                     React.createElement('button', {
                       onClick: () => handleResubmit(req),
-                      className: "px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      className: "btn-primary text-sm"
                     }, 'Resubmit')
                   )
                 ),
@@ -10129,7 +10128,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                         React.createElement('button', {
                           onClick: () => handleSaveEdit(req.id),
                           disabled: saving,
-                          className: "px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                          className: "btn-primary"
                         }, saving ? 'Saving...' : 'Save Changes')
                       )
                     )
@@ -10276,7 +10275,6 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
     React.createElement('div', {
       style: { background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 10 }
     },
-      React.createElement('span', { style: { fontSize: 18, marginTop: 1 } }, 'ℹ️'),
       React.createElement('div', null,
         React.createElement('strong', null, 'Read-only view.'),
         ' These requisitions are currently in the approval pipeline. You can view the full details to prepare quotations or RFQs, but no edits or actions can be made here.'
@@ -10300,7 +10298,6 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
         ? React.createElement('div', {
             style: { textAlign: 'center', padding: 48, color: '#888', background: '#f9fafb', borderRadius: 8 }
           },
-            React.createElement('div', { style: { fontSize: 40, marginBottom: 12 } }, '📋'),
             React.createElement('p', { style: { margin: 0 } }, search ? 'No results match your search.' : 'No PRs are currently in the pipeline.')
           )
         : React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 14 } },
@@ -10427,8 +10424,8 @@ function PurchaseOrders({ user }) {
                     React.createElement('td', { className: "px-6 py-4" },
                       React.createElement('button', {
                         onClick: () => handleDownloadPDF(po),
-                        className: "px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                      }, "⬇️ Download PDF")
+                        className: "btn-primary text-sm flex items-center gap-2"
+                      }, "Download PDF")
                     )
                   )
                 )
@@ -10538,11 +10535,11 @@ function BudgetManagement({ user }) {
           ),
           React.createElement('button', {
             onClick: () => api.downloadBudgetExcel(fiscalYear),
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, "Download Excel"),
           React.createElement('button', {
             onClick: () => api.downloadBudgetPDF(fiscalYear),
-            className: "px-4 py-2 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
+            className: "btn-danger"
           }, "Download PDF")
         )
       ),
@@ -10570,14 +10567,14 @@ function BudgetManagement({ user }) {
                 React.createElement('div', { className: "flex gap-1" },
                   React.createElement('button', {
                     onClick: () => handleCreateBudget(dept.department),
-                    className: "flex-1 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                    className: "flex-1 btn-primary btn-sm"
                   }, "Create"),
                   React.createElement('button', {
                     onClick: () => {
                       setCreatingBudget(null);
                       setNewAllocation('');
                     },
-                    className: "flex-1 px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                    className: "btn-secondary btn-sm flex-1"
                   }, "Cancel")
                 )
               ) : React.createElement('button', {
@@ -10585,7 +10582,7 @@ function BudgetManagement({ user }) {
                   setCreatingBudget(dept.department);
                   setNewAllocation('');
                 },
-                className: "w-full px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                className: "w-full btn-primary btn-sm"
               }, "Allocate Budget")
             ) : editingBudget === dept.budget_id ? React.createElement('div', { className: "space-y-2 mb-2" },
               React.createElement('input', {
@@ -10598,14 +10595,14 @@ function BudgetManagement({ user }) {
               React.createElement('div', { className: "flex gap-1" },
                 React.createElement('button', {
                   onClick: () => handleUpdateAllocation(dept.budget_id),
-                  className: "flex-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  className: "flex-1 btn-primary btn-sm"
                 }, "Save"),
                 React.createElement('button', {
                   onClick: () => {
                     setEditingBudget(null);
                     setNewAllocation('');
                   },
-                  className: "flex-1 px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                  className: "btn-secondary btn-sm flex-1"
                 }, "Cancel")
               )
             ) : React.createElement('div', null,
@@ -10782,7 +10779,7 @@ function FXRatesManagement({ user }) {
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "FX Rate Management"),
         React.createElement('button', {
           onClick: () => api.downloadFXRatesExcel(),
-          className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          className: "btn-primary"
         }, "Download Excel Report")
       ),
       React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" },
@@ -10945,7 +10942,7 @@ function FXRatesManagement({ user }) {
         ),
         React.createElement('button', {
           type: "submit",
-          className: "w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+          className: "btn-primary btn-lg w-full"
         }, "Update FX Rate")
       )
     )
@@ -11276,7 +11273,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     ),
                     React.createElement('button', {
                       className: "text-blue-600 hover:text-blue-800"
-                    }, "View →")
+                    }, "View")
                   )
                 )
               )
@@ -11294,13 +11291,13 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 setAdjudication(null);
               },
               className: "text-blue-600 hover:text-blue-800 mb-2"
-            }, "← Back to List"),
+            }, "Back to List"),
             React.createElement('h3', { className: "text-xl font-bold text-gray-900" }, selectedReq.req_number || selectedReq.id),
             React.createElement('p', { className: "text-sm text-gray-600" }, selectedReq.title || selectedReq.description)
           ),
           canUploadQuotes && quotes.length < 3 && React.createElement('button', {
             onClick: () => setShowUploadForm(!showUploadForm),
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, showUploadForm ? "Cancel" : "Upload Quote")
         ),
 
@@ -11544,7 +11541,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
           React.createElement('button', {
             type: "submit",
             disabled: uploading,
-            className: "w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-semibold"
+            className: "btn-primary btn-lg w-full"
           }, uploading ? "Uploading All Quotes..." : "Upload All 3 Quotes")
         ),
 
@@ -11573,7 +11570,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                         }, "Download PDF"),
                         canUploadQuotes && !adjudication && React.createElement('button', {
                           onClick: () => handleDeleteQuote(quote.id),
-                          className: "px-3 py-1 bg-transparent border border-red-600 text-red-600 text-sm rounded hover:bg-red-50"
+                          className: "btn-danger btn-sm"
                         }, "Delete")
                       )
                     )
@@ -11602,7 +11599,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     href: `${API_URL}/quotes/${quote.id}/download`,
                     target: "_blank",
                     className: "text-xs text-blue-600 hover:underline mt-2 inline-block"
-                  }, "View PDF →")
+                  }, "View PDF")
                 )
               )
             )
@@ -11747,7 +11744,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
             React.createElement('button', {
               type: "submit",
               disabled: uploading,
-              className: "w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:bg-gray-400"
+              className: "btn-primary btn-lg w-full"
             }, uploading ? "Submitting..." : "Submit Adjudication")
           )
         ),
@@ -11950,11 +11947,11 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'issue-slip.html',
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, '+ New Issue Slip'),
           React.createElement('button', {
             onClick: fetchIssueSlips,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -11995,19 +11992,19 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handleView(slip),
-                          className: "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                          className: "btn-primary btn-sm"
                         }, 'View'),
                         canApprove(slip) && slip.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleView(slip),
-                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className: "btn-primary btn-sm"
                         }, 'Approve'),
                         slip.status === 'approved' && React.createElement('button', {
                           onClick: () => handlePreviewPDF(slip),
-                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          className: "btn-primary btn-sm"
                         }, 'Preview'),
                         slip.status === 'approved' && React.createElement('button', {
                           onClick: () => handleDownloadPDF(slip),
-                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          className: "btn-primary btn-sm"
                         }, 'Download')
                       )
                     )
@@ -12275,20 +12272,20 @@ function ApproveIssueSlip({ slip, user, setView }) {
           canTakeAction() && React.createElement('button', {
             onClick: handleApprove,
             disabled: loading,
-            className: "flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium"
+            className: "btn-primary btn-lg flex-1"
           }, loading ? 'Processing...' : 'Approve'),
           canTakeAction() && React.createElement('button', {
             onClick: handleReject,
             disabled: loading,
-            className: "flex-1 py-3 bg-transparent border border-red-600 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors font-medium"
+            className: "btn-danger btn-lg flex-1"
           }, loading ? 'Processing...' : 'Reject'),
           slipData.status === 'approved' && React.createElement('button', {
             onClick: handlePreviewPDF,
-            className: "flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            className: "btn-primary btn-lg flex-1"
           }, 'Preview PDF'),
           React.createElement('button', {
             onClick: () => setView('issue-slips'),
-            className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className: "btn-secondary btn-lg"
           }, 'Back')
         )
       )
@@ -12364,11 +12361,11 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'picking-slip.html',
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, '+ New Picking Slip'),
           React.createElement('button', {
             onClick: fetchPickingSlips,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -12405,11 +12402,11 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement('button', {
                           onClick: () => handlePreviewPDF(slip),
-                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          className: "btn-primary btn-sm"
                         }, 'Preview'),
                         React.createElement('button', {
                           onClick: () => handleDownloadPDF(slip),
-                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          className: "btn-primary btn-sm"
                         }, 'Download')
                       )
                     )
@@ -12495,11 +12492,11 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'grn.html',
-            className: "px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+            className: "btn-primary"
           }, 'New GRN'),
           React.createElement('button', {
             onClick: fetchGRNs,
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, 'Refresh')
         )
       ),
@@ -12575,15 +12572,15 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                         }, 'View'),
                         canApprove && React.createElement('button', {
                           onClick: () => handleView(grn),
-                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className: "btn-primary btn-sm"
                         }, 'Approve'),
                         React.createElement('button', {
                           onClick: () => handlePreviewPDF(grn),
-                          className: "px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+                          className: "btn-primary btn-sm"
                         }, 'Preview'),
                         React.createElement('button', {
                           onClick: () => handleDownloadPDF(grn),
-                          className: "px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          className: "btn-primary btn-sm"
                         }, 'Download')
                       )
                     )
@@ -12872,7 +12869,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       React.createElement('div', { className: "flex gap-4 mt-6" },
         React.createElement('button', {
           onClick: handlePreviewPDF,
-          className: "flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          className: "btn-primary btn-lg flex-1"
         }, 'Preview PDF'),
         React.createElement('button', {
           onClick: handleDownloadPDF,
@@ -12880,7 +12877,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         }, 'Download PDF'),
         React.createElement('button', {
           onClick: () => setView('grns'),
-          className: "px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          className: "btn-secondary btn-lg"
         }, 'Back')
       )
     )
@@ -12924,7 +12921,7 @@ function StockRegister({ user }) {
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Real-Time Stock Register"),
         React.createElement('button', {
           onClick: fetchStockRegister,
-          className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className: "btn-primary"
         }, 'Refresh')
       ),
 
@@ -13162,15 +13159,15 @@ function StockItems({ user }) {
         React.createElement('div', { className: "flex gap-2" },
           React.createElement('button', {
             onClick: () => setShowUpload(!showUpload),
-            className: "px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className: "btn-primary"
           }, showUpload ? 'Hide Upload' : 'Upload XLSX'),
           React.createElement('button', {
             onClick: () => { resetForm(); setShowForm(!showForm); },
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, showForm ? 'Cancel' : 'Add Item'),
           React.createElement('button', {
             onClick: fetchItems,
-            className: "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            className: "btn-secondary"
           }, 'Refresh')
         )
       ),
@@ -13249,12 +13246,12 @@ function StockItems({ user }) {
         React.createElement('div', { className: "mt-4 flex gap-2" },
           React.createElement('button', {
             type: 'submit',
-            className: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className: "btn-primary"
           }, editingItem ? 'Update Item' : 'Add Item'),
           React.createElement('button', {
             type: 'button',
             onClick: resetForm,
-            className: "px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            className: "btn-secondary"
           }, 'Cancel')
         )
       ),
@@ -13321,13 +13318,13 @@ function StockItems({ user }) {
 
 // Mount the application using React 18 API
 (function() {
-  console.log('🚀 Mounting Purchase Requisition Approval System (PRAS)...');
+  console.log('Mounting Purchase Requisition Approval System (PRAS)...');
 
   try {
     const rootElement = document.getElementById('root');
 
     if (!rootElement) {
-      console.error('❌ Root element not found!');
+      console.error('Root element not found!');
       return;
     }
 
@@ -13336,24 +13333,24 @@ function StockItems({ user }) {
 
     // Create root and render (React 18 way)
     if (ReactDOM.createRoot) {
-      console.log('✓ Using React 18 createRoot API');
+      console.log('Using React 18 createRoot API');
       const root = ReactDOM.createRoot(rootElement);
       root.render(React.createElement(App));
     } else {
-      console.log('✓ Using legacy ReactDOM.render API');
+      console.log('Using legacy ReactDOM.render API');
       ReactDOM.render(React.createElement(App), rootElement);
     }
 
-    console.log('✅ Application mounted successfully');
+    console.log('Application mounted successfully');
   } catch (error) {
-    console.error('❌ Failed to mount application:', error);
+    console.error('Failed to mount application:', error);
 
     const rootElement = document.getElementById('root');
     if (rootElement) {
       rootElement.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #fef2f2; padding: 20px;">
           <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px;">
-            <h2 style="color: #dc2626; margin: 0 0 15px 0;">⚠️ Failed to Mount Application</h2>
+            <h2 style="color: #dc2626; margin: 0 0 15px 0;">Failed to Mount Application</h2>
             <p><strong>Error:</strong> ${error.message}</p>
             <pre style="background: #f9fafb; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px;">${error.stack}</pre>
             <button onclick="location.reload(true)" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">

@@ -5,8 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Requisition Approval System (PRAS)</title>
 
+    <!-- Inter — primary typeface -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
     <!-- React 18 from CDN -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -25,6 +41,28 @@
            (success/danger/warning) are kept for meaning-bearing UI only —
            status badges, validation, etc. — not decoration. */
         :root {
+            /* Typography */
+            --font-family-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+            --font-size-xs:    0.6875rem;  /* 11px */
+            --font-size-sm:    0.75rem;    /* 12px */
+            --font-size-base:  0.875rem;   /* 14px */
+            --font-size-md:    0.9375rem;  /* 15px */
+            --font-size-lg:    1.0625rem;  /* 17px */
+            --font-size-xl:    1.25rem;    /* 20px */
+            --font-size-2xl:   1.5rem;     /* 24px */
+            --font-weight-normal:   400;
+            --font-weight-medium:   500;
+            --font-weight-semibold: 600;
+            --font-weight-bold:     700;
+            --line-height-tight:   1.25;
+            --line-height-snug:    1.375;
+            --line-height-normal:  1.5;
+            --line-height-relaxed: 1.625;
+            --letter-spacing-tight: -0.025em;
+            --letter-spacing-snug:  -0.015em;
+            --letter-spacing-wide:   0.025em;
+            --letter-spacing-wider:  0.06em;
+
             /* Brand Colors — KSB blue scale */
             --color-primary: #0070AF;
             --color-primary-dark: #005A8C;
@@ -204,6 +242,81 @@
             background-color: var(--color-primary-dark) !important;
         }
 
+        /* ===================================================================
+           Semantic button classes — three-tier hierarchy.
+
+           Layout modifiers (w-full, flex-1, min-w-[...]) are composed
+           alongside these. Size variants (.btn-sm / .btn-lg) adjust
+           padding and type only.
+           =================================================================== */
+
+        .btn-primary,
+        .btn-secondary,
+        .btn-danger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.5rem;
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            line-height: 1.25;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease,
+                        border-color 0.15s ease, opacity 0.15s ease;
+        }
+        .btn-primary:disabled,
+        .btn-secondary:disabled,
+        .btn-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Primary — solid brand blue */
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: #FFFFFF;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--color-primary-dark);
+        }
+
+        /* Secondary — ghost with border; respects dark mode surfaces */
+        .btn-secondary {
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--bg-tertiary);
+            border-color: var(--color-primary-medium);
+        }
+
+        /* Danger — outlined red for reversible destructive actions */
+        .btn-danger {
+            background-color: transparent;
+            color: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+        .btn-danger:hover:not(:disabled) {
+            background-color: var(--color-danger-bg);
+        }
+
+        /* Size modifiers */
+        .btn-sm {
+            padding: 0.25rem 0.625rem;
+            font-size: var(--font-size-sm);
+            border-radius: 0.375rem;
+        }
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-weight: var(--font-weight-semibold);
+        }
+
         /* Text accents tighter to brand */
         .text-blue-600, .text-blue-700 { color: var(--color-primary) !important; }
         .text-blue-800, .text-blue-900 { color: var(--color-primary-dark) !important; }
@@ -219,14 +332,38 @@
         /* Prevent flash of unstyled content */
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-                sans-serif;
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-normal);
+            line-height: var(--line-height-relaxed);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            /* Inter numeric stylistic sets: cleaner figures, better legibility */
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
             background-color: var(--bg-primary);
             color: var(--text-primary);
             transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Heading defaults — weight/tracking only; size left to Tailwind classes */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-family-sans);
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--line-height-snug);
+            letter-spacing: var(--letter-spacing-snug);
+            margin: 0;
+        }
+
+        /* Tabular figures keep number columns aligned in tables */
+        th, td {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+        }
+
+        /* Form labels — slightly smaller and medium weight for visual separation */
+        label {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
         }
 
         #root {
@@ -239,16 +376,16 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #f9fafb;
+            background-color: var(--bg-secondary);
         }
 
         .spinner {
-            border: 4px solid #f3f4f6;
-            border-top: 4px solid #3b82f6;
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid var(--color-primary);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+            width: 36px;
+            height: 36px;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
@@ -479,7 +616,7 @@
             // Version control - increment this when making changes
             const APP_VERSION = '6.7.0';
 
-            console.log('🚀 Initializing Purchase Requisition Approval System (PRAS) v' + APP_VERSION);
+            console.log('Initializing Purchase Requisition Approval System (PRAS) v' + APP_VERSION);
 
             // Clear all caches aggressively
             function clearAllCaches() {
@@ -488,7 +625,7 @@
                     navigator.serviceWorker.getRegistrations().then(function(registrations) {
                         registrations.forEach(function(registration) {
                             registration.unregister();
-                            console.log('✓ Service worker unregistered');
+                            console.log('Service worker unregistered');
                         });
                     });
                 }
@@ -498,7 +635,7 @@
                     caches.keys().then(function(names) {
                         names.forEach(function(name) {
                             caches.delete(name);
-                            console.log('✓ Cache deleted:', name);
+                            console.log('Cache deleted:', name);
                         });
                     });
                 }
@@ -519,11 +656,11 @@
                 // Clear sessionStorage version tracking
                 const storedVersion = sessionStorage.getItem('appVersion');
                 if (storedVersion !== APP_VERSION) {
-                    console.log('🔄 Version changed from', storedVersion, 'to', APP_VERSION);
+                    console.log('Version changed from', storedVersion, 'to', APP_VERSION);
                     sessionStorage.setItem('appVersion', APP_VERSION);
                     // Force reload on version change
                     if (storedVersion && storedVersion !== 'undefined') {
-                        console.log('🔄 Reloading due to version change...');
+                        console.log('Reloading due to version change...');
                         window.location.reload(true);
                         return;
                     }
@@ -536,14 +673,14 @@
 
             // Global error handler
             window.addEventListener('error', function(event) {
-                console.error('❌ Global error:', event.error);
+                console.error('Global error:', event.error);
 
                 const root = document.getElementById('root');
                 if (root && !root.innerHTML.trim()) {
                     root.innerHTML = `
                         <div class="error-container">
                             <div class="error-box">
-                                <h2>⚠️ Application Error</h2>
+                                <h2>Application Error</h2>
                                 <p><strong>Message:</strong> ${event.message}</p>
                                 <p><strong>File:</strong> ${event.filename}</p>
                                 <p><strong>Line:</strong> ${event.lineno}:${event.colno}</p>
@@ -561,15 +698,15 @@
 
             // Detect React loading
             window.addEventListener('DOMContentLoaded', function() {
-                console.log('✓ DOM loaded');
+                console.log('DOM loaded');
 
                 setTimeout(function() {
                     if (typeof React === 'undefined') {
-                        console.error('❌ React failed to load!');
+                        console.error('React failed to load!');
                         document.getElementById('root').innerHTML = `
                             <div class="error-container">
                                 <div class="error-box">
-                                    <h2>⚠️ React Failed to Load</h2>
+                                    <h2>React Failed to Load</h2>
                                     <p>The React library could not be loaded. Please check your internet connection.</p>
                                     <button onclick="location.reload(true)"
                                         style="background: #3b82f6; color: white; padding: 10px 20px;
@@ -580,7 +717,7 @@
                             </div>
                         `;
                     } else {
-                        console.log('✓ React loaded successfully, version:', React.version);
+                        console.log('React loaded successfully, version:', React.version);
                     }
                 }, 1000);
             });
@@ -592,8 +729,8 @@
     <div id="root">
         <div class="initial-loading">
             <div style="text-align: center;">
-                <div class="spinner" style="margin: 0 auto 20px;"></div>
-                <p style="color: #6b7280;">Loading Purchase Requisition Approval System (PRAS)...</p>
+                <div class="spinner" style="margin: 0 auto 24px;"></div>
+                <p style="font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-tertiary); letter-spacing: 0.02em;">Loading PRAS…</p>
             </div>
         </div>
     </div>
@@ -610,15 +747,15 @@
             const loading = root.querySelector('.initial-loading');
 
             if (loading && loading.parentNode === root) {
-                console.warn('⚠️ App did not mount after 5 seconds, checking for errors...');
+                console.warn('App did not mount after 5 seconds, checking for errors...');
 
                 // Check if app.js loaded
                 if (typeof window.App === 'undefined') {
-                    console.error('❌ app.js failed to load or define App component');
+                    console.error('app.js failed to load or define App component');
                     root.innerHTML = `
                         <div class="error-container">
                             <div class="error-box">
-                                <h2>⚠️ Application Failed to Load</h2>
+                                <h2>Application Failed to Load</h2>
                                 <p>The application JavaScript file (app.js) failed to load or initialize.</p>
                                 <p><strong>Possible causes:</strong></p>
                                 <ul style="margin: 10px 0; padding-left: 20px;">
