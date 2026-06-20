@@ -443,6 +443,10 @@
         /* Text accents tighter to brand */
         .text-blue-600, .text-blue-700 { color: var(--color-primary) !important; }
         .text-blue-800, .text-blue-900 { color: var(--color-primary-dark) !important; }
+        [data-theme="dark"] .text-blue-600,
+        [data-theme="dark"] .text-blue-700,
+        [data-theme="dark"] .text-blue-800,
+        [data-theme="dark"] .text-blue-900 { color: var(--color-primary-medium) !important; }
         .hover\:text-blue-700:hover,
         .hover\:text-blue-800:hover,
         .hover\:text-blue-900:hover { color: var(--color-primary-dark) !important; }
@@ -451,6 +455,106 @@
            banners) → translucent brand blue so they stay subtle. */
         .bg-blue-50  { background-color: rgba(0, 112, 175, 0.06) !important; }
         .bg-blue-100 { background-color: rgba(0, 112, 175, 0.10) !important; }
+
+        /* ===================================================================
+           Adaptive color layer — fills in the gaps Tailwind can't cover.
+
+           text-gray-400: Tailwind default (#9CA3AF) only hits 2.4:1 on white,
+           below the WCAG AA minimum. Map it to the adaptive text-tertiary token.
+
+           bg-gray-200 / bg-gray-300: used for inactive tabs and disabled buttons
+           but not in the existing token map; add them so dark mode doesn't leave
+           glaring Tailwind-default light surfaces on a deep-dark page.
+
+           bg-*-50 / bg-*-100 tinted stat-card backgrounds: Tailwind keeps these
+           as light pastels in dark mode because it has no concept of theming.
+           We replace them with low-opacity hue tints so they look cohesive on
+           the dark card surface rather than glaring bright patches.
+
+           text-*-600 through text-*-900 dark shades: near-black in Tailwind's
+           default palette — unreadable on dark card surfaces. Flipped here to
+           each hue's 200–300 equivalent so they retain their color identity
+           while satisfying WCAG AA contrast on dark backgrounds.
+           =================================================================== */
+
+        /* text-gray-400 → adaptive token */
+        .text-gray-400 { color: var(--text-tertiary) !important; }
+
+        /* Gray surface tints used for inactive/disabled states */
+        .bg-gray-200 { background-color: var(--bg-hover) !important; }
+        .bg-gray-300 { background-color: var(--bg-hover) !important; }
+        .hover\:bg-gray-200:hover { background-color: var(--bg-hover) !important; }
+        .hover\:bg-gray-300:hover { background-color: var(--bg-hover) !important; }
+
+        /* --- Tinted card surfaces (dark mode only) --- */
+        [data-theme="dark"] .bg-green-50   { background-color: rgba(16, 185, 129, 0.08) !important; }
+        [data-theme="dark"] .bg-green-100  { background-color: rgba(16, 185, 129, 0.14) !important; }
+        [data-theme="dark"] .bg-green-200  { background-color: rgba(16, 185, 129, 0.22) !important; }
+        [data-theme="dark"] .bg-purple-50  { background-color: rgba(139, 92, 246, 0.08) !important; }
+        [data-theme="dark"] .bg-purple-100 { background-color: rgba(139, 92, 246, 0.14) !important; }
+        [data-theme="dark"] .bg-purple-200 { background-color: rgba(139, 92, 246, 0.22) !important; }
+        [data-theme="dark"] .bg-indigo-50  { background-color: rgba(99, 102, 241, 0.08) !important; }
+        [data-theme="dark"] .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.14) !important; }
+        [data-theme="dark"] .bg-pink-50    { background-color: rgba(236, 72, 153, 0.08) !important; }
+        [data-theme="dark"] .bg-pink-100   { background-color: rgba(236, 72, 153, 0.14) !important; }
+        [data-theme="dark"] .bg-orange-50  { background-color: rgba(249, 115, 22, 0.08) !important; }
+        [data-theme="dark"] .bg-orange-100 { background-color: rgba(249, 115, 22, 0.14) !important; }
+        [data-theme="dark"] .bg-amber-50   { background-color: rgba(245, 158, 11, 0.08) !important; }
+        [data-theme="dark"] .bg-amber-100  { background-color: rgba(245, 158, 11, 0.14) !important; }
+        [data-theme="dark"] .bg-yellow-50  { background-color: rgba(234, 179, 8, 0.08) !important; }
+        [data-theme="dark"] .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.14) !important; }
+        [data-theme="dark"] .bg-yellow-200 { background-color: rgba(234, 179, 8, 0.22) !important; }
+        [data-theme="dark"] .bg-red-50     { background-color: rgba(239, 68, 68, 0.08) !important; }
+        [data-theme="dark"] .bg-red-100    { background-color: rgba(239, 68, 68, 0.14) !important; }
+        [data-theme="dark"] .bg-red-200    { background-color: rgba(239, 68, 68, 0.22) !important; }
+        [data-theme="dark"] .bg-cyan-50    { background-color: rgba(6, 182, 212, 0.08) !important; }
+        [data-theme="dark"] .bg-cyan-100   { background-color: rgba(6, 182, 212, 0.14) !important; }
+
+        /* --- Dark text shades: flip to light equivalents in dark mode --- */
+        [data-theme="dark"] .text-green-600,
+        [data-theme="dark"] .text-green-700,
+        [data-theme="dark"] .text-green-800,
+        [data-theme="dark"] .text-green-900  { color: #6EE7B7 !important; }
+
+        [data-theme="dark"] .text-red-600,
+        [data-theme="dark"] .text-red-700,
+        [data-theme="dark"] .text-red-800,
+        [data-theme="dark"] .text-red-900    { color: #FCA5A5 !important; }
+
+        [data-theme="dark"] .text-purple-600,
+        [data-theme="dark"] .text-purple-700,
+        [data-theme="dark"] .text-purple-800,
+        [data-theme="dark"] .text-purple-900 { color: #C4B5FD !important; }
+
+        [data-theme="dark"] .text-indigo-600,
+        [data-theme="dark"] .text-indigo-700,
+        [data-theme="dark"] .text-indigo-800,
+        [data-theme="dark"] .text-indigo-900 { color: var(--color-primary-medium) !important; }
+
+        [data-theme="dark"] .text-pink-600,
+        [data-theme="dark"] .text-pink-700,
+        [data-theme="dark"] .text-pink-800,
+        [data-theme="dark"] .text-pink-900   { color: #F9A8D4 !important; }
+
+        [data-theme="dark"] .text-orange-600,
+        [data-theme="dark"] .text-orange-700,
+        [data-theme="dark"] .text-orange-800,
+        [data-theme="dark"] .text-orange-900 { color: #FB923C !important; }
+
+        [data-theme="dark"] .text-amber-600,
+        [data-theme="dark"] .text-amber-700,
+        [data-theme="dark"] .text-amber-800,
+        [data-theme="dark"] .text-amber-900  { color: #FCD34D !important; }
+
+        [data-theme="dark"] .text-yellow-600,
+        [data-theme="dark"] .text-yellow-700,
+        [data-theme="dark"] .text-yellow-800,
+        [data-theme="dark"] .text-yellow-900 { color: #FDE047 !important; }
+
+        [data-theme="dark"] .text-cyan-600,
+        [data-theme="dark"] .text-cyan-700,
+        [data-theme="dark"] .text-cyan-800,
+        [data-theme="dark"] .text-cyan-900   { color: #67E8F9 !important; }
 
         /* Prevent flash of unstyled content */
         body {
