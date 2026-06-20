@@ -2812,7 +2812,7 @@ function Header({ user, logout, setView, view }) {
       React.createElement('div', { className: "flex items-center justify-between" },
         React.createElement('div', { className: "flex items-center gap-4" },
           React.createElement('h1', { className: "text-2xl font-bold text-blue-600" }, "Purchase Requisition Approval System (PRAS)"),
-          React.createElement('span', { className: "px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium" },
+          React.createElement('span', { className: "badge badge-info" },
             user.role ? user.role.toUpperCase() : 'USER'
           )
         ),
@@ -2983,19 +2983,19 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   // 1px border + tinted text on a transparent fill.
   const getStatusColor = (status) => {
     const colors = {
-      draft:               'border border-gray-300 text-gray-600 bg-transparent',
-      pending_hod:         'border border-yellow-400 text-yellow-700 bg-transparent',
-      pending_procurement: 'border border-blue-400 text-blue-700 bg-transparent',
-      pending_finance:     'border border-blue-400 text-blue-700 bg-transparent',
-      pending_md:          'border border-orange-400 text-orange-700 bg-transparent',
-      approved:            'border border-green-500 text-green-700 bg-transparent',
-      completed:           'border border-green-500 text-green-700 bg-transparent',
-      hod_approved:        'border border-green-500 text-green-700 bg-transparent',
-      finance_approved:    'border border-green-500 text-green-700 bg-transparent',
-      md_approved:         'border border-green-500 text-green-700 bg-transparent',
-      rejected:            'bg-red-600 text-white'
+      draft:               'badge-neutral',
+      pending_hod:         'badge-pending',
+      pending_procurement: 'badge-info',
+      pending_finance:     'badge-info',
+      pending_md:          'badge-warning',
+      approved:            'badge-success',
+      completed:           'badge-success',
+      hod_approved:        'badge-success',
+      finance_approved:    'badge-success',
+      md_approved:         'badge-success',
+      rejected:            'badge-danger'
     };
-    return colors[status] || 'border border-gray-300 text-gray-600 bg-transparent';
+    return colors[status] || 'badge-neutral';
   };
 
   const getStatusText = (status) => {
@@ -3681,7 +3681,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     )
                   ),
                   React.createElement('span', {
-                    className: `px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(req.status)}`
+                    className: `badge ${getStatusColor(req.status)}`
                   }, getStatusText(req.status))
                 )
               ),
@@ -3800,7 +3800,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, req.department),
                     React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, `ZMW ${(req.amount || req.total_amount || 0).toLocaleString()}`),
                     React.createElement('td', { className: "px-6 py-4" },
-                      React.createElement('span', { className: `px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(req.status)}` },
+                      React.createElement('span', { className: `badge ${getStatusColor(req.status)}` },
                         getStatusText(req.status)
                       )
                     ),
@@ -4933,7 +4933,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, isDraftEditable ? "Edit Draft Requisition" : "Review Requisition"),
         React.createElement('span', {
-          className: `px-4 py-2 rounded-full text-sm font-medium ${req.status === 'approved' ? 'bg-green-100 text-green-700' : req.status === 'draft' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'}`
+          className: `badge ${req.status === 'approved' ? 'badge-success' : req.status === 'draft' ? 'badge-neutral' : 'badge-pending'}`
         }, req.status.replace('_', ' ').toUpperCase())
       ),
       React.createElement('div', { className: "space-y-6" },
@@ -6087,7 +6087,7 @@ function AdminPanel({ data, loadData }) {
               React.createElement('td', { className: "py-2 px-4" }, user.full_name),
               React.createElement('td', { className: "py-2 px-4 text-sm" }, user.email),
               React.createElement('td', { className: "py-2 px-4" },
-                React.createElement('span', { className: "px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded" }, user.role)
+                React.createElement('span', { className: "badge badge-info" }, user.role)
               ),
               React.createElement('td', { className: "py-2 px-4" }, user.department),
               React.createElement('td', { className: "py-2 px-4" },
@@ -7765,18 +7765,16 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
   // through getStatusColor; this map covers pending sub-states only.
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'pending_hod':      { label: 'Pending HOD',     color: 'border border-yellow-400 text-yellow-700 bg-transparent' },
-      'pending_finance':  { label: 'Pending Finance', color: 'border border-blue-400 text-blue-700 bg-transparent' },
-      'pending_md':       { label: 'Pending MD',      color: 'border border-orange-400 text-orange-700 bg-transparent' },
-      'hod_approved':     { label: 'HOD Approved',     color: 'border border-green-500 text-green-700 bg-transparent' },
-      'finance_approved': { label: 'Finance Approved', color: 'border border-green-500 text-green-700 bg-transparent' },
-      'approved':         { label: 'Approved',         color: 'border border-green-500 text-green-700 bg-transparent' },
-      'rejected':         { label: 'Rejected',         color: 'bg-red-600 text-white' }
+      'pending_hod':      { label: 'Pending HOD',      cls: 'badge-pending' },
+      'pending_finance':  { label: 'Pending Finance',  cls: 'badge-info' },
+      'pending_md':       { label: 'Pending MD',       cls: 'badge-warning' },
+      'hod_approved':     { label: 'HOD Approved',     cls: 'badge-success' },
+      'finance_approved': { label: 'Finance Approved', cls: 'badge-success' },
+      'approved':         { label: 'Approved',         cls: 'badge-success' },
+      'rejected':         { label: 'Rejected',         cls: 'badge-danger' }
     };
-    const config = statusConfig[status] || { label: status, color: 'border border-gray-300 text-gray-600 bg-transparent' };
-    return React.createElement('span', {
-      className: `px-2 py-1 text-xs font-semibold rounded-full ${config.color}`
-    }, config.label);
+    const config = statusConfig[status] || { label: status, cls: 'badge-neutral' };
+    return React.createElement('span', { className: `badge ${config.cls}` }, config.label);
   };
 
   // Type pills (Purchase Req / Expense Claim / EFT / etc.) are *categorisation*,
@@ -10249,13 +10247,9 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
 
   const statusBadge = status => {
     if (status === 'pending_finance') {
-      return React.createElement('span', {
-        style: { background: '#dbeafe', color: '#1d4ed8', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }
-      }, 'With Finance');
+      return React.createElement('span', { className: 'badge badge-info' }, 'With Finance');
     }
-    return React.createElement('span', {
-      style: { background: '#fed7aa', color: '#c2410c', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }
-    }, 'With MD');
+    return React.createElement('span', { className: 'badge badge-warning' }, 'With MD');
   };
 
   const totalValue = r => {
@@ -10666,7 +10660,7 @@ function BudgetManagement({ user }) {
               React.createElement('td', { className: "py-2 px-4" }, (expense.amount || 0).toLocaleString()),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', {
-                  className: `px-2 py-1 rounded-full text-xs ${expense.expense_type === 'committed' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`
+                  className: `badge ${expense.expense_type === 'committed' ? 'badge-pending' : 'badge-success'}`
                 }, expense.expense_type)
               ),
               React.createElement('td', { className: "py-2 px-4 text-sm text-gray-600" },
@@ -10787,7 +10781,7 @@ function FXRatesManagement({ user }) {
           React.createElement('div', { key: rate.id, className: "p-4 border rounded-lg" },
             React.createElement('div', { className: "flex items-center justify-between mb-2" },
               React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, rate.currency_code),
-              rate.is_active && React.createElement('span', { className: "px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full" }, "Active")
+              rate.is_active && React.createElement('span', { className: "badge badge-success" }, "Active")
             ),
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, rate.currency_name),
             React.createElement('p', { className: "text-2xl font-bold text-blue-600" },
@@ -10870,7 +10864,7 @@ function FXRatesManagement({ user }) {
               React.createElement('td', { className: "py-2 px-4" }, rate.rate_to_zmw),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', {
-                  className: `px-2 py-1 rounded-full text-xs ${rate.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`
+                  className: `badge ${rate.is_active ? 'badge-success' : 'badge-neutral'}`
                 }, rate.is_active ? 'Active' : 'Inactive')
               ),
               React.createElement('td', { className: "py-2 px-4 text-sm" },
@@ -11265,7 +11259,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                       React.createElement('h3', { className: "font-semibold text-gray-900" }, req.req_number || req.id),
                       React.createElement('p', { className: "text-sm text-gray-600" }, req.title || req.description),
                       React.createElement('div', { className: "flex gap-2 mt-2" },
-                        React.createElement('span', { className: "text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded" }, req.department),
+                        React.createElement('span', { className: "badge badge-info" }, req.department),
                         req.status === 'pending_procurement' && !req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-yellow-400 text-yellow-700 bg-transparent" }, "Needs Quotes"),
                         req.has_quotes && React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-green-500 text-green-700 bg-transparent" }, "Quotes"),
                         req.has_adjudication && React.createElement('span', { className: "text-xs px-2 py-1 rounded border border-blue-400 text-blue-700 bg-transparent" }, "Adjudication")
@@ -11926,12 +11920,12 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
 
   const getStatusBadge = (status) => {
     const statusColors = {
-      'pending_hod': 'bg-yellow-100 text-yellow-800',
-      'pending_finance': 'bg-blue-100 text-blue-800',
-      'approved': 'bg-green-100 text-green-800',
-      'rejected': 'bg-red-100 text-red-800'
+      'pending_hod':     'badge-pending',
+      'pending_finance': 'badge-info',
+      'approved':        'badge-success',
+      'rejected':        'badge-danger'
     };
-    return statusColors[status] || 'bg-gray-100 text-gray-800';
+    return statusColors[status] || 'badge-neutral';
   };
 
   if (loading) {
@@ -11982,7 +11976,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.initiator_name),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
-                        className: `px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(slip.status)}`
+                        className: `badge ${getStatusBadge(slip.status)}`
                       }, slip.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
                     ),
                     React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
@@ -12153,10 +12147,10 @@ function ApproveIssueSlip({ slip, user, setView }) {
       React.createElement('div', { className: "flex items-center justify-between mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Issue Slip"),
         React.createElement('span', {
-          className: `px-4 py-2 rounded-full text-sm font-medium ${
-            slipData.status === 'approved' ? 'bg-green-100 text-green-700' :
-            slipData.status === 'rejected' ? 'bg-red-100 text-red-700' :
-            'bg-yellow-100 text-yellow-700'
+          className: `badge ${
+            slipData.status === 'approved' ? 'badge-success' :
+            slipData.status === 'rejected' ? 'badge-danger' :
+            'badge-pending'
           }`
         }, slipData.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
       ),
@@ -12240,10 +12234,10 @@ function ApproveIssueSlip({ slip, user, setView }) {
                 ),
                 React.createElement('div', { className: "flex items-center gap-3" },
                   React.createElement('span', {
-                    className: `px-2 py-1 text-xs rounded ${
-                      approval.action === 'approved' ? 'bg-green-100 text-green-800' :
-                      approval.action === 'rejected' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
+                    className: `badge ${
+                      approval.action === 'approved' ? 'badge-success' :
+                      approval.action === 'rejected' ? 'badge-danger' :
+                      'badge-pending'
                     }`
                   }, approval.action?.toUpperCase() || 'PENDING'),
                   approval.timestamp && React.createElement('span', { className: "text-sm text-gray-500" },
@@ -12524,11 +12518,11 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                   // Outline-only status pills (consistent with the rest of the
                   // app post-4D). Rejected keeps a solid red fill so the
                   // danger state still reads at a glance.
-                  const statusStyles = {
-                    pending_approval: { backgroundColor: 'transparent', color: '#B45309', border: '1px solid #F59E0B' },
-                    approved:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' },
-                    rejected:         { backgroundColor: '#DC2626',     color: '#FFFFFF', border: '1px solid #DC2626' },
-                    received:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' }
+                  const grnBadgeClass = {
+                    pending_approval: 'badge-pending',
+                    approved:         'badge-success',
+                    rejected:         'badge-danger',
+                    received:         'badge-success'
                   };
                   const statusLabels = {
                     pending_approval: 'Pending Approval',
@@ -12536,7 +12530,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     rejected: 'Rejected',
                     received: 'Received'
                   };
-                  const style = statusStyles[grn.status] || { backgroundColor: 'transparent', color: '#475569', border: '1px solid #CBD5E1' };
+                  const grnBadgeCls = grnBadgeClass[grn.status] || 'badge-neutral';
                   const canApprove = grn.status === 'pending_approval' && (
                     grn.assigned_approver === (user.full_name || user.name) ||
                     ['admin', 'finance', 'finance_manager', 'md'].includes(user.role)
@@ -12549,8 +12543,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.received_by),
                     React.createElement('td', { className: "px-4 py-3 text-sm" },
                       React.createElement('span', {
-                        className: "px-2 py-1 text-xs font-medium rounded",
-                        style: style
+                        className: `badge ${grnBadgeCls}`
                       }, statusLabels[grn.status] || grn.status)
                     ),
                     React.createElement('td', { className: "px-4 py-3 text-sm" },
@@ -12681,10 +12674,10 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
   // Outline-only status badges (consistent with the rest of the app).
   // Rejected stays solid red so the danger state still reads cleanly.
   const statusStyles = {
-    pending_approval: { backgroundColor: 'transparent', color: '#B45309', border: '1px solid #F59E0B' },
-    approved:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' },
-    rejected:         { backgroundColor: '#DC2626',     color: '#FFFFFF', border: '1px solid #DC2626' },
-    received:         { backgroundColor: 'transparent', color: '#15803D', border: '1px solid #22C55E' }
+    pending_approval: 'badge-pending',
+    approved:         'badge-success',
+    rejected:         'badge-danger',
+    received:         'badge-success'
   };
   const statusLabels = {
     pending_approval: 'PENDING APPROVAL',
@@ -12692,7 +12685,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
     rejected: 'REJECTED',
     received: 'RECEIVED'
   };
-  const badgeStyle = statusStyles[grnData.status] || { backgroundColor: 'transparent', color: '#475569', border: '1px solid #CBD5E1' };
+  const badgeCls = statusStyles[grnData.status] || 'badge-neutral';
 
   const userName = user.full_name || user.name;
   const canApprove = grnData.status === 'pending_approval' && (
@@ -12711,8 +12704,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
           React.createElement('p', { className: "text-sm mt-1", style: { color: '#d97706' } }, grnData.id)
         ),
         React.createElement('span', {
-          className: "px-3 py-1 text-sm font-medium rounded",
-          style: badgeStyle
+          className: `badge ${badgeCls}`
         }, statusLabels[grnData.status] || grnData.status.toUpperCase())
       ),
 
