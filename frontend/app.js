@@ -1660,7 +1660,7 @@ function ChangePasswordScreen({ user, setCurrentUser, setView, logout, forced })
           React.createElement('input', {
             type: 'password', value: currentPassword,
             onChange: (e) => setCurrentPassword(e.target.value),
-            className: "w-full px-4 py-2 border rounded-lg",
+            className: "form-input w-full",
             style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
           })
         ),
@@ -1669,7 +1669,7 @@ function ChangePasswordScreen({ user, setCurrentUser, setView, logout, forced })
           React.createElement('input', {
             type: 'password', value: newPassword,
             onChange: (e) => setNewPassword(e.target.value),
-            className: "w-full px-4 py-2 border rounded-lg",
+            className: "form-input w-full",
             style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
           })
         ),
@@ -1678,7 +1678,7 @@ function ChangePasswordScreen({ user, setCurrentUser, setView, logout, forced })
           React.createElement('input', {
             type: 'password', value: confirmPassword,
             onChange: (e) => setConfirmPassword(e.target.value),
-            className: "w-full px-4 py-2 border rounded-lg",
+            className: "form-input w-full",
             style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
           })
         ),
@@ -1691,7 +1691,7 @@ function ChangePasswordScreen({ user, setCurrentUser, setView, logout, forced })
             React.createElement('select', {
               value: p.question_id,
               onChange: (e) => updatePick(idx, 'question_id', e.target.value),
-              className: "w-full px-3 py-2 border rounded-lg mb-2",
+              className: "form-input w-full mb-2",
               style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
             },
               React.createElement('option', { value: '' }, `-- Select question ${idx + 1} --`),
@@ -1701,7 +1701,7 @@ function ChangePasswordScreen({ user, setCurrentUser, setView, logout, forced })
               type: 'text', value: p.answer,
               onChange: (e) => updatePick(idx, 'answer', e.target.value),
               placeholder: 'Your answer',
-              className: "w-full px-3 py-2 border rounded-lg",
+              className: "form-input w-full",
               style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
             })
           ))
@@ -1810,7 +1810,7 @@ function ForgotPasswordModal({ onClose }) {
           type: 'text', value: username,
           onChange: (e) => setUsername(e.target.value),
           placeholder: 'Username',
-          className: "w-full px-4 py-2 border rounded-lg",
+          className: "form-input w-full",
           style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
         }),
         error && React.createElement('div', { className: "px-3 py-2 rounded text-sm", style: { backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger-dark)' } }, error),
@@ -1829,7 +1829,7 @@ function ForgotPasswordModal({ onClose }) {
             type: 'text',
             value: answers[idx] ? answers[idx].answer : '',
             onChange: (e) => updateAnswer(idx, e.target.value),
-            className: "w-full px-3 py-2 border rounded-lg",
+            className: "form-input w-full",
             style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
           })
         )),
@@ -1838,14 +1838,14 @@ function ForgotPasswordModal({ onClose }) {
           React.createElement('input', {
             type: 'password', value: newPassword,
             onChange: (e) => setNewPassword(e.target.value),
-            className: "w-full px-3 py-2 border rounded-lg mb-2",
+            className: "form-input w-full mb-2",
             style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
           }),
           React.createElement('label', { className: "block text-sm font-medium mb-1", style: { color: 'var(--text-primary)' } }, 'Confirm new password'),
           React.createElement('input', {
             type: 'password', value: confirmPassword,
             onChange: (e) => setConfirmPassword(e.target.value),
-            className: "w-full px-3 py-2 border rounded-lg",
+            className: "form-input w-full",
             style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
           })
         ),
@@ -3966,7 +3966,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             React.createElement('select', {
               value: selectedUserId,
               onChange: (e) => setSelectedUserId(e.target.value),
-              className: "w-full p-2 mb-3 rounded border",
+              className: "form-input w-full mb-3",
               style: {
                 backgroundColor: 'var(--bg-primary)',
                 borderColor: 'var(--border-color)',
@@ -3984,7 +3984,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               value: rerouteReason,
               onChange: (e) => setRerouteReason(e.target.value),
               placeholder: 'Enter reason for rerouting...',
-              className: "w-full p-2 mb-3 rounded border",
+              className: "form-input w-full mb-3",
               rows: 3,
               style: {
                 backgroundColor: 'var(--bg-primary)',
@@ -4350,7 +4350,7 @@ function CreateRequisition({ user, setView, loadData }) {
                       type: "text",
                       value: item.item_code,
                       onChange: (e) => updateLineItem(index, 'item_code', e.target.value),
-                      className: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+                      className: "form-input w-full",
                       placeholder: "e.g., ITM-001"
                     })
                   ),
@@ -4363,7 +4363,7 @@ function CreateRequisition({ user, setView, loadData }) {
                       value: item.item_name,
                       maxLength: 128,
                       onChange: (e) => updateLineItem(index, 'item_name', e.target.value),
-                      className: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+                      className: "form-input w-full",
                       placeholder: "e.g., Office Supplies"
                     })
                   ),
@@ -4376,7 +4376,7 @@ function CreateRequisition({ user, setView, loadData }) {
                       min: "1",
                       value: item.quantity,
                       onChange: (e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1),
-                      className: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+                      className: "form-input w-full",
                       placeholder: "Qty"
                     })
                   ),
@@ -4457,7 +4457,7 @@ function CreateRequisition({ user, setView, loadData }) {
               value: formData.dateRequired,
               min: getCurrentDate(),
               onChange: (e) => setFormData({...formData, dateRequired: e.target.value}),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className: "form-input w-full"
             })
           ),
           React.createElement('div', null,
@@ -4475,7 +4475,7 @@ function CreateRequisition({ user, setView, loadData }) {
                 React.createElement('select', {
                   value: formData.urgency,
                   onChange: (e) => setFormData({...formData, urgency: e.target.value}),
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className: "form-input w-full"
                 },
                   React.createElement('option', { value: "standard" }, "Standard (30 days)"),
                   React.createElement('option', { value: "urgent" }, "Urgent (15 days)"),
@@ -4487,7 +4487,7 @@ function CreateRequisition({ user, setView, loadData }) {
                 React.createElement('select', {
                   value: formData.taxType,
                   onChange: (e) => setFormData({...formData, taxType: e.target.value}),
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className: "form-input w-full"
                 },
                   React.createElement('option', { value: "VAT" }, "VAT (16% Tax)"),
                   React.createElement('option', { value: "TOT" }, "TOT (No Tax)")
@@ -4499,7 +4499,7 @@ function CreateRequisition({ user, setView, loadData }) {
               React.createElement('select', {
                 value: formData.urgency,
                 onChange: (e) => setFormData({...formData, urgency: e.target.value}),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className: "form-input w-full"
               },
                 React.createElement('option', { value: "standard" }, "Standard (30 days)"),
                 React.createElement('option', { value: "urgent" }, "Urgent (15 days)"),
@@ -4512,7 +4512,7 @@ function CreateRequisition({ user, setView, loadData }) {
             rows: "4",
             value: formData.justification,
             onChange: (e) => setFormData({...formData, justification: e.target.value}),
-            className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            className: "form-input w-full",
             placeholder: "Explain the business need for this requisition and all items listed above..."
           })
         ),
@@ -4525,7 +4525,7 @@ function CreateRequisition({ user, setView, loadData }) {
           React.createElement('select', {
             value: formData.selectedHod,
             onChange: (e) => setFormData({...formData, selectedHod: e.target.value}),
-            className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className: "form-input w-full"
           },
             React.createElement('option', { value: "" }, "-- Select HOD Approver --"),
             hodUsers.map(hod =>
@@ -4961,7 +4961,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               type: "text",
               value: description,
               onChange: (e) => setDescription(e.target.value),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className: "form-input w-full"
             })
           ),
           React.createElement('div', { className: "grid grid-cols-2 gap-4" },
@@ -4972,7 +4972,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
                 min: "1",
                 value: quantity,
                 onChange: (e) => setQuantity(parseInt(e.target.value) || 1),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className: "form-input w-full"
               })
             ),
             React.createElement('div', null,
@@ -4980,7 +4980,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               React.createElement('select', {
                 value: urgency,
                 onChange: (e) => setUrgency(e.target.value),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className: "form-input w-full"
               },
                 React.createElement('option', { value: "standard" }, "Standard (30 days)"),
                 React.createElement('option', { value: "urgent" }, "Urgent (15 days)"),
@@ -4994,7 +4994,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               rows: "3",
               value: justification,
               onChange: (e) => setJustification(e.target.value),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+              className: "form-input w-full",
               placeholder: "Explain the business need..."
             })
           )
@@ -5065,7 +5065,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               type: "text",
               value: description,
               onChange: (e) => setDescription(e.target.value),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className: "form-input w-full"
             })
           ),
 
@@ -5085,7 +5085,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
                 step: "0.01",
                 value: unitPrice,
                 onChange: (e) => setUnitPrice(e.target.value),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className: "form-input w-full"
               })
             )
           ),
@@ -5097,7 +5097,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               React.createElement('select', {
                 value: selectedVendor,
                 onChange: (e) => setSelectedVendor(e.target.value),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className: "form-input w-full"
               },
                 React.createElement('option', { value: "" }, "-- Select Vendor --"),
                 data.vendors.filter(v => v.status === 'active').map(vendor =>
@@ -5112,7 +5112,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               React.createElement('select', {
                 value: vendorCurrency,
                 onChange: (e) => setVendorCurrency(e.target.value),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className: "form-input w-full"
               },
                 React.createElement('option', { value: "ZMW" }, "ZMW (Zambian Kwacha)"),
                 Array.isArray(fxRates) && fxRates.map(rate =>
@@ -5146,7 +5146,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
             React.createElement('select', {
               value: urgency,
               onChange: (e) => setUrgency(e.target.value),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className: "form-input w-full"
             },
               React.createElement('option', { value: "standard" }, "Standard (30 days)"),
               React.createElement('option', { value: "urgent" }, "Urgent (15 days)"),
@@ -5161,7 +5161,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               rows: "3",
               value: justification,
               onChange: (e) => setJustification(e.target.value),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className: "form-input w-full"
             })
           )
         ),
@@ -5232,7 +5232,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
             rows: "3",
             value: comment,
             onChange: (e) => setComment(e.target.value),
-            className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            className: "form-input w-full",
             placeholder: "Add your comments..."
           })
         ),
@@ -5980,33 +5980,33 @@ function AdminPanel({ data, loadData }) {
             placeholder: "Username",
             value: userForm.username,
             onChange: (e) => setUserForm({ ...userForm, username: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "password",
             placeholder: "Password",
             value: userForm.password,
             onChange: (e) => setUserForm({ ...userForm, password: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Full Name",
             value: userForm.full_name,
             onChange: (e) => setUserForm({ ...userForm, full_name: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "email",
             placeholder: "Email",
             value: userForm.email,
             onChange: (e) => setUserForm({ ...userForm, email: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('select', {
             value: userForm.role,
             onChange: (e) => setUserForm({ ...userForm, role: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           },
             React.createElement('option', { value: "initiator" }, "Initiator"),
             React.createElement('option', { value: "hod" }, "HOD"),
@@ -6018,7 +6018,7 @@ function AdminPanel({ data, loadData }) {
           React.createElement('select', {
             value: userForm.department,
             onChange: (e) => setUserForm({ ...userForm, department: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           },
             React.createElement('option', { value: "IT" }, "IT"),
             React.createElement('option', { value: "HR" }, "HR"),
@@ -6135,7 +6135,7 @@ function AdminPanel({ data, loadData }) {
             placeholder: "New Password (min 6 characters)",
             value: newPassword,
             onChange: (e) => setNewPassword(e.target.value),
-            className: "w-full px-3 py-2 border rounded-lg mb-4"
+            className: "form-input w-full mb-4"
           }),
           React.createElement('div', { className: "flex gap-2" },
             React.createElement('button', {
@@ -6201,42 +6201,42 @@ function AdminPanel({ data, loadData }) {
             placeholder: "Vendor Name *",
             value: vendorForm.name,
             onChange: (e) => setVendorForm({ ...vendorForm, name: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Vendor Code",
             value: vendorForm.code,
             onChange: (e) => setVendorForm({ ...vendorForm, code: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Type",
             value: vendorForm.type,
             onChange: (e) => setVendorForm({ ...vendorForm, type: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "email",
             placeholder: "Email",
             value: vendorForm.email,
             onChange: (e) => setVendorForm({ ...vendorForm, email: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Phone",
             value: vendorForm.phone,
             onChange: (e) => setVendorForm({ ...vendorForm, phone: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Country",
             value: vendorForm.country,
             onChange: (e) => setVendorForm({ ...vendorForm, country: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
@@ -6335,14 +6335,14 @@ function AdminPanel({ data, loadData }) {
             placeholder: "Department Name",
             value: departmentForm.name,
             onChange: (e) => setDepartmentForm({ ...departmentForm, name: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Department Code",
             value: departmentForm.code,
             onChange: (e) => setDepartmentForm({ ...departmentForm, code: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
@@ -6435,7 +6435,7 @@ function AdminPanel({ data, loadData }) {
           React.createElement('select', {
             value: codeForm.department_id,
             onChange: (e) => setCodeForm({ ...codeForm, department_id: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           },
             React.createElement('option', { value: "" }, "Select Department"),
             departments.map(dept =>
@@ -6447,7 +6447,7 @@ function AdminPanel({ data, loadData }) {
             placeholder: "Code",
             value: codeForm.code,
             onChange: (e) => setCodeForm({ ...codeForm, code: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
@@ -6530,7 +6530,7 @@ function AdminPanel({ data, loadData }) {
           React.createElement('select', {
             value: rerouteForm.to_user_id,
             onChange: (e) => setRerouteForm({ ...rerouteForm, to_user_id: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg mb-3"
+            className: "form-input w-full mb-3"
           },
             React.createElement('option', { value: "" }, "Select User"),
             rerouteUsers.map(user =>
@@ -6541,13 +6541,13 @@ function AdminPanel({ data, loadData }) {
             placeholder: "Reason for rerouting (required)",
             value: rerouteForm.reason,
             onChange: (e) => setRerouteForm({ ...rerouteForm, reason: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg mb-3",
+            className: "form-input w-full mb-3",
             rows: 3
           }),
           React.createElement('select', {
             value: rerouteForm.new_status,
             onChange: (e) => setRerouteForm({ ...rerouteForm, new_status: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg mb-4"
+            className: "form-input w-full mb-4"
           },
             React.createElement('option', { value: "" }, "Keep Current Status"),
             React.createElement('option', { value: "pending_hod" }, "Pending HOD"),
@@ -6608,7 +6608,7 @@ function AdminPanel({ data, loadData }) {
         React.createElement('select', {
           value: grnApproverForm.initiator_name,
           onChange: (e) => setGrnApproverForm({ ...grnApproverForm, initiator_name: e.target.value }),
-          className: "flex-1 min-w-48 px-3 py-2 border rounded-lg"
+          className: "flex-1 min-w-48 form-input"
         },
           React.createElement('option', { value: "" }, "Select Initiator (GRN Creator)"),
           users.map(u => React.createElement('option', { key: u.id, value: u.full_name }, u.full_name))
@@ -6616,7 +6616,7 @@ function AdminPanel({ data, loadData }) {
         React.createElement('select', {
           value: grnApproverForm.approver_name,
           onChange: (e) => setGrnApproverForm({ ...grnApproverForm, approver_name: e.target.value }),
-          className: "flex-1 min-w-48 px-3 py-2 border rounded-lg"
+          className: "flex-1 min-w-48 form-input"
         },
           React.createElement('option', { value: "" }, "Select Approver"),
           users.map(u => React.createElement('option', { key: u.id, value: u.full_name }, u.full_name))
@@ -6704,42 +6704,42 @@ function AdminPanel({ data, loadData }) {
             placeholder: "Client Name *",
             value: clientForm.name,
             onChange: (e) => setClientForm({ ...clientForm, name: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Client Code",
             value: clientForm.code,
             onChange: (e) => setClientForm({ ...clientForm, code: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Contact Person",
             value: clientForm.contact_person,
             onChange: (e) => setClientForm({ ...clientForm, contact_person: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "email",
             placeholder: "Email",
             value: clientForm.email,
             onChange: (e) => setClientForm({ ...clientForm, email: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Phone",
             value: clientForm.phone,
             onChange: (e) => setClientForm({ ...clientForm, phone: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
             placeholder: "Country",
             value: clientForm.country,
             onChange: (e) => setClientForm({ ...clientForm, country: e.target.value }),
-            className: "px-3 py-2 border rounded-lg"
+            className: "form-input"
           }),
           React.createElement('input', {
             type: "text",
@@ -6889,7 +6889,7 @@ function Reports({ data }) {
             type: "date",
             value: filters.dateFrom,
             onChange: (e) => setFilters({ ...filters, dateFrom: e.target.value }),
-            className: "w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className: "form-input w-full"
           })
         ),
         React.createElement('div', null,
@@ -6898,7 +6898,7 @@ function Reports({ data }) {
             type: "date",
             value: filters.dateTo,
             onChange: (e) => setFilters({ ...filters, dateTo: e.target.value }),
-            className: "w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className: "form-input w-full"
           })
         ),
         React.createElement('div', null,
@@ -6906,7 +6906,7 @@ function Reports({ data }) {
           React.createElement('select', {
             value: filters.status,
             onChange: (e) => setFilters({ ...filters, status: e.target.value }),
-            className: "w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className: "form-input w-full"
           },
             React.createElement('option', { value: "" }, "All Statuses"),
             React.createElement('option', { value: "draft" }, "Draft"),
@@ -6922,7 +6922,7 @@ function Reports({ data }) {
           React.createElement('select', {
             value: filters.department,
             onChange: (e) => setFilters({ ...filters, department: e.target.value }),
-            className: "w-full px-3 py-2 border border-gray-300 rounded-lg"
+            className: "form-input w-full"
           },
             React.createElement('option', { value: "" }, "All Departments"),
             React.createElement('option', { value: "IT" }, "IT"),
@@ -7306,7 +7306,7 @@ function AnalyticsDashboard({ user }) {
             type: "date",
             value: filters.dateFrom,
             onChange: (e) => setFilters({ ...filters, dateFrom: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+            className: "form-input w-full",
             style: {
               backgroundColor: 'var(--bg-primary)',
               borderColor: 'var(--border-color)',
@@ -7323,7 +7323,7 @@ function AnalyticsDashboard({ user }) {
             type: "date",
             value: filters.dateTo,
             onChange: (e) => setFilters({ ...filters, dateTo: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+            className: "form-input w-full",
             style: {
               backgroundColor: 'var(--bg-primary)',
               borderColor: 'var(--border-color)',
@@ -7339,7 +7339,7 @@ function AnalyticsDashboard({ user }) {
           React.createElement('select', {
             value: filters.department,
             onChange: (e) => setFilters({ ...filters, department: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+            className: "form-input w-full",
             style: {
               backgroundColor: 'var(--bg-primary)',
               borderColor: 'var(--border-color)',
@@ -7362,7 +7362,7 @@ function AnalyticsDashboard({ user }) {
           React.createElement('select', {
             value: filters.period,
             onChange: (e) => setFilters({ ...filters, period: e.target.value }),
-            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+            className: "form-input w-full",
             style: {
               backgroundColor: 'var(--bg-primary)',
               borderColor: 'var(--border-color)',
@@ -7818,7 +7818,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
           React.createElement('select', {
             value: filter,
             onChange: (e) => setFilter(e.target.value),
-            className: "px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className: "form-input text-sm"
           },
             React.createElement('option', { value: 'all' }, 'All Types'),
             React.createElement('option', { value: 'purchase_requisition' }, 'Purchase Requisitions'),
@@ -8064,7 +8064,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
             value: comment,
             onChange: (e) => setComment(e.target.value),
             placeholder: "Add your comments here (required for rejection)...",
-            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            className: "form-input w-full",
             rows: 3
           })
         ),
@@ -8242,7 +8242,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
             value: comment,
             onChange: (e) => setComment(e.target.value),
             placeholder: "Add your comments here (required for rejection)...",
-            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            className: "form-input w-full",
             rows: 3
           })
         ),
@@ -8427,7 +8427,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
             value: comment,
             onChange: (e) => setComment(e.target.value),
             placeholder: "Add your comments here (required for rejection)...",
-            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            className: "form-input w-full",
             rows: 3
           })
         ),
@@ -8829,14 +8829,14 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
               ? React.createElement('select', {
                   value: editForm[key] || '',
                   onChange: (e) => setEditForm({ ...editForm, [key]: e.target.value }),
-                  className: "w-full px-3 py-2 border rounded-lg",
+                  className: "form-input w-full",
                   style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
                 }, options.map(o => React.createElement('option', { key: o, value: o }, o)))
               : React.createElement('input', {
                   type,
                   value: editForm[key] || '',
                   onChange: (e) => setEditForm({ ...editForm, [key]: e.target.value }),
-                  className: "w-full px-3 py-2 border rounded-lg",
+                  className: "form-input w-full",
                   style: { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
                 })
           ))
@@ -9915,7 +9915,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                         React.createElement('textarea', {
                           value: editForm.description,
                           onChange: (e) => setEditForm({ ...editForm, description: e.target.value }),
-                          className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                          className: "form-input w-full",
                           style: {
                             backgroundColor: 'var(--bg-primary)',
                             borderColor: 'var(--border-color)',
@@ -9937,7 +9937,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                             type: "text",
                             value: editForm.delivery_location,
                             onChange: (e) => setEditForm({ ...editForm, delivery_location: e.target.value }),
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -9955,7 +9955,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                           React.createElement('select', {
                             value: editForm.urgency,
                             onChange: (e) => setEditForm({ ...editForm, urgency: e.target.value }),
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -9978,7 +9978,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                             type: "date",
                             value: editForm.required_date,
                             onChange: (e) => setEditForm({ ...editForm, required_date: e.target.value }),
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -9997,7 +9997,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                             type: "text",
                             value: editForm.account_code,
                             onChange: (e) => setEditForm({ ...editForm, account_code: e.target.value }),
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -10017,7 +10017,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                             value: editForm.quantity,
                             onChange: (e) => setEditForm({ ...editForm, quantity: e.target.value }),
                             min: "1",
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -10038,7 +10038,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                             onChange: (e) => setEditForm({ ...editForm, unit_price: e.target.value }),
                             step: "0.01",
                             min: "0",
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -10056,7 +10056,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                           React.createElement('select', {
                             value: editForm.selected_vendor,
                             onChange: (e) => setEditForm({ ...editForm, selected_vendor: e.target.value }),
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -10079,7 +10079,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                           React.createElement('select', {
                             value: editForm.vendor_currency,
                             onChange: (e) => setEditForm({ ...editForm, vendor_currency: e.target.value }),
-                            className: "w-full px-3 py-2 border rounded-lg transition-colors",
+                            className: "form-input w-full",
                             style: {
                               backgroundColor: 'var(--bg-primary)',
                               borderColor: 'var(--border-color)',
@@ -10527,7 +10527,7 @@ function BudgetManagement({ user }) {
           React.createElement('select', {
             value: fiscalYear,
             onChange: (e) => setFiscalYear(e.target.value),
-            className: "px-4 py-2 border border-gray-300 rounded-lg"
+            className: "form-input"
           },
             React.createElement('option', { value: "2024" }, "FY 2024"),
             React.createElement('option', { value: "2025" }, "FY 2025"),
@@ -10899,7 +10899,7 @@ function FXRatesManagement({ user }) {
                 const names = { 'USD': 'US Dollar', 'EUR': 'Euro', 'ZAR': 'South African Rand', 'ZMW': 'Zambian Kwacha' };
                 setFormData({ ...formData, currency_code: code, currency_name: names[code] });
               },
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className: "form-input w-full"
             },
               React.createElement('option', { value: "USD" }, "USD - US Dollar"),
               React.createElement('option', { value: "EUR" }, "EUR - Euro"),
@@ -10915,7 +10915,7 @@ function FXRatesManagement({ user }) {
               required: true,
               value: formData.rate_to_zmw,
               onChange: (e) => setFormData({ ...formData, rate_to_zmw: e.target.value }),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className: "form-input w-full"
             })
           ),
           React.createElement('div', null,
@@ -10925,7 +10925,7 @@ function FXRatesManagement({ user }) {
               required: true,
               value: formData.effective_from,
               onChange: (e) => setFormData({ ...formData, effective_from: e.target.value }),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className: "form-input w-full"
             })
           ),
           React.createElement('div', null,
@@ -10935,7 +10935,7 @@ function FXRatesManagement({ user }) {
               required: true,
               value: formData.change_reason,
               onChange: (e) => setFormData({ ...formData, change_reason: e.target.value }),
-              className: "w-full px-4 py-2 border border-gray-300 rounded-lg",
+              className: "form-input w-full",
               placeholder: "e.g., Monthly update based on BOZ rate"
             })
           )
@@ -11321,7 +11321,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     required: true,
                     value: quote1.vendor_id,
                     onChange: (e) => handleVendorChange(1, e.target.value),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   },
                     React.createElement('option', { value: "" }, "-- Select Vendor --"),
                     vendors.map(v => React.createElement('option', { key: v.id, value: v.id }, v.name))
@@ -11337,7 +11337,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     type: "text",
                     value: quote1.quote_number,
                     onChange: (e) => setQuote1({ ...quote1, quote_number: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 ),
                 React.createElement('div', null,
@@ -11348,7 +11348,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     required: true,
                     value: quote1.quote_amount,
                     onChange: (e) => setQuote1({ ...quote1, quote_amount: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 ),
                 React.createElement('div', null,
@@ -11356,7 +11356,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   React.createElement('select', {
                     value: quote1.currency,
                     onChange: (e) => setQuote1({ ...quote1, currency: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   },
                     React.createElement('option', { value: "ZMW" }, "ZMW"),
                     React.createElement('option', { value: "USD" }, "USD"),
@@ -11380,7 +11380,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     rows: "2",
                     value: quote1.notes,
                     onChange: (e) => setQuote1({ ...quote1, notes: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-xs border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 )
               )
@@ -11396,7 +11396,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     required: true,
                     value: quote2.vendor_id,
                     onChange: (e) => handleVendorChange(2, e.target.value),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   },
                     React.createElement('option', { value: "" }, "-- Select Vendor --"),
                     vendors.map(v => React.createElement('option', { key: v.id, value: v.id }, v.name))
@@ -11412,7 +11412,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     type: "text",
                     value: quote2.quote_number,
                     onChange: (e) => setQuote2({ ...quote2, quote_number: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 ),
                 React.createElement('div', null,
@@ -11423,7 +11423,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     required: true,
                     value: quote2.quote_amount,
                     onChange: (e) => setQuote2({ ...quote2, quote_amount: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 ),
                 React.createElement('div', null,
@@ -11431,7 +11431,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   React.createElement('select', {
                     value: quote2.currency,
                     onChange: (e) => setQuote2({ ...quote2, currency: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   },
                     React.createElement('option', { value: "ZMW" }, "ZMW"),
                     React.createElement('option', { value: "USD" }, "USD"),
@@ -11455,7 +11455,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     rows: "2",
                     value: quote2.notes,
                     onChange: (e) => setQuote2({ ...quote2, notes: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-xs border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 )
               )
@@ -11471,7 +11471,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     required: true,
                     value: quote3.vendor_id,
                     onChange: (e) => handleVendorChange(3, e.target.value),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   },
                     React.createElement('option', { value: "" }, "-- Select Vendor --"),
                     vendors.map(v => React.createElement('option', { key: v.id, value: v.id }, v.name))
@@ -11487,7 +11487,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     type: "text",
                     value: quote3.quote_number,
                     onChange: (e) => setQuote3({ ...quote3, quote_number: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 ),
                 React.createElement('div', null,
@@ -11498,7 +11498,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     required: true,
                     value: quote3.quote_amount,
                     onChange: (e) => setQuote3({ ...quote3, quote_amount: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 ),
                 React.createElement('div', null,
@@ -11506,7 +11506,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   React.createElement('select', {
                     value: quote3.currency,
                     onChange: (e) => setQuote3({ ...quote3, currency: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   },
                     React.createElement('option', { value: "ZMW" }, "ZMW"),
                     React.createElement('option', { value: "USD" }, "USD"),
@@ -11530,7 +11530,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                     rows: "2",
                     value: quote3.notes,
                     onChange: (e) => setQuote3({ ...quote3, notes: e.target.value }),
-                    className: "w-full px-2 py-1.5 text-xs border border-gray-300 rounded"
+                    className: "form-input form-input-sm w-full"
                   })
                 )
               )
@@ -11635,7 +11635,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                       currency: quote ? quote.currency : 'ZMW'
                     });
                   },
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className: "form-input w-full"
                 },
                   React.createElement('option', { value: "" }, "-- Select Vendor --"),
                   quotes.map(q => React.createElement('option', { key: q.id, value: q.vendor_id },
@@ -11652,7 +11652,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   value: adjForm.recommended_amount,
                   onChange: (e) => setAdjForm({ ...adjForm, recommended_amount: e.target.value }),
                   placeholder: "Enter amount",
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className: "form-input w-full"
                 })
               ),
               React.createElement('div', null,
@@ -11660,7 +11660,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 React.createElement('select', {
                   value: adjForm.currency,
                   onChange: (e) => setAdjForm({ ...adjForm, currency: e.target.value }),
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className: "form-input w-full"
                 },
                   React.createElement('option', { value: "ZMW" }, "ZMW"),
                   React.createElement('option', { value: "USD" }, "USD"),
@@ -11676,7 +11676,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 required: true,
                 value: adjForm.summary,
                 onChange: (e) => setAdjForm({ ...adjForm, summary: e.target.value }),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg",
+                className: "form-input w-full",
                 placeholder: "Brief summary of the adjudication process and quotes received..."
               })
             ),
@@ -11686,7 +11686,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 rows: "2",
                 value: adjForm.evaluation_criteria,
                 onChange: (e) => setAdjForm({ ...adjForm, evaluation_criteria: e.target.value }),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg",
+                className: "form-input w-full",
                 placeholder: "Criteria used to evaluate quotes (price, quality, delivery, etc.)..."
               })
             ),
@@ -11696,7 +11696,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 rows: "2",
                 value: adjForm.technical_compliance,
                 onChange: (e) => setAdjForm({ ...adjForm, technical_compliance: e.target.value }),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg",
+                className: "form-input w-full",
                 placeholder: "Assessment of technical specifications and compliance..."
               })
             ),
@@ -11706,7 +11706,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 rows: "3",
                 value: adjForm.pricing_analysis,
                 onChange: (e) => setAdjForm({ ...adjForm, pricing_analysis: e.target.value }),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg",
+                className: "form-input w-full",
                 placeholder: "Comparison of the 3 vendor quotes and pricing breakdown..."
               })
             ),
@@ -11717,7 +11717,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   rows: "2",
                   value: adjForm.delivery_terms,
                   onChange: (e) => setAdjForm({ ...adjForm, delivery_terms: e.target.value }),
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className: "form-input w-full"
                 })
               ),
               React.createElement('div', null,
@@ -11726,7 +11726,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                   rows: "2",
                   value: adjForm.payment_terms,
                   onChange: (e) => setAdjForm({ ...adjForm, payment_terms: e.target.value }),
-                  className: "w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className: "form-input w-full"
                 })
               )
             ),
@@ -11737,7 +11737,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 required: true,
                 value: adjForm.recommendation_rationale,
                 onChange: (e) => setAdjForm({ ...adjForm, recommendation_rationale: e.target.value }),
-                className: "w-full px-4 py-2 border border-gray-300 rounded-lg",
+                className: "form-input w-full",
                 placeholder: "Detailed justification for the recommended vendor..."
               })
             ),
@@ -11806,7 +11806,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
               type: "text",
               value: newVendorForm.name,
               onChange: (e) => setNewVendorForm({ ...newVendorForm, name: e.target.value }),
-              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              className: "form-input w-full",
               placeholder: "Enter vendor name"
             })
           ),
@@ -11816,7 +11816,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
               type: "text",
               value: newVendorForm.contact_person,
               onChange: (e) => setNewVendorForm({ ...newVendorForm, contact_person: e.target.value }),
-              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              className: "form-input w-full",
               placeholder: "Contact person name"
             })
           ),
@@ -11826,7 +11826,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
               type: "email",
               value: newVendorForm.email,
               onChange: (e) => setNewVendorForm({ ...newVendorForm, email: e.target.value }),
-              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              className: "form-input w-full",
               placeholder: "vendor@example.com"
             })
           ),
@@ -11836,7 +11836,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
               type: "text",
               value: newVendorForm.phone,
               onChange: (e) => setNewVendorForm({ ...newVendorForm, phone: e.target.value }),
-              className: "w-full px-3 py-2 border border-gray-300 rounded-lg",
+              className: "form-input w-full",
               placeholder: "Phone number"
             })
           )
@@ -12262,7 +12262,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
             value: comment,
             onChange: (e) => setComment(e.target.value),
             placeholder: "Add your comments here (required for rejection)...",
-            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500",
+            className: "form-input w-full",
             rows: 3
           })
         ),
@@ -12783,7 +12783,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
             placeholder: "Comments (optional)",
             value: approvalComments,
             onChange: (e) => setApprovalComments(e.target.value),
-            className: "w-full px-3 py-2 border rounded-lg mb-3",
+            className: "form-input w-full mb-3",
             rows: 2
           }),
           React.createElement('div', { className: "flex gap-3" },
@@ -13198,7 +13198,7 @@ function StockItems({ user }) {
               type: 'text',
               value: form.item_number,
               onChange: (e) => setForm({ ...form, item_number: e.target.value }),
-              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              className: "form-input w-full",
               placeholder: "e.g. ITM-001"
             })
           ),
@@ -13208,7 +13208,7 @@ function StockItems({ user }) {
               type: 'text',
               value: form.item_description,
               onChange: (e) => setForm({ ...form, item_description: e.target.value }),
-              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              className: "form-input w-full",
               placeholder: "Item description"
             })
           ),
@@ -13218,7 +13218,7 @@ function StockItems({ user }) {
               type: 'text',
               value: form.unit,
               onChange: (e) => setForm({ ...form, unit: e.target.value }),
-              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              className: "form-input w-full",
               placeholder: "e.g. EA, KG, LTR"
             })
           ),
@@ -13228,7 +13228,7 @@ function StockItems({ user }) {
               type: 'text',
               value: form.packaging_uom,
               onChange: (e) => setForm({ ...form, packaging_uom: e.target.value }),
-              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              className: "form-input w-full",
               placeholder: "e.g. Box of 12, Carton"
             })
           ),
@@ -13238,7 +13238,7 @@ function StockItems({ user }) {
               type: 'text',
               value: form.preferred_vendor,
               onChange: (e) => setForm({ ...form, preferred_vendor: e.target.value }),
-              className: "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500",
+              className: "form-input w-full",
               placeholder: "Vendor name"
             })
           )
