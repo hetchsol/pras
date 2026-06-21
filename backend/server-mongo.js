@@ -2284,6 +2284,8 @@ app.post('/api/forms/petty-cash-requisitions', authenticate, async (req, res) =>
 // PDF Generation endpoints
 const { generateExpenseClaimPDF, generateEFTPDF, generatePettyCashPDF } = require('./utils/formsPDFGenerator');
 const { generateRequisitionPDF } = require('./utils/pdfGenerator');
+const { generateRequisitionSummaryPDF, generateBudgetReportPDF, generateDepartmentalSpendingPDF } = require('./utils/reportPDFGenerator');
+const { generateRequisitionSummaryExcel, generateBudgetReportExcel, generateFXRatesExcel } = require('./utils/excelReportGenerator');
 const os = require('os');
 
 // Expense Claim PDF
@@ -2652,6 +2654,118 @@ app.get('/api/requisitions/simple', authenticate, async (req, res) => {
 // Purchase orders (empty for now)
 app.get('/api/purchase-orders', authenticate, async (req, res) => {
   res.json([]);
+});
+
+// ============================================
+// REPORT DOWNLOAD ROUTES
+// ============================================
+
+app.get('/api/reports/requisitions/pdf', authenticate, async (req, res) => {
+  try {
+    const { dateFrom, dateTo, status, department } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (department) filter.department = department;
+    if (dateFrom || dateTo) {
+      filter.created_at = {};
+      if (dateFrom) filter.created_at.$gte = new Date(dateFrom);
+      if (dateTo) filter.created_at.$lte = new Date(dateTo + 'T23:59:59.999Z');
+    }
+    const requisitions = await db.Requisition.find(filter).sort({ created_at: -1 }).lean();
+    const mapped = requisitions.map(mapRequisitionFields);
+    const doc = generateRequisitionSummaryPDF(mapped, { dateFrom, dateTo, status, department });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="Requisitions_Report.pdf"');
+    doc.pipe(res);
+    doc.end();
+  } catch (error) {
+    console.error('Report PDF error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF report' });
+  }
+});
+
+app.get('/api/reports/requisitions/excel', authenticate, async (req, res) => {
+  try {
+    const { dateFrom, dateTo, status, department } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (department) filter.department = department;
+    if (dateFrom || dateTo) {
+      filter.created_at = {};
+      if (dateFrom) filter.created_at.$gte = new Date(dateFrom);
+      if (dateTo) filter.created_at.$lte = new Date(dateTo + 'T23:59:59.999Z');
+    }
+    const requisitions = await db.Requisition.find(filter).sort({ created_at: -1 }).lean();
+    const mapped = requisitions.map(mapRequisitionFields);
+    const buffer = await generateRequisitionSummaryExcel(mapped, { dateFrom, dateTo, status, department });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Requisitions_Report.xlsx"');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Report Excel error:', error);
+    res.status(500).json({ error: 'Failed to generate Excel report' });
+  }
+});
+
+app.get('/api/reports/budgets/pdf', authenticate, async (req, res) => {
+  try {
+    const { fiscal_year } = req.query;
+    const departments = await db.Department.find().lean();
+    const enriched = departments.map(withAvailable);
+    const doc = generateBudgetReportPDF(enriched, fiscal_year || new Date().getFullYear().toString());
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="Budget_Report.pdf"');
+    doc.pipe(res);
+    doc.end();
+  } catch (error) {
+    console.error('Budget PDF error:', error);
+    res.status(500).json({ error: 'Failed to generate budget PDF report' });
+  }
+});
+
+app.get('/api/reports/budgets/excel', authenticate, async (req, res) => {
+  try {
+    const { fiscal_year } = req.query;
+    const departments = await db.Department.find().lean();
+    const enriched = departments.map(withAvailable);
+    const buffer = await generateBudgetReportExcel(enriched, fiscal_year || new Date().getFullYear().toString());
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Budget_Report.xlsx"');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Budget Excel error:', error);
+    res.status(500).json({ error: 'Failed to generate budget Excel report' });
+  }
+});
+
+app.get('/api/reports/fx-rates/excel', authenticate, async (req, res) => {
+  try {
+    const fxRates = await db.FXRate.find().sort({ currency_code: 1 }).lean();
+    const buffer = await generateFXRatesExcel(fxRates);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="FX_Rates.xlsx"');
+    res.send(buffer);
+  } catch (error) {
+    console.error('FX Rates Excel error:', error);
+    res.status(500).json({ error: 'Failed to generate FX rates report' });
+  }
+});
+
+app.get('/api/reports/department/:department/pdf', authenticate, async (req, res) => {
+  try {
+    const { department } = req.params;
+    const { fiscal_year } = req.query;
+    const requisitions = await db.Requisition.find({ department }).sort({ created_at: -1 }).lean();
+    const mapped = requisitions.map(mapRequisitionFields);
+    const doc = generateDepartmentalSpendingPDF(department, mapped, fiscal_year || new Date().getFullYear().toString());
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${department}_Spending_Report.pdf"`);
+    doc.pipe(res);
+    doc.end();
+  } catch (error) {
+    console.error('Departmental PDF error:', error);
+    res.status(500).json({ error: 'Failed to generate departmental report' });
+  }
 });
 
 // Budget endpoints
