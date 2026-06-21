@@ -1878,7 +1878,7 @@ function App() {
     React.createElement(Sidebar, { user: currentUser, logout, setView, view }),
     React.createElement('div', { className: "flex-1" },
       React.createElement(TopBar, { user: currentUser, logout, setView }),
-      React.createElement('div', { className: "container mx-auto px-8 py-10" },
+      React.createElement('div', { key: view, className: "container mx-auto px-8 py-10 view-enter" },
         view === 'change-password' && React.createElement(ChangePasswordScreen, { user: currentUser, setCurrentUser, setView, logout, forced: false }),
         view === 'dashboard' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
         view === 'requisitions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'mine' }),
