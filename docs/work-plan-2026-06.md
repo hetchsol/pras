@@ -92,6 +92,20 @@ list components are truly redundant.
 
 ---
 
+## 6. Reports download error (bug)
+
+Reports are throwing an error when a user attempts to download them.
+
+| # | Task |
+| --- | --- |
+| 6a | Reproduce the error and capture the full stack trace / response from the server. |
+| 6b | Identify root cause — likely in the PDF generation route (`backend/utils/storesPDFGenerator.js` or whichever generator handles reports), a missing asset, or a broken route. |
+| 6c | Fix and verify download works end-to-end. |
+
+**Scope**: unknown until root cause is found. Marked as bug — investigate first.
+
+---
+
 ## Recommended order
 
 Highest value first, increasing risk last:
