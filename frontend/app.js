@@ -2852,62 +2852,104 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
 }
 
 // Top Bar Component - User Info and Context
-function TopBar({ user, logout, setView }) {
+const AVATAR_PALETTE = [
+  '#0070AF','#7C3AED','#059669','#D97706',
+  '#DC2626','#2563EB','#0891B2','#9333EA',
+  '#16A34A','#EA580C'
+];
+
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function getAvatarColor(name) {
+  if (!name) return AVATAR_PALETTE[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xFFFFFF;
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+
+function UserAvatar({ name, size = 40, fontSize = 15 }) {
   return React.createElement('div', {
-    className: "px-8 py-5 transition-colors",
+    title: name,
+    style: {
+      width: size + 'px', height: size + 'px', borderRadius: '50%',
+      background: getAvatarColor(name),
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: '#fff', fontSize: fontSize + 'px', fontWeight: '700',
+      flexShrink: 0, userSelect: 'none',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
+    }
+  }, getInitials(name));
+}
+
+function TopBar({ user, logout, setView }) {
+  const name = user.full_name || user.name || '';
+  const firstName = name.split(' ')[0] || '';
+  const roleLabel = user.role ? user.role.replace(/_/g, ' ').toUpperCase() : 'USER';
+
+  return React.createElement('div', {
+    className: "px-8 py-4 transition-colors",
     style: {
       backgroundColor: 'var(--bg-primary)',
       borderBottom: '1px solid var(--border-color)'
     }
   },
     React.createElement('div', { className: "flex items-center justify-between" },
+      // Left: personalised greeting + date
       React.createElement('div', null,
         React.createElement('h2', {
           className: "text-2xl font-bold transition-colors",
           style: { color: 'var(--text-primary)' }
-        }, "Welcome Back"),
-        React.createElement('p', {
-          className: "text-sm transition-colors",
-          style: { color: 'var(--text-secondary)' }
-        }, `Logged in as ${user.full_name || user.name} - ${user.role ? user.role.toUpperCase() : 'USER'}`)
-      ),
-      React.createElement('div', { className: "flex flex-col items-end gap-2" },
-        // Logout button and Theme toggle row
-        React.createElement('div', { className: "flex items-center gap-3" },
-          React.createElement(ThemeToggle),
-          setView && React.createElement('button', {
-            onClick: () => setView('change-password'),
-            className: "px-4 py-2 rounded-lg hover:opacity-90 transition-all text-sm font-medium flex items-center gap-2",
-            style: {
-              backgroundColor: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)'
-            },
-            title: 'Change your password'
-          },
-            React.createElement('span', null, 'Change Password')
-          ),
-          React.createElement('button', {
-            onClick: logout,
-            className: "px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all text-sm font-medium flex items-center gap-2",
-            style: {
-              backgroundColor: 'var(--color-danger)',
-              boxShadow: 'var(--shadow-sm)'
-            }
-          },
-            React.createElement('span', null, 'Logout')
-          )
-        ),
-        // Date and time below
+        }, `Welcome Back${firstName ? ', ' + firstName : ''}`),
         React.createElement('p', {
           className: "text-sm transition-colors",
           style: { color: 'var(--text-tertiary)' }
         }, new Date().toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         }))
+      ),
+      // Right: avatar + identity + divider + action buttons
+      React.createElement('div', { className: "flex items-center gap-4" },
+        // Avatar + name/role block
+        React.createElement('div', { className: "flex items-center gap-3" },
+          React.createElement(UserAvatar, { name }),
+          React.createElement('div', null,
+            React.createElement('p', {
+              style: { fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', lineHeight: '1.2' }
+            }, name),
+            React.createElement('p', {
+              style: { fontSize: '11px', color: 'var(--text-tertiary)', lineHeight: '1.4', letterSpacing: '0.04em' }
+            }, roleLabel)
+          )
+        ),
+        // Vertical divider
+        React.createElement('div', {
+          style: { width: '1px', height: '32px', background: 'var(--border-color)', flexShrink: 0 }
+        }),
+        // Action buttons
+        React.createElement(ThemeToggle),
+        setView && React.createElement('button', {
+          onClick: () => setView('change-password'),
+          className: "px-4 py-2 rounded-lg hover:opacity-90 transition-all text-sm font-medium",
+          style: {
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)'
+          },
+          title: 'Change your password'
+        }, 'Change Password'),
+        React.createElement('button', {
+          onClick: logout,
+          className: "px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all text-sm font-medium",
+          style: {
+            backgroundColor: 'var(--color-danger)',
+            boxShadow: 'var(--shadow-sm)'
+          }
+        }, 'Logout')
       )
     )
   );
@@ -5391,16 +5433,36 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         ),
 
         req.approvals && req.approvals.length > 0 && React.createElement('div', null,
-          React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-3" }, "Approval History"),
+          React.createElement('p', {
+            style: { fontSize: '11px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }
+          }, "Approval History"),
           React.createElement('div', { className: "space-y-2" },
             req.approvals.map((approval, index) =>
-              React.createElement('div', { key: index, className: "p-3 bg-gray-50 rounded-lg" },
-                React.createElement('p', { className: "text-sm font-medium text-gray-900" },
-                  `${approval.user_name} (${approval.role ? approval.role.toUpperCase() : 'USER'}) - ${approval.action}`
-                ),
-                React.createElement('p', { className: "text-sm text-gray-600" }, approval.comment),
-                React.createElement('p', { className: "text-xs text-gray-500 mt-1" },
-                  new Date(approval.timestamp).toLocaleString()
+              React.createElement('div', {
+                key: index,
+                style: {
+                  display: 'flex', alignItems: 'flex-start', gap: '12px',
+                  padding: '10px 12px', background: 'var(--bg-secondary)',
+                  borderRadius: '8px'
+                }
+              },
+                React.createElement(UserAvatar, { name: approval.user_name, size: 32, fontSize: 12 }),
+                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' } },
+                    React.createElement('span', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' } }, approval.user_name || 'Unknown'),
+                    React.createElement('span', {
+                      className: `badge ${approval.action === 'approved' ? 'badge-success' : approval.action === 'rejected' ? 'badge-danger' : 'badge-pending'}`,
+                      style: { fontSize: '10px' }
+                    }, (approval.role || '').replace(/_/g, ' ').toUpperCase()),
+                    React.createElement('span', {
+                      className: `badge ${approval.action === 'approved' ? 'badge-success' : approval.action === 'rejected' ? 'badge-danger' : 'badge-pending'}`,
+                      style: { fontSize: '10px' }
+                    }, (approval.action || 'pending').toUpperCase())
+                  ),
+                  approval.comment && React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', margin: '2px 0' } }, approval.comment),
+                  approval.timestamp && React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-tertiary)' } },
+                    new Date(approval.timestamp).toLocaleString()
+                  )
                 )
               )
             )
@@ -12583,16 +12645,25 @@ function ApproveIssueSlip({ slip, user, setView }) {
 
         // Approval History
         slipData.approvals && slipData.approvals.length > 0 && React.createElement('div', { className: "mt-6" },
-          React.createElement('h3', { className: "text-lg font-semibold text-gray-800 mb-3" }, "Approval History"),
+          React.createElement('p', {
+            style: { fontSize: '11px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }
+          }, "Approval History"),
           React.createElement('div', { className: "space-y-2" },
             slipData.approvals.map((approval, idx) =>
-              React.createElement('div', { key: idx, className: "flex items-center justify-between p-3 bg-gray-50 rounded" },
-                React.createElement('div', null,
-                  React.createElement('span', { className: "font-medium" }, approval.role?.toUpperCase() || 'Unknown'),
-                  React.createElement('span', { className: "mx-2 text-gray-400" }, '-'),
-                  React.createElement('span', null, approval.user_name || 'Pending')
+              React.createElement('div', {
+                key: idx,
+                style: {
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '10px 12px', background: 'var(--bg-secondary)',
+                  borderRadius: '8px'
+                }
+              },
+                React.createElement(UserAvatar, { name: approval.user_name || approval.role, size: 32, fontSize: 12 }),
+                React.createElement('div', { style: { flex: 1 } },
+                  React.createElement('p', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', lineHeight: '1.2' } }, approval.user_name || 'Pending'),
+                  React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-tertiary)' } }, (approval.role || '').replace(/_/g, ' ').toUpperCase())
                 ),
-                React.createElement('div', { className: "flex items-center gap-3" },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
                   React.createElement('span', {
                     className: `badge ${
                       approval.action === 'approved' ? 'badge-success' :
@@ -12600,7 +12671,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
                       'badge-pending'
                     }`
                   }, approval.action?.toUpperCase() || 'PENDING'),
-                  approval.timestamp && React.createElement('span', { className: "text-sm text-gray-500" },
+                  approval.timestamp && React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
                     new Date(approval.timestamp).toLocaleString()
                   )
                 )
