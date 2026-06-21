@@ -961,9 +961,9 @@
                     });
                 }
 
-                // Clear old localStorage items except auth
+                // Clear old localStorage items except auth and user preferences
                 try {
-                    const keysToKeep = ['authToken', 'currentUser'];
+                    const keysToKeep = ['authToken', 'refreshToken', 'currentUser', 'userData', 'theme', 'sidebarWidth'];
                     const allKeys = Object.keys(localStorage);
                     allKeys.forEach(key => {
                         if (!keysToKeep.includes(key)) {

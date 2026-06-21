@@ -2207,6 +2207,38 @@ function ThemeToggle() {
 function Sidebar({ user, logout, setView, view, setSelectedReq }) {
   const [expandedMenus, setExpandedMenus] = useState({});
   const eftAccess = useEFTAccess(user && user.role);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = parseInt(localStorage.getItem('sidebarWidth'), 10);
+    return saved && saved >= 180 && saved <= 480 ? saved : 256;
+  });
+  const isDragging = React.useRef(false);
+  const dragStartX = React.useRef(0);
+  const dragStartWidth = React.useRef(0);
+
+  const onDragStart = (e) => {
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = (e) => {
+      if (!isDragging.current) return;
+      const delta = e.clientX - dragStartX.current;
+      const newWidth = Math.min(480, Math.max(180, dragStartWidth.current + delta));
+      setSidebarWidth(newWidth);
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      setSidebarWidth(w => { localStorage.setItem('sidebarWidth', w); return w; });
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 
   // Accordion: opening a group collapses any other open group, so the
   // menu never grows beyond the viewport.
@@ -2305,14 +2337,35 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
   ];
 
   return React.createElement('aside', {
-    className: "w-64 shadow-lg h-screen sticky top-0 flex flex-col relative transition-colors",
+    className: "shadow-lg h-screen sticky top-0 flex flex-col relative transition-colors",
     style: {
+      width: sidebarWidth + 'px',
+      minWidth: '180px',
+      maxWidth: '480px',
+      flexShrink: 0,
       background: 'var(--sidebar-bg)',
       color: 'var(--sidebar-text)',
       borderRight: '1px solid var(--sidebar-border)',
       boxShadow: 'var(--shadow-lg)'
     }
   },
+    // Drag handle on right edge
+    React.createElement('div', {
+      onMouseDown: onDragStart,
+      style: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: '5px',
+        cursor: 'col-resize',
+        zIndex: 10,
+        background: 'transparent',
+        transition: 'background 0.15s'
+      },
+      onMouseEnter: e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.opacity = '0.3'; },
+      onMouseLeave: e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.opacity = '1'; }
+    }),
     // Logo and Title
     React.createElement('div', {
       className: "p-6 transition-colors",
