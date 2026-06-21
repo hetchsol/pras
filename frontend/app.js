@@ -7700,7 +7700,11 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
 
       const combinedItems = [...taggedReqs, ...taggedExp, ...taggedEft, ...taggedPc, ...taggedIss];
 
-      // Filter based on user role and status
+      // Filter based on user role and status.
+      // The pending_hod bypass (Finance/MD acting before HOD) only applies
+      // to purchase requisitions — petty cash, EFT, and expense claims must
+      // follow the strict HOD → Finance → MD chain.
+      const isPR = item => item.formType === 'purchase_requisition';
       let filtered = [];
       if (user.role === 'hod') {
         filtered = combinedItems.filter(item => item.status === 'pending_hod');
@@ -7708,13 +7712,13 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
         filtered = combinedItems.filter(item =>
           item.status === 'pending_finance' ||
           item.status === 'hod_approved' ||
-          (item.status === 'pending_hod' && !item.has_adjudication)
+          (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
         );
       } else if (user.role === 'md') {
         filtered = combinedItems.filter(item =>
           item.status === 'pending_md' ||
           item.status === 'finance_approved' ||
-          (item.status === 'pending_hod' && !item.has_adjudication)
+          (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
         );
       } else if (user.role === 'admin') {
         filtered = combinedItems.filter(item =>
