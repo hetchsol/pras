@@ -1274,6 +1274,113 @@ function EFTLockBanner({ action, access }) {
 }
 
 // ============================================
+// SKELETON LOADERS
+// ============================================
+
+function SkeletonBone({ width = '100%', height = 14, radius = 4, style: extra = {} }) {
+  return React.createElement('span', {
+    className: 'skeleton-bone',
+    style: { width, height: height + 'px', borderRadius: radius + 'px', flexShrink: 0, ...extra }
+  });
+}
+
+function SkeletonRow() {
+  return React.createElement('div', {
+    style: {
+      display: 'flex', gap: '16px', alignItems: 'center',
+      padding: '12px 0', borderBottom: '1px solid var(--border-color)'
+    }
+  },
+    React.createElement(SkeletonBone, { width: '14%', height: 13 }),
+    React.createElement(SkeletonBone, { width: '26%', height: 13 }),
+    React.createElement(SkeletonBone, { width: '18%', height: 13 }),
+    React.createElement('span', { style: { width: '14%' } },
+      React.createElement(SkeletonBone, { width: '64px', height: 22, radius: 11 })
+    ),
+    React.createElement(SkeletonBone, { width: '18%', height: 13 })
+  );
+}
+
+function SkeletonList({ rows = 6 }) {
+  return React.createElement('div', { className: 'space-y-6' },
+    React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'card-header mb-6' },
+        React.createElement(SkeletonBone, { width: '200px', height: 24 }),
+        React.createElement(SkeletonBone, { width: '110px', height: 36, radius: 8 })
+      ),
+      React.createElement('div', {
+        style: { display: 'flex', gap: '16px', padding: '8px 0', borderBottom: '2px solid var(--border-color)', marginBottom: '2px' }
+      },
+        React.createElement(SkeletonBone, { width: '14%', height: 11 }),
+        React.createElement(SkeletonBone, { width: '26%', height: 11 }),
+        React.createElement(SkeletonBone, { width: '18%', height: 11 }),
+        React.createElement(SkeletonBone, { width: '14%', height: 11 }),
+        React.createElement(SkeletonBone, { width: '18%', height: 11 })
+      ),
+      ...Array.from({ length: rows }, (_, i) => React.createElement(SkeletonRow, { key: i }))
+    )
+  );
+}
+
+function SkeletonCards({ cards = 3, rows = 5 }) {
+  return React.createElement('div', { className: 'space-y-6' },
+    React.createElement('div', {
+      style: { display: 'grid', gridTemplateColumns: `repeat(${cards}, 1fr)`, gap: '16px' }
+    },
+      ...Array.from({ length: cards }, (_, i) =>
+        React.createElement('div', { key: i, className: 'card', style: { padding: '20px' } },
+          React.createElement(SkeletonBone, { width: '55%', height: 12, extra: { marginBottom: '14px' } }),
+          React.createElement(SkeletonBone, { width: '75%', height: 28 })
+        )
+      )
+    ),
+    React.createElement(SkeletonList, { rows })
+  );
+}
+
+function SkeletonApp() {
+  return React.createElement('div', {
+    style: { display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary)' }
+  },
+    React.createElement('div', {
+      style: {
+        width: '256px', minHeight: '100vh', flexShrink: 0,
+        background: 'var(--bg-primary)', borderRight: '1px solid var(--border-color)',
+        padding: '24px 16px'
+      }
+    },
+      React.createElement(SkeletonBone, { width: '72%', height: 22, extra: { marginBottom: '8px' } }),
+      React.createElement(SkeletonBone, { width: '50%', height: 13, extra: { marginBottom: '28px' } }),
+      ...Array.from({ length: 8 }, (_, i) =>
+        React.createElement(SkeletonBone, { key: i, width: i % 3 === 0 ? '50%' : '80%', height: 14, extra: { marginBottom: '14px' } })
+      )
+    ),
+    React.createElement('div', { style: { flex: 1 } },
+      React.createElement('div', {
+        style: {
+          padding: '20px 32px', background: 'var(--bg-primary)',
+          borderBottom: '1px solid var(--border-color)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+        }
+      },
+        React.createElement('div', null,
+          React.createElement(SkeletonBone, { width: '220px', height: 22, extra: { marginBottom: '8px' } }),
+          React.createElement(SkeletonBone, { width: '160px', height: 13 })
+        ),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+          React.createElement(SkeletonBone, { width: '40px', height: 40, radius: 20 }),
+          React.createElement(SkeletonBone, { width: '90px', height: 34, radius: 8 }),
+          React.createElement(SkeletonBone, { width: '72px', height: 34, radius: 8 })
+        )
+      ),
+      React.createElement('div', { style: { padding: '40px 32px' } },
+        React.createElement(SkeletonList, { rows: 5 })
+      )
+    )
+  );
+}
+
+// ============================================
 // APPROVAL PROGRESS STEPPER
 // ============================================
 
@@ -1746,23 +1853,7 @@ function App() {
   };
 
   // Show loading screen while checking authentication
-  if (initializing) {
-    return React.createElement('div', {
-      className: "min-h-screen flex items-center justify-center transition-colors",
-      style: { backgroundColor: 'var(--bg-secondary)' }
-    },
-      React.createElement('div', { className: "text-center" },
-        React.createElement('div', {
-          className: "animate-spin rounded-full h-12 w-12 border-b-2 mx-auto",
-          style: { borderColor: 'var(--color-primary)' }
-        }),
-        React.createElement('p', {
-          className: "mt-4 transition-colors",
-          style: { color: 'var(--text-secondary)' }
-        }, "Initializing...")
-      )
-    );
-  }
+  if (initializing) return React.createElement(SkeletonApp);
 
   if (!currentUser) {
     return React.createElement(LoginScreen, { setCurrentUser, setView });
@@ -1778,23 +1869,7 @@ function App() {
     });
   }
 
-  if (loading) {
-    return React.createElement('div', {
-      className: "min-h-screen flex items-center justify-center transition-colors",
-      style: { backgroundColor: 'var(--bg-secondary)' }
-    },
-      React.createElement('div', { className: "text-center" },
-        React.createElement('div', {
-          className: "animate-spin rounded-full h-12 w-12 border-b-2 mx-auto",
-          style: { borderColor: 'var(--color-primary)' }
-        }),
-        React.createElement('p', {
-          className: "mt-4 transition-colors",
-          style: { color: 'var(--text-secondary)' }
-        }, "Loading… please wait")
-      )
-    );
-  }
+  if (loading) return React.createElement(SkeletonApp);
 
   return React.createElement('div', {
     className: "min-h-screen flex transition-colors",
@@ -6312,11 +6387,7 @@ function AdminPanel({ data, loadData }) {
     }
   };
 
-  if (loading && users.length === 0) {
-    return React.createElement('div', { className: "card" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading admin data… please wait")
-    );
-  }
+  if (loading && users.length === 0) return React.createElement(SkeletonCards, { cards: 3, rows: 5 });
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -7673,16 +7744,7 @@ function AnalyticsDashboard({ user }) {
     };
   }, []);
 
-  if (loading) {
-    return React.createElement('div', {
-      className: "flex items-center justify-center min-h-screen"
-    },
-      React.createElement('div', {
-        className: "animate-spin rounded-full h-12 w-12 border-b-2",
-        style: { borderColor: 'var(--color-primary)' }
-      })
-    );
-  }
+  if (loading) return React.createElement(SkeletonCards, { cards: 4, rows: 4 });
 
   return React.createElement('div', { className: "space-y-6" },
     // Header
@@ -8217,11 +8279,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     return item.created_by_name || item.initiator_name || item.employee_name || item.payee_name || 'N/A';
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading Approval Console… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList, { rows: 8 });
 
   return React.createElement('div', { className: "space-y-6" },
     // Header
@@ -9399,11 +9457,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
     return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading petty cash requisitions… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -9605,11 +9659,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
     return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading expense claims… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -9811,11 +9861,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
     return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading EFT requisitions… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -9991,11 +10037,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
     setView('approve'); // Reuse the approve view for processing
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading Requisition Adjudication… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     // Header
@@ -10205,14 +10247,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
     }
   };
 
-  if (loading) {
-    return React.createElement('div', {
-      className: "text-center py-12",
-      style: { color: 'var(--text-secondary)' }
-    },
-      React.createElement('p', null, "Loading Rejected Requisitions… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     // Header
@@ -10787,11 +10822,7 @@ function PurchaseOrders({ user }) {
     }
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "card" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading Purchase Orders… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -10928,11 +10959,7 @@ function BudgetManagement({ user }) {
     return 'text-green-600 bg-green-50';
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "card" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading budget data… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonCards, { cards: 3, rows: 5 });
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -11182,11 +11209,7 @@ function FXRatesManagement({ user }) {
     }
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "card" },
-      React.createElement('p', { className: "text-center text-gray-600" }, "Loading FX rates… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonCards, { cards: 3, rows: 4 });
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -11649,11 +11672,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
   const canUploadQuotes = user.role === 'procurement' || user.role === 'admin';
   const canViewQuotes = user.role === 'procurement' || user.role === 'finance' || user.role === 'md' || user.role === 'admin';
 
-  if (loading) {
-    return React.createElement('div', { className: "flex items-center justify-center p-8" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading requisitions… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -12349,11 +12368,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
     return statusColors[status] || 'badge-neutral';
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading issue slips… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -12773,11 +12788,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
     }
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading picking slips… please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -12904,11 +12915,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
     }
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading goods receipt notes... please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -13332,11 +13339,7 @@ function StockRegister({ user }) {
     }
   };
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading stock register... please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
@@ -13568,11 +13571,7 @@ function StockItems({ user }) {
            (item.preferred_vendor || '').toLowerCase().includes(term);
   });
 
-  if (loading) {
-    return React.createElement('div', { className: "text-center py-12" },
-      React.createElement('p', { className: "text-gray-600" }, "Loading stock items... please wait")
-    );
-  }
+  if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },

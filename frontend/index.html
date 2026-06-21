@@ -534,6 +534,26 @@
             padding: 16px 24px;
         }
 
+        /* ===================================================================
+           Skeleton loader — shimmer animation for loading states
+           =================================================================== */
+        @keyframes skeleton-shimmer {
+            0%   { background-position: -600px 0; }
+            100% { background-position:  600px 0; }
+        }
+        .skeleton-bone {
+            display: block;
+            border-radius: 4px;
+            background: linear-gradient(
+                90deg,
+                var(--bg-tertiary) 25%,
+                var(--bg-hover)    50%,
+                var(--bg-tertiary) 75%
+            );
+            background-size: 1200px 100%;
+            animation: skeleton-shimmer 1.5s infinite ease-in-out;
+        }
+
         /* Text accents tighter to brand */
         .text-blue-600, .text-blue-700 { color: var(--color-primary) !important; }
         .text-blue-800, .text-blue-900 { color: var(--color-primary-dark) !important; }
