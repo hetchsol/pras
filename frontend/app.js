@@ -1273,6 +1273,141 @@ function EFTLockBanner({ action, access }) {
   );
 }
 
+// ============================================
+// TOAST NOTIFICATION SYSTEM
+// ============================================
+
+function ToastContainer() {
+  const [toasts, setToasts] = useState([]);
+
+  useEffect(function() {
+    window.showToast = function(message, type) {
+      var m = String(message || '');
+      if (!type) {
+        if (/success|approved|saved|created|updated|deleted|assigned|completed|sent|done/i.test(m)) {
+          type = 'success';
+        } else if (/please|required|must |select |enter |choose|provide|fill|missing|at least/i.test(m)) {
+          type = 'warning';
+        } else if (/error|fail|invalid|cannot|unable|not found|unauthorized|denied|wrong/i.test(m)) {
+          type = 'error';
+        } else {
+          type = 'info';
+        }
+      }
+      var id = Date.now() + Math.random();
+      var dur = type === 'error' ? 7000 : 4000;
+      setToasts(function(prev) { return prev.concat({ id: id, message: m, type: type }); });
+      setTimeout(function() {
+        setToasts(function(prev) { return prev.filter(function(t) { return t.id !== id; }); });
+      }, dur);
+    };
+    return function() { delete window.showToast; };
+  }, []);
+
+  const dismiss = function(id) {
+    setToasts(function(prev) { return prev.filter(function(t) { return t.id !== id; }); });
+  };
+
+  if (!toasts.length) return null;
+
+  return React.createElement('div', {
+    style: {
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      zIndex: 99999,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      maxWidth: '380px',
+      width: 'calc(100% - 48px)',
+      pointerEvents: 'none'
+    }
+  },
+    toasts.map(function(t) {
+      return React.createElement(ToastItem, { key: t.id, toast: t, onDismiss: dismiss });
+    })
+  );
+}
+
+function ToastItem({ toast, onDismiss }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(function() {
+    var frame = requestAnimationFrame(function() { setVisible(true); });
+    return function() { cancelAnimationFrame(frame); };
+  }, []);
+
+  var palette = {
+    success: { bg: '#ECFDF5', border: '#10B981', text: '#065F46', icon: '#10B981', glyph: '✓' },
+    error:   { bg: '#FEF2F2', border: '#EF4444', text: '#991B1B', icon: '#EF4444', glyph: '✕' },
+    warning: { bg: '#FFFBEB', border: '#F59E0B', text: '#78350F', icon: '#F59E0B', glyph: '!' },
+    info:    { bg: '#EFF6FF', border: '#0070AF', text: '#1E3A5F', icon: '#0070AF', glyph:  'i' }
+  };
+  var c = palette[toast.type] || palette.info;
+
+  return React.createElement('div', {
+    style: {
+      background: c.bg,
+      border: '1px solid ' + c.border,
+      borderLeft: '4px solid ' + c.border,
+      borderRadius: '8px',
+      padding: '12px 14px',
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '10px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+      pointerEvents: 'all',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateX(0)' : 'translateX(20px)',
+      transition: 'opacity 0.22s ease, transform 0.22s ease'
+    }
+  },
+    React.createElement('span', {
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '18px',
+        height: '18px',
+        minWidth: '18px',
+        borderRadius: '50%',
+        background: c.icon,
+        color: '#fff',
+        fontSize: '11px',
+        fontWeight: '700',
+        marginTop: '1px'
+      }
+    }, c.glyph),
+    React.createElement('p', {
+      style: {
+        margin: 0,
+        fontSize: '13px',
+        fontWeight: '500',
+        color: c.text,
+        lineHeight: '1.45',
+        flex: 1,
+        wordBreak: 'break-word'
+      }
+    }, toast.message),
+    React.createElement('button', {
+      onClick: function(e) { e.stopPropagation(); onDismiss(toast.id); },
+      style: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: c.text,
+        opacity: 0.45,
+        padding: '0 0 0 6px',
+        fontSize: '18px',
+        lineHeight: '1',
+        flexShrink: 0,
+        marginTop: '-1px'
+      }
+    }, '×')
+  );
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('login');
@@ -1537,7 +1672,8 @@ function App() {
         view === 'approve-issue-slip' && React.createElement(ApproveIssueSlip, { slip: selectedReq, user: currentUser, setView }),
         view === 'picking-slips' && React.createElement(PickingSlipsList, { user: currentUser, setView, setSelectedReq })
       )
-    )
+    ),
+    React.createElement(ToastContainer, null)
   );
 }
 
@@ -3069,7 +3205,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       : 'Approved';
 
     if (action === 'reject' && !comment) {
-      alert('Rejection reason is required');
+      showToast('Rejection reason is required');
       return;
     }
 
@@ -3135,14 +3271,14 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         }
       }
 
-      alert(`${form.displayType || 'Form'} ${action}ed successfully!`);
+      showToast(`${form.displayType || 'Form'} ${action}ed successfully!`);
 
       // Reload data
       await loadData();
 
     } catch (error) {
       console.error(`Error ${action}ing form:`, error);
-      alert(`Error ${action}ing requisition. ${error.message}`);
+      showToast(`Error ${action}ing requisition. ${error.message}`);
     }
   };
 
@@ -3169,26 +3305,26 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             setShowUserSelection(true);
             return; // Don't proceed yet, wait for user selection
           } catch (error) {
-            alert('Failed to fetch users: ' + error.message);
+            showToast('Failed to fetch users: ' + error.message);
             return;
           }
         }
 
         // User has selected someone
         if (!selectedUserId) {
-          alert('Please select a user to assign to');
+          showToast('Please select a user to assign to');
           return;
         }
 
         if (!rerouteReason.trim()) {
-          alert('Please enter a reason for rerouting');
+          showToast('Please enter a reason for rerouting');
           return;
         }
 
         // Determine the appropriate new status based on the selected user's role
         const selectedUser = availableUsers.find(u => u.id === parseInt(selectedUserId));
         if (!selectedUser) {
-          alert('Selected user not found');
+          showToast('Selected user not found');
           return;
         }
 
@@ -3221,7 +3357,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         // Skip current approval stage
         const comment = prompt('Enter reason for skipping approval stage:');
         if (!comment) {
-          alert('Reason is required');
+          showToast('Reason is required');
           return;
         }
 
@@ -3238,7 +3374,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         }
 
         if (!newStatus) {
-          alert('Cannot skip this stage');
+          showToast('Cannot skip this stage');
           return;
         }
 
@@ -3264,7 +3400,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         // Reassign to different department/HOD
         const newDept = prompt('Enter new department name:');
         if (!newDept) {
-          alert('Department name is required');
+          showToast('Department name is required');
           return;
         }
 
@@ -3300,7 +3436,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         throw new Error(error.error || 'Failed to reroute');
       }
 
-      alert('Rerouted successfully!');
+      showToast('Rerouted successfully!');
       setShowAdminReroute(false);
       setRerouteForm(null);
       setShowUserSelection(false);
@@ -3311,7 +3447,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
 
     } catch (error) {
       console.error('Error rerouting:', error);
-      alert(`Error rerouting: ${error.message}`);
+      showToast(`Error rerouting: ${error.message}`);
     }
   };
 
@@ -3328,7 +3464,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading requisition PDF:', error);
-      alert(error.message || 'Failed to download requisition PDF. Please check your permissions.');
+      showToast(error.message || 'Failed to download requisition PDF. Please check your permissions.');
     }
   };
 
@@ -3361,7 +3497,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading form PDF:', error);
-      alert(error.message || 'Failed to download form PDF.');
+      showToast(error.message || 'Failed to download form PDF.');
     }
   };
 
@@ -3390,7 +3526,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       setShowPdfPreview(true);
     } catch (error) {
       console.error('Error previewing form PDF:', error);
-      alert(error.message || 'Failed to preview form PDF.');
+      showToast(error.message || 'Failed to preview form PDF.');
     }
   };
 
@@ -3403,7 +3539,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       setShowPdfPreview(true);
     } catch (error) {
       console.error('Error previewing requisition PDF:', error);
-      alert(error.message || 'Failed to preview requisition PDF.');
+      showToast(error.message || 'Failed to preview requisition PDF.');
     }
   };
 
@@ -4151,7 +4287,7 @@ function CreateRequisition({ user, setView, loadData }) {
 
   const addLineItem = () => {
     if (lineItems.length >= 15) {
-      alert('Maximum of 15 line items allowed');
+      showToast('Maximum of 15 line items allowed');
       return;
     }
     setLineItems([...lineItems, { item_code: '', item_name: '', quantity: 1, unit_price: '' }]);
@@ -4172,7 +4308,7 @@ function CreateRequisition({ user, setView, loadData }) {
 
   const removeLineItem = (index) => {
     if (lineItems.length === 1) {
-      alert('At least one line item is required');
+      showToast('At least one line item is required');
       return;
     }
     const newItems = lineItems.filter((_, i) => i !== index);
@@ -4189,12 +4325,12 @@ function CreateRequisition({ user, setView, loadData }) {
     // Validate at least one item has description
     const validItems = lineItems.filter(item => item.item_name.trim() !== '');
     if (validItems.length === 0) {
-      alert('Please add at least one item with a description');
+      showToast('Please add at least one item with a description');
       return;
     }
 
     if (!formData.dateRequired) {
-      alert('Please select a required date');
+      showToast('Please select a required date');
       return;
     }
 
@@ -4233,11 +4369,11 @@ function CreateRequisition({ user, setView, loadData }) {
         const w = response.budget_warning;
         msg += `\n\nBudget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
       }
-      alert(msg);
+      showToast(msg);
       setView('dashboard');
     } catch (error) {
       console.error('Error saving requisition:', error);
-      alert(`Error saving requisition: ${error.message}`);
+      showToast(`Error saving requisition: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -4247,17 +4383,17 @@ function CreateRequisition({ user, setView, loadData }) {
     // Validate at least one item has description
     const validItems = lineItems.filter(item => item.item_name.trim() !== '');
     if (validItems.length === 0) {
-      alert('Please add at least one item with a description');
+      showToast('Please add at least one item with a description');
       return;
     }
 
     if (!formData.dateRequired) {
-      alert('Please select a required date');
+      showToast('Please select a required date');
       return;
     }
 
     if (!formData.justification || formData.justification.trim() === '') {
-      alert('Please provide a justification for this requisition');
+      showToast('Please provide a justification for this requisition');
       return;
     }
 
@@ -4265,14 +4401,14 @@ function CreateRequisition({ user, setView, loadData }) {
     if (user.role === 'procurement') {
       const itemsWithPrices = validItems.filter(item => item.unit_price && parseFloat(item.unit_price) > 0);
       if (itemsWithPrices.length === 0) {
-        alert('Please provide unit price for at least one item');
+        showToast('Please provide unit price for at least one item');
         return;
       }
     }
 
     // If procurement is creating, they must select an HOD
     if (user.role === 'procurement' && !formData.selectedHod) {
-      alert('Please select an HOD approver');
+      showToast('Please select an HOD approver');
       return;
     }
 
@@ -4318,11 +4454,11 @@ function CreateRequisition({ user, setView, loadData }) {
         const w = response.budget_warning;
         msg += `\n\nBudget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
       }
-      alert(msg);
+      showToast(msg);
       setView('dashboard');
     } catch (error) {
       console.error('Error submitting requisition:', error);
-      alert(`Error submitting requisition: ${error.message}`);
+      showToast(`Error submitting requisition: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -4692,17 +4828,17 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       window.open(url, '_blank');
     } catch (error) {
       console.error('Error previewing PDF:', error);
-      alert(error.message || 'Failed to open PDF.');
+      showToast(error.message || 'Failed to open PDF.');
     }
   };
 
   const handleProcurementApprove = async () => {
     if (!selectedVendor) {
-      alert('Please select a vendor');
+      showToast('Please select a vendor');
       return;
     }
     if (!unitPrice || unitPrice <= 0) {
-      alert('Please enter a valid unit price');
+      showToast('Please enter a valid unit price');
       return;
     }
 
@@ -4733,11 +4869,11 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       });
 
       await loadData();
-      alert('Requisition adjudication complete! Sent to Finance for review.');
+      showToast('Requisition adjudication complete! Sent to Finance for review.');
       setView('dashboard');
     } catch (error) {
       console.error('Error processing requisition:', error);
-      alert('Error processing requisition. Please try again.');
+      showToast('Error processing requisition. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -4788,12 +4924,12 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           endpoint = `${API_URL}/requisitions/${req.id}/md-approve`;
           successMessage = 'Requisition fully approved!';
         } else {
-          alert('No approval action available for current status');
+          showToast('No approval action available for current status');
           setLoading(false);
           return;
         }
       } else {
-        alert('Invalid role for approval');
+        showToast('Invalid role for approval');
         setLoading(false);
         return;
       }
@@ -4805,11 +4941,11 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       });
 
       await loadData();
-      alert(successMessage);
+      showToast(successMessage);
       setView('dashboard');
     } catch (error) {
       console.error('Error approving requisition:', error);
-      alert('Error approving requisition. Please try again.');
+      showToast('Error approving requisition. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -4818,7 +4954,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   const handleReject = async () => {
     // For procurement, this is "Save as Draft" - no comment required
     if (user.role !== 'procurement' && !comment.trim()) {
-      alert('Please provide a reason for rejection');
+      showToast('Please provide a reason for rejection');
       return;
     }
 
@@ -4842,7 +4978,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           })
         });
         await loadData();
-        alert('Draft saved successfully!');
+        showToast('Draft saved successfully!');
       } else {
         // Regular rejection - use role-specific endpoint
         let endpoint = '';
@@ -4874,7 +5010,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         }
 
         if (!endpoint) {
-          alert('No rejection action available for current status');
+          showToast('No rejection action available for current status');
           setLoading(false);
           return;
         }
@@ -4895,12 +5031,12 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         }
 
         await loadData();
-        alert('Requisition rejected');
+        showToast('Requisition rejected');
       }
       setView('dashboard');
     } catch (error) {
       console.error('Error processing requisition:', error);
-      alert('Error processing requisition. Please try again.');
+      showToast('Error processing requisition. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -4912,7 +5048,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
 
   const handleUpdateDraft = async () => {
     if (!description || !quantity) {
-      alert('Please fill in all required fields');
+      showToast('Please fill in all required fields');
       return;
     }
 
@@ -4937,11 +5073,11 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       }
 
       await loadData();
-      alert('Draft updated successfully!');
+      showToast('Draft updated successfully!');
       setView('dashboard');
     } catch (error) {
       console.error('Error updating draft:', error);
-      alert('Error updating draft. Please try again.');
+      showToast('Error updating draft. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -4949,7 +5085,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
 
   const handleSubmitDraft = async () => {
     if (!description || !quantity) {
-      alert('Please fill in all required fields');
+      showToast('Please fill in all required fields');
       return;
     }
 
@@ -4967,11 +5103,11 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       }
 
       await loadData();
-      alert('Requisition submitted for approval!');
+      showToast('Requisition submitted for approval!');
       setView('dashboard');
     } catch (error) {
       console.error('Error submitting requisition:', error);
-      alert('Error submitting requisition. Please try again.');
+      showToast('Error submitting requisition. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -5489,7 +5625,7 @@ function AdminPanel({ data, loadData }) {
       }
     } catch (error) {
       console.error('Failed to load admin data:', error);
-      alert('Failed to load admin data: ' + error.message);
+      showToast('Failed to load admin data: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -5511,7 +5647,7 @@ function AdminPanel({ data, loadData }) {
   const handleSaveGRNApprover = async () => {
     try {
       if (!grnApproverForm.initiator_name || !grnApproverForm.approver_name) {
-        alert('Both Initiator and Approver are required');
+        showToast('Both Initiator and Approver are required');
         return;
       }
       const res = await fetchWithAuth(`${API_URL}/admin/grn-approvers`, {
@@ -5520,11 +5656,11 @@ function AdminPanel({ data, loadData }) {
         body: JSON.stringify(grnApproverForm)
       });
       if (!res.ok) throw new Error('Failed to save assignment');
-      alert('GRN Approver assignment saved');
+      showToast('GRN Approver assignment saved');
       setGrnApproverForm({ initiator_name: '', approver_name: '' });
       loadGRNApprovers();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -5535,7 +5671,7 @@ function AdminPanel({ data, loadData }) {
       if (!res.ok) throw new Error('Failed to delete');
       loadGRNApprovers();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -5543,10 +5679,10 @@ function AdminPanel({ data, loadData }) {
     try {
       if (editingUser) {
         await api.updateAdminUser(editingUser.id, userForm);
-        alert('User updated successfully');
+        showToast('User updated successfully');
       } else {
         await api.createAdminUser(userForm);
-        alert('User created successfully');
+        showToast('User created successfully');
       }
       setShowUserForm(false);
       setEditingUser(null);
@@ -5564,7 +5700,7 @@ function AdminPanel({ data, loadData }) {
       loadAdminData();
       if (loadData) loadData();
     } catch (error) {
-      alert('Error saving user: ' + error.message);
+      showToast('Error saving user: ' + error.message);
     }
   };
 
@@ -5572,11 +5708,11 @@ function AdminPanel({ data, loadData }) {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
       await api.deleteAdminUser(userId);
-      alert('User deleted successfully');
+      showToast('User deleted successfully');
       loadAdminData();
       if (loadData) loadData();
     } catch (error) {
-      alert('Error deleting user: ' + error.message);
+      showToast('Error deleting user: ' + error.message);
     }
   };
 
@@ -5584,10 +5720,10 @@ function AdminPanel({ data, loadData }) {
     try {
       if (editingVendor) {
         await api.updateAdminVendor(editingVendor.id, vendorForm);
-        alert('Vendor updated successfully');
+        showToast('Vendor updated successfully');
       } else {
         await api.createAdminVendor(vendorForm);
-        alert('Vendor created successfully');
+        showToast('Vendor created successfully');
       }
       setShowVendorForm(false);
       setEditingVendor(null);
@@ -5595,7 +5731,7 @@ function AdminPanel({ data, loadData }) {
       loadAdminData();
       if (loadData) loadData();
     } catch (error) {
-      alert('Error saving vendor: ' + error.message);
+      showToast('Error saving vendor: ' + error.message);
     }
   };
 
@@ -5603,11 +5739,11 @@ function AdminPanel({ data, loadData }) {
     if (!confirm('Are you sure you want to delete this vendor?')) return;
     try {
       await api.deleteAdminVendor(vendorId);
-      alert('Vendor deleted successfully');
+      showToast('Vendor deleted successfully');
       loadAdminData();
       if (loadData) loadData();
     } catch (error) {
-      alert('Error deleting vendor: ' + error.message);
+      showToast('Error deleting vendor: ' + error.message);
     }
   };
 
@@ -5678,12 +5814,12 @@ function AdminPanel({ data, loadData }) {
     const validTypes = ['.csv', '.xlsx', '.xls'];
     const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!validTypes.includes(fileExt)) {
-      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+      showToast('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
       return;
     }
 
     if (typeof XLSX === 'undefined') {
-      alert('SheetJS library not loaded. Please refresh the page and try again.');
+      showToast('SheetJS library not loaded. Please refresh the page and try again.');
       return;
     }
 
@@ -5696,7 +5832,7 @@ function AdminPanel({ data, loadData }) {
       const dupeCount = allVendors.length - vendors.length;
 
       if (vendors.length === 0) {
-        alert('No valid vendors found in file. Ensure there is a "BP Name", "Vendor Name" or "Name" column.');
+        showToast('No valid vendors found in file. Ensure there is a "BP Name", "Vendor Name" or "Name" column.');
         setUploadingVendors(false);
         return;
       }
@@ -5709,15 +5845,15 @@ function AdminPanel({ data, loadData }) {
 
       const result = await response.json();
       if (response.ok) {
-        alert(result.message + (dupeCount > 0 ? `\n(${dupeCount} duplicate rows removed from file)` : ''));
+        showToast(result.message + (dupeCount > 0 ? `\n(${dupeCount} duplicate rows removed from file)` : ''));
         loadAdminData();
         setShowVendorUpload(false);
       } else {
-        alert('Upload failed: ' + (result.error || 'Unknown error'));
+        showToast('Upload failed: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Error processing file: ' + error.message);
+      showToast('Error processing file: ' + error.message);
     } finally {
       setUploadingVendors(false);
       event.target.value = '';
@@ -5732,12 +5868,12 @@ function AdminPanel({ data, loadData }) {
     const validTypes = ['.csv', '.xlsx', '.xls'];
     const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!validTypes.includes(fileExt)) {
-      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+      showToast('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
       return;
     }
 
     if (typeof XLSX === 'undefined') {
-      alert('SheetJS library not loaded. Please refresh the page and try again.');
+      showToast('SheetJS library not loaded. Please refresh the page and try again.');
       return;
     }
 
@@ -5778,7 +5914,7 @@ function AdminPanel({ data, loadData }) {
       const dupeCount = allClients.length - clients.length;
 
       if (clients.length === 0) {
-        alert('No valid clients found in file. Ensure there is a "Customer", "Name" or "Client Name" column.');
+        showToast('No valid clients found in file. Ensure there is a "Customer", "Name" or "Client Name" column.');
         setUploadingClients(false);
         return;
       }
@@ -5791,15 +5927,15 @@ function AdminPanel({ data, loadData }) {
 
       const result = await response.json();
       if (response.ok) {
-        alert(result.message + (dupeCount > 0 ? `\n(${dupeCount} duplicate rows removed from file)` : ''));
+        showToast(result.message + (dupeCount > 0 ? `\n(${dupeCount} duplicate rows removed from file)` : ''));
         loadAdminData();
         setShowClientUpload(false);
       } else {
-        alert('Upload failed: ' + (result.error || 'Unknown error'));
+        showToast('Upload failed: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Error processing file: ' + error.message);
+      showToast('Error processing file: ' + error.message);
     } finally {
       setUploadingClients(false);
       event.target.value = '';
@@ -5811,17 +5947,17 @@ function AdminPanel({ data, loadData }) {
     try {
       if (editingClient) {
         await api.updateAdminClient(editingClient.id, clientForm);
-        alert('Client updated successfully');
+        showToast('Client updated successfully');
       } else {
         await api.createAdminClient(clientForm);
-        alert('Client created successfully');
+        showToast('Client created successfully');
       }
       setShowClientForm(false);
       setEditingClient(null);
       setClientForm({ name: '', code: '', contact_person: '', email: '', phone: '', address: '', country: '' });
       loadAdminData();
     } catch (error) {
-      alert('Error saving client: ' + error.message);
+      showToast('Error saving client: ' + error.message);
     }
   };
 
@@ -5829,10 +5965,10 @@ function AdminPanel({ data, loadData }) {
     if (!confirm('Are you sure you want to delete this client?')) return;
     try {
       await api.deleteAdminClient(clientId);
-      alert('Client deleted successfully');
+      showToast('Client deleted successfully');
       loadAdminData();
     } catch (error) {
-      alert('Error deleting client: ' + error.message);
+      showToast('Error deleting client: ' + error.message);
     }
   };
 
@@ -5841,17 +5977,17 @@ function AdminPanel({ data, loadData }) {
     try {
       if (editingDepartment) {
         await api.updateDepartment(editingDepartment.id, departmentForm);
-        alert('Department updated successfully');
+        showToast('Department updated successfully');
       } else {
         await api.createDepartment(departmentForm);
-        alert('Department created successfully');
+        showToast('Department created successfully');
       }
       setShowDepartmentForm(false);
       setEditingDepartment(null);
       setDepartmentForm({ name: '', code: '', description: '', is_active: 1 });
       loadAdminData();
     } catch (error) {
-      alert('Error saving department: ' + error.message);
+      showToast('Error saving department: ' + error.message);
     }
   };
 
@@ -5859,10 +5995,10 @@ function AdminPanel({ data, loadData }) {
     if (!confirm('Are you sure you want to delete this department?')) return;
     try {
       await api.deleteDepartment(deptId);
-      alert('Department deleted successfully');
+      showToast('Department deleted successfully');
       loadAdminData();
     } catch (error) {
-      alert('Error deleting department: ' + error.message);
+      showToast('Error deleting department: ' + error.message);
     }
   };
 
@@ -5871,17 +6007,17 @@ function AdminPanel({ data, loadData }) {
     try {
       if (editingCode) {
         await api.updateDepartmentCode(editingCode.id, codeForm);
-        alert('Department code updated successfully');
+        showToast('Department code updated successfully');
       } else {
         await api.createDepartmentCode(codeForm);
-        alert('Department code created successfully');
+        showToast('Department code created successfully');
       }
       setShowCodeForm(false);
       setEditingCode(null);
       setCodeForm({ department_id: '', code: '', description: '', is_active: 1 });
       loadAdminData();
     } catch (error) {
-      alert('Error saving department code: ' + error.message);
+      showToast('Error saving department code: ' + error.message);
     }
   };
 
@@ -5889,27 +6025,27 @@ function AdminPanel({ data, loadData }) {
     if (!confirm('Are you sure you want to delete this code?')) return;
     try {
       await api.deleteDepartmentCode(codeId);
-      alert('Department code deleted successfully');
+      showToast('Department code deleted successfully');
       loadAdminData();
     } catch (error) {
-      alert('Error deleting code: ' + error.message);
+      showToast('Error deleting code: ' + error.message);
     }
   };
 
   // Password reset handler
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 8) {
-      alert('Password must be at least 8 characters');
+      showToast('Password must be at least 8 characters');
       return;
     }
     try {
       await api.resetUserPassword(resetUserId, newPassword);
-      alert('Password reset successfully');
+      showToast('Password reset successfully');
       setShowPasswordReset(false);
       setResetUserId(null);
       setNewPassword('');
     } catch (error) {
-      alert('Error resetting password: ' + error.message);
+      showToast('Error resetting password: ' + error.message);
     }
   };
 
@@ -5921,13 +6057,13 @@ function AdminPanel({ data, loadData }) {
       const users = await api.getRerouteUsers();
       setRerouteUsers(users);
     } catch (error) {
-      alert('Error loading users: ' + error.message);
+      showToast('Error loading users: ' + error.message);
     }
   };
 
   const handleReroute = async () => {
     if (!rerouteForm.to_user_id || !rerouteForm.reason) {
-      alert('Please select a user and provide a reason');
+      showToast('Please select a user and provide a reason');
       return;
     }
     try {
@@ -5937,13 +6073,13 @@ function AdminPanel({ data, loadData }) {
         rerouteForm.reason,
         rerouteForm.new_status
       );
-      alert('Requisition rerouted successfully');
+      showToast('Requisition rerouted successfully');
       setShowRerouteModal(false);
       setRerouteReqId(null);
       setRerouteForm({ to_user_id: '', reason: '', new_status: '' });
       if (loadData) loadData();
     } catch (error) {
-      alert('Error rerouting requisition: ' + error.message);
+      showToast('Error rerouting requisition: ' + error.message);
     }
   };
 
@@ -7165,7 +7301,7 @@ function AnalyticsDashboard({ user }) {
       setTopVendors(vendorData);
     } catch (error) {
       console.error('Error loading analytics:', error);
-      alert('Failed to load analytics data');
+      showToast('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
@@ -7227,7 +7363,7 @@ function AnalyticsDashboard({ user }) {
             const index = activeElements[0].index;
             const dept = departmentBreakdown[index].department;
             setFilters({ ...filters, department: dept });
-            alert(`Filtered by ${dept}\nTotal Amount: ZMW ${parseFloat(departmentBreakdown[index].total_amount).toLocaleString()}\nCount: ${departmentBreakdown[index].count}`);
+            showToast(`Filtered by ${dept}\nTotal Amount: ZMW ${parseFloat(departmentBreakdown[index].total_amount).toLocaleString()}\nCount: ${departmentBreakdown[index].count}`);
           }
         };
 
@@ -7465,7 +7601,7 @@ function AnalyticsDashboard({ user }) {
               const data = await api.analytics.exportJSON(filters);
               downloadExcelFromJSON(data, `analytics-export-${Date.now()}.csv`);
             } catch (error) {
-              alert('Failed to export data: ' + error.message);
+              showToast('Failed to export data: ' + error.message);
             }
           },
           className: "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
@@ -7477,7 +7613,7 @@ function AnalyticsDashboard({ user }) {
         }, 'Export Excel'),
         React.createElement('button', {
           onClick: () => {
-            alert('Generating PDF report...\nThis feature will capture all charts and data into a professional PDF document.');
+            showToast('Generating PDF report...\nThis feature will capture all charts and data into a professional PDF document.');
           },
           className: "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
           style: {
@@ -7789,7 +7925,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       setAllItems(filtered);
     } catch (error) {
       console.error('Error fetching items:', error);
-      alert('Failed to load pending items');
+      showToast('Failed to load pending items');
     } finally {
       setLoading(false);
     }
@@ -8003,11 +8139,11 @@ function ApproveExpenseClaim({ claim, user, setView }) {
         throw new Error(error.error || 'Approval failed');
       }
 
-      alert('Expense claim approved successfully!');
+      showToast('Expense claim approved successfully!');
       setView('approval-console');
     } catch (error) {
       console.error('Error approving expense claim:', error);
-      alert(error.message || 'Error approving expense claim');
+      showToast(error.message || 'Error approving expense claim');
     } finally {
       setLoading(false);
     }
@@ -8015,7 +8151,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
 
   const handleReject = async () => {
     if (!comment.trim()) {
-      alert('Please provide a reason for rejection');
+      showToast('Please provide a reason for rejection');
       return;
     }
 
@@ -8037,11 +8173,11 @@ function ApproveExpenseClaim({ claim, user, setView }) {
         throw new Error(error.error || 'Rejection failed');
       }
 
-      alert('Expense claim rejected');
+      showToast('Expense claim rejected');
       setView('approval-console');
     } catch (error) {
       console.error('Error rejecting expense claim:', error);
-      alert(error.message || 'Error rejecting expense claim');
+      showToast(error.message || 'Error rejecting expense claim');
     } finally {
       setLoading(false);
     }
@@ -8179,11 +8315,11 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         throw new Error(error.error || 'Approval failed');
       }
 
-      alert('EFT requisition approved successfully!');
+      showToast('EFT requisition approved successfully!');
       setView('approval-console');
     } catch (error) {
       console.error('Error approving EFT requisition:', error);
-      alert(error.message || 'Error approving EFT requisition');
+      showToast(error.message || 'Error approving EFT requisition');
     } finally {
       setLoading(false);
     }
@@ -8191,7 +8327,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
 
   const handleReject = async () => {
     if (!comment.trim()) {
-      alert('Please provide a reason for rejection');
+      showToast('Please provide a reason for rejection');
       return;
     }
 
@@ -8213,11 +8349,11 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         throw new Error(error.error || 'Rejection failed');
       }
 
-      alert('EFT requisition rejected');
+      showToast('EFT requisition rejected');
       setView('approval-console');
     } catch (error) {
       console.error('Error rejecting EFT requisition:', error);
-      alert(error.message || 'Error rejecting EFT requisition');
+      showToast(error.message || 'Error rejecting EFT requisition');
     } finally {
       setLoading(false);
     }
@@ -8358,11 +8494,11 @@ function ApprovePettyCash({ requisition, user, setView }) {
         throw new Error(error.error || 'Approval failed');
       }
 
-      alert('Petty cash requisition approved successfully!');
+      showToast('Petty cash requisition approved successfully!');
       setView('approval-console');
     } catch (error) {
       console.error('Error approving petty cash requisition:', error);
-      alert(error.message || 'Error approving petty cash requisition');
+      showToast(error.message || 'Error approving petty cash requisition');
     } finally {
       setLoading(false);
     }
@@ -8370,7 +8506,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
 
   const handleReject = async () => {
     if (!comment.trim()) {
-      alert('Please provide a reason for rejection');
+      showToast('Please provide a reason for rejection');
       return;
     }
 
@@ -8392,11 +8528,11 @@ function ApprovePettyCash({ requisition, user, setView }) {
         throw new Error(error.error || 'Rejection failed');
       }
 
-      alert('Petty cash requisition rejected');
+      showToast('Petty cash requisition rejected');
       setView('approval-console');
     } catch (error) {
       console.error('Error rejecting petty cash requisition:', error);
-      alert(error.message || 'Error rejecting petty cash requisition');
+      showToast(error.message || 'Error rejecting petty cash requisition');
     } finally {
       setLoading(false);
     }
@@ -8560,11 +8696,11 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || 'Failed to save changes');
       }
-      alert('Changes saved.');
+      showToast('Changes saved.');
       closeEdit();
       fetchAll();
     } catch (err) {
-      alert(err.message || 'Failed to save');
+      showToast(err.message || 'Failed to save');
     } finally {
       setSavingEdit(false);
     }
@@ -8587,10 +8723,10 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.error || 'Resubmit failed');
       }
-      alert('Requisition resubmitted.');
+      showToast('Requisition resubmitted.');
       fetchAll();
     } catch (err) {
-      alert(err.message || 'Failed to resubmit');
+      showToast(err.message || 'Failed to resubmit');
     }
   };
 
@@ -8693,7 +8829,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       }
       if (blob) window.open(window.URL.createObjectURL(blob), '_blank');
     } catch (e) {
-      alert('Preview failed: ' + (e.message || 'unknown error'));
+      showToast('Preview failed: ' + (e.message || 'unknown error'));
     }
   };
 
@@ -8968,10 +9104,10 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
         })
       });
       if (!response.ok) throw new Error('Approval failed');
-      alert('Petty cash requisition approved!');
+      showToast('Petty cash requisition approved!');
       fetchPettyCashRequisitions();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -8990,10 +9126,10 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
         })
       });
       if (!response.ok) throw new Error('Rejection failed');
-      alert('Petty cash requisition rejected');
+      showToast('Petty cash requisition rejected');
       fetchPettyCashRequisitions();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9005,7 +9141,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9023,7 +9159,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9174,10 +9310,10 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
         })
       });
       if (!response.ok) throw new Error('Approval failed');
-      alert('Expense claim approved!');
+      showToast('Expense claim approved!');
       fetchExpenseClaims();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9196,10 +9332,10 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
         })
       });
       if (!response.ok) throw new Error('Rejection failed');
-      alert('Expense claim rejected');
+      showToast('Expense claim rejected');
       fetchExpenseClaims();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9211,7 +9347,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9229,7 +9365,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9380,10 +9516,10 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
         })
       });
       if (!response.ok) throw new Error('Approval failed');
-      alert('EFT requisition approved!');
+      showToast('EFT requisition approved!');
       fetchEFTRequisitions();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9402,10 +9538,10 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
         })
       });
       if (!response.ok) throw new Error('Rejection failed');
-      alert('EFT requisition rejected');
+      showToast('EFT requisition rejected');
       fetchEFTRequisitions();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9417,7 +9553,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9435,7 +9571,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -9612,7 +9748,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
       setRequisitions(filtered);
     } catch (error) {
       console.error('Error fetching requisitions:', error);
-      alert('Failed to load pending requisitions');
+      showToast('Failed to load pending requisitions');
     } finally {
       setLoading(false);
     }
@@ -9736,7 +9872,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
       setRequisitions(filtered);
     } catch (error) {
       console.error('Error fetching requisitions:', error);
-      alert('Failed to load rejected requisitions');
+      showToast('Failed to load rejected requisitions');
     } finally {
       setLoading(false);
     }
@@ -9793,14 +9929,14 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
         throw new Error(errorData.error || 'Failed to save changes');
       }
 
-      alert('Changes saved successfully!');
+      showToast('Changes saved successfully!');
       setEditingReq(null);
       setEditForm({});
       fetchRejectedRequisitions();
       if (loadData) loadData();
     } catch (error) {
       console.error('Error saving changes:', error);
-      alert(error.message || 'Failed to save changes');
+      showToast(error.message || 'Failed to save changes');
     } finally {
       setSaving(false);
     }
@@ -9828,12 +9964,12 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
         throw new Error(errorData.error || 'Failed to resubmit requisition');
       }
 
-      alert('Requisition resubmitted successfully!');
+      showToast('Requisition resubmitted successfully!');
       fetchRejectedRequisitions();
       if (loadData) loadData();
     } catch (error) {
       console.error('Error resubmitting requisition:', error);
-      alert(error.message || 'Failed to resubmit requisition');
+      showToast(error.message || 'Failed to resubmit requisition');
     }
   };
 
@@ -10396,7 +10532,7 @@ function PurchaseOrders({ user }) {
       setPOs(data);
     } catch (error) {
       console.error('Error loading POs:', error);
-      alert('Failed to load Purchase Orders');
+      showToast('Failed to load Purchase Orders');
     } finally {
       setLoading(false);
     }
@@ -10415,7 +10551,7 @@ function PurchaseOrders({ user }) {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading PO PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      showToast('Failed to download PDF. Please try again.');
     }
   };
 
@@ -10503,7 +10639,7 @@ function BudgetManagement({ user }) {
       const data = await api.getAllDepartmentsWithBudgets(fiscalYear);
       setBudgets(data);
     } catch (error) {
-      alert('Failed to load departments: ' + error.message);
+      showToast('Failed to load departments: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -10515,34 +10651,34 @@ function BudgetManagement({ user }) {
       setDeptDetails(data);
       setSelectedDept(department);
     } catch (error) {
-      alert('Failed to load department details: ' + error.message);
+      showToast('Failed to load department details: ' + error.message);
     }
   };
 
   const handleCreateBudget = async (department) => {
     if (!newAllocation || newAllocation <= 0) {
-      alert('Please enter a valid allocation amount');
+      showToast('Please enter a valid allocation amount');
       return;
     }
     try {
       await api.createBudget(department, parseFloat(newAllocation), fiscalYear);
-      alert('Budget created successfully');
+      showToast('Budget created successfully');
       setCreatingBudget(null);
       setNewAllocation('');
       loadBudgets();
     } catch (error) {
-      alert('Failed to create budget: ' + error.message);
+      showToast('Failed to create budget: ' + error.message);
     }
   };
 
   const handleUpdateAllocation = async (budgetId) => {
     if (!newAllocation || newAllocation <= 0) {
-      alert('Please enter a valid allocation amount');
+      showToast('Please enter a valid allocation amount');
       return;
     }
     try {
       await api.updateBudgetAllocation(budgetId, parseFloat(newAllocation));
-      alert('Budget allocation updated successfully');
+      showToast('Budget allocation updated successfully');
       setEditingBudget(null);
       setNewAllocation('');
       loadBudgets();
@@ -10550,7 +10686,7 @@ function BudgetManagement({ user }) {
         loadDeptDetails(selectedDept);
       }
     } catch (error) {
-      alert('Failed to update budget allocation: ' + error.message);
+      showToast('Failed to update budget allocation: ' + error.message);
     }
   };
 
@@ -10755,7 +10891,7 @@ function FXRatesManagement({ user }) {
       const data = await api.getFXRates();
       setRates(data);
     } catch (error) {
-      alert('Failed to load FX rates: ' + error.message);
+      showToast('Failed to load FX rates: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -10777,7 +10913,7 @@ function FXRatesManagement({ user }) {
       setSelectedCurrency(currencyCode);
       setShowHistory(true);
     } catch (error) {
-      alert('Failed to load FX rate history: ' + error.message);
+      showToast('Failed to load FX rate history: ' + error.message);
     }
   };
 
@@ -10785,7 +10921,7 @@ function FXRatesManagement({ user }) {
     e.preventDefault();
     try {
       await api.updateFXRate(formData);
-      alert('FX rate updated successfully');
+      showToast('FX rate updated successfully');
       loadRates();
       if (user.role === 'finance' || user.role === 'md' || user.role === 'admin') {
         loadAllRates();
@@ -10798,7 +10934,7 @@ function FXRatesManagement({ user }) {
         change_reason: ''
       });
     } catch (error) {
-      alert('Failed to update FX rate: ' + error.message);
+      showToast('Failed to update FX rate: ' + error.message);
     }
   };
 
@@ -10806,11 +10942,11 @@ function FXRatesManagement({ user }) {
     if (!confirm('Are you sure you want to deactivate this FX rate?')) return;
     try {
       await api.deactivateFXRate(rateId);
-      alert('FX rate deactivated successfully');
+      showToast('FX rate deactivated successfully');
       loadRates();
       loadAllRates();
     } catch (error) {
-      alert('Failed to deactivate FX rate: ' + error.message);
+      showToast('Failed to deactivate FX rate: ' + error.message);
     }
   };
 
@@ -11147,7 +11283,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
 
   const handleAddNewVendor = async () => {
     if (!newVendorForm.name.trim()) {
-      alert('Vendor name is required');
+      showToast('Vendor name is required');
       return;
     }
     setAddingVendor(true);
@@ -11162,7 +11298,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
       });
       const data = await response.json();
       if (!response.ok) {
-        alert(data.error || 'Failed to create vendor');
+        showToast(data.error || 'Failed to create vendor');
         return;
       }
       const newVendor = { ...data, id: data.id || data._id };
@@ -11174,7 +11310,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
       setShowAddVendorModal(false);
       setAddVendorForQuote(null);
     } catch (error) {
-      alert('Error creating vendor: ' + error.message);
+      showToast('Error creating vendor: ' + error.message);
     } finally {
       setAddingVendor(false);
     }
@@ -11188,7 +11324,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
     if (file && file.type === 'application/pdf') {
       setter({ ...quote, file });
     } else {
-      alert('Please select a PDF file');
+      showToast('Please select a PDF file');
       e.target.value = '';
     }
   };
@@ -11198,15 +11334,15 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
 
     // Validate all 3 quotes
     if (!quote1.vendor_id || !quote1.quote_amount || !quote1.file) {
-      alert('Please complete Quote 1 (Vendor, Amount, and PDF required)');
+      showToast('Please complete Quote 1 (Vendor, Amount, and PDF required)');
       return;
     }
     if (!quote2.vendor_id || !quote2.quote_amount || !quote2.file) {
-      alert('Please complete Quote 2 (Vendor, Amount, and PDF required)');
+      showToast('Please complete Quote 2 (Vendor, Amount, and PDF required)');
       return;
     }
     if (!quote3.vendor_id || !quote3.quote_amount || !quote3.file) {
-      alert('Please complete Quote 3 (Vendor, Amount, and PDF required)');
+      showToast('Please complete Quote 3 (Vendor, Amount, and PDF required)');
       return;
     }
 
@@ -11226,7 +11362,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
         await api.uploadQuote(selectedReq.id, formData);
       }
 
-      alert('All 3 quotes uploaded successfully! You can now create the adjudication.');
+      showToast('All 3 quotes uploaded successfully! You can now create the adjudication.');
 
       // Reset forms
       const emptyQuote = { vendor_id: '', vendor_name: '', quote_number: '', quote_amount: '', currency: 'ZMW', notes: '', file: null };
@@ -11238,7 +11374,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
       await loadQuotesForReq(selectedReq.id);
       setShowUploadForm(false);
     } catch (error) {
-      alert('Error uploading quotes: ' + error.message);
+      showToast('Error uploading quotes: ' + error.message);
     } finally {
       setUploading(false);
     }
@@ -11249,10 +11385,10 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
 
     try {
       await api.deleteQuote(quoteId);
-      alert('Quote deleted successfully');
+      showToast('Quote deleted successfully');
       await loadQuotesForReq(selectedReq.id);
     } catch (error) {
-      alert('Error deleting quote: ' + error.message);
+      showToast('Error deleting quote: ' + error.message);
     }
   };
 
@@ -11260,19 +11396,19 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
     e.preventDefault();
 
     if (quotes.length < 3) {
-      alert('Please upload all 3 vendor quotes before creating adjudication');
+      showToast('Please upload all 3 vendor quotes before creating adjudication');
       return;
     }
 
     setUploading(true);
     try {
       await api.createAdjudication(selectedReq.id, adjForm);
-      alert('Adjudication created successfully and sent to Finance for review!');
+      showToast('Adjudication created successfully and sent to Finance for review!');
       await loadRequisitions(); // Reload list as status changed
       setSelectedReq(null);
       setShowAdjudicationForm(false);
     } catch (error) {
-      alert('Error creating adjudication: ' + error.message);
+      showToast('Error creating adjudication: ' + error.message);
     } finally {
       setUploading(false);
     }
@@ -11949,7 +12085,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -11967,7 +12103,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12115,7 +12251,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
   const handleApprove = async () => {
     const actionEndpoint = getActionEndpoint();
     if (!actionEndpoint) {
-      alert('No pending action for this slip');
+      showToast('No pending action for this slip');
       return;
     }
 
@@ -12135,11 +12271,11 @@ function ApproveIssueSlip({ slip, user, setView }) {
         throw new Error(error.error || 'Approval failed');
       }
 
-      alert('Issue slip approved successfully!');
+      showToast('Issue slip approved successfully!');
       setView('issue-slips');
     } catch (error) {
       console.error('Error approving issue slip:', error);
-      alert(error.message || 'Error approving issue slip');
+      showToast(error.message || 'Error approving issue slip');
     } finally {
       setLoading(false);
     }
@@ -12147,13 +12283,13 @@ function ApproveIssueSlip({ slip, user, setView }) {
 
   const handleReject = async () => {
     if (!comment.trim()) {
-      alert('Please provide a reason for rejection');
+      showToast('Please provide a reason for rejection');
       return;
     }
 
     const actionEndpoint = getActionEndpoint();
     if (!actionEndpoint) {
-      alert('No pending action for this slip');
+      showToast('No pending action for this slip');
       return;
     }
 
@@ -12173,11 +12309,11 @@ function ApproveIssueSlip({ slip, user, setView }) {
         throw new Error(error.error || 'Rejection failed');
       }
 
-      alert('Issue slip rejected');
+      showToast('Issue slip rejected');
       setView('issue-slips');
     } catch (error) {
       console.error('Error rejecting issue slip:', error);
-      alert(error.message || 'Error rejecting issue slip');
+      showToast(error.message || 'Error rejecting issue slip');
     } finally {
       setLoading(false);
     }
@@ -12191,7 +12327,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12373,7 +12509,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12391,7 +12527,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12504,7 +12640,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12522,7 +12658,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12679,10 +12815,10 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to process approval');
       }
-      alert(`GRN ${action} successfully`);
+      showToast(`GRN ${action} successfully`);
       fetchGRNDetails();
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     } finally {
       setApproving(false);
     }
@@ -12696,7 +12832,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -12714,7 +12850,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error: ' + error.message);
+      showToast('Error: ' + error.message);
     }
   };
 
@@ -13082,7 +13218,7 @@ function StockItems({ user }) {
       resetForm();
       fetchItems();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message);
     }
   };
 
@@ -13093,7 +13229,7 @@ function StockItems({ user }) {
       if (!res.ok) throw new Error('Failed to delete');
       fetchItems();
     } catch (error) {
-      alert(error.message);
+      showToast(error.message);
     }
   };
 
@@ -13130,12 +13266,12 @@ function StockItems({ user }) {
     const validTypes = ['.csv', '.xlsx', '.xls'];
     const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!validTypes.includes(fileExt)) {
-      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+      showToast('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
       return;
     }
 
     if (typeof XLSX === 'undefined') {
-      alert('SheetJS library not loaded. Please refresh the page and try again.');
+      showToast('SheetJS library not loaded. Please refresh the page and try again.');
       return;
     }
 
@@ -13158,7 +13294,7 @@ function StockItems({ user }) {
       });
 
       if (unique.length === 0) {
-        alert('No valid items found in file. Ensure columns include "Description" and optionally "Item Number", "Unit", etc.');
+        showToast('No valid items found in file. Ensure columns include "Description" and optionally "Item Number", "Unit", etc.');
         return;
       }
 
@@ -13170,11 +13306,11 @@ function StockItems({ user }) {
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Upload failed');
-      alert(`Imported ${result.imported} items (${result.upserted} new, ${result.modified} updated)`);
+      showToast(`Imported ${result.imported} items (${result.upserted} new, ${result.modified} updated)`);
       setShowUpload(false);
       fetchItems();
     } catch (error) {
-      alert('Upload failed: ' + error.message);
+      showToast('Upload failed: ' + error.message);
     } finally {
       setUploading(false);
       event.target.value = '';
