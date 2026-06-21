@@ -1,4 +1,4 @@
-const PDFDocument = require('pdfkit');
+﻿const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
@@ -62,7 +62,7 @@ const generateRequisitionPDF = (requisition, items, callback) => {
         doc.fontSize(12)
            .text('KSB Zambia Limited', { align: 'center' })
            .fontSize(10)
-           .text('Purchase Requisition Approval System (PRAS)', { align: 'center' })
+           .text('Internal Approvals System', { align: 'center' })
            .moveDown(0.5);
 
         // Document Number (centered)
@@ -208,7 +208,7 @@ const generateRequisitionPDF = (requisition, items, callback) => {
         const pageHeight = doc.page.height;
         doc.fontSize(8)
            .text(
-               `Generated on ${new Date().toLocaleString()} | KSB Purchase Requisition Approval System (PRAS)`,
+               `Generated on ${new Date().toLocaleString()} | KSB Internal Approvals System`,
                50,
                pageHeight - 50,
                { align: 'center', width: 495 }

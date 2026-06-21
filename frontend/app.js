@@ -1905,7 +1905,7 @@ function LoginScreen({ setCurrentUser, setView }) {
         React.createElement('h1', {
           className: "text-3xl font-bold mb-2 transition-colors",
           style: { color: 'var(--text-primary)' }
-        }, "Purchase Requisition Approval System (PRAS)"),
+        }, "Internal Approvals System"),
         React.createElement('p', {
           className: "transition-colors",
           style: { color: 'var(--text-secondary)' }
@@ -2800,7 +2800,7 @@ function Header({ user, logout, setView, view }) {
     React.createElement('div', { className: "container mx-auto px-4 py-4" },
       React.createElement('div', { className: "flex items-center justify-between" },
         React.createElement('div', { className: "flex items-center gap-4" },
-          React.createElement('h1', { className: "text-2xl font-bold text-blue-600" }, "Purchase Requisition Approval System (PRAS)"),
+          React.createElement('h1', { className: "text-2xl font-bold text-blue-600" }, "Internal Approvals System"),
           React.createElement('span', { className: "badge badge-info" },
             user.role ? user.role.toUpperCase() : 'USER'
           )
@@ -3799,17 +3799,30 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                           onClick: () => handleViewReq(req),
                           className: "text-blue-600 hover:text-blue-800 text-sm font-medium"
                         }, hasRole(user.role, 'initiator') ? 'View' : 'Review'),
-                        // Show PDF download button for approved/completed requisitions only - Available to ALL roles
+                        // Show PDF preview + download buttons for approved/completed requisitions only - Available to ALL roles
                         (req.status === 'approved' || req.status === 'completed') &&
-                        React.createElement('button', {
-                          onClick: () => downloadRequisitionPDF(req.id, req.req_number),
-                          className: "text-green-600 hover:text-green-800 text-sm font-medium flex items-center gap-1",
-                          title: "Download Approved Requisition PDF"
-                        },
-                          React.createElement('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
+                        React.createElement(React.Fragment, null,
+                          React.createElement('button', {
+                            onClick: () => previewRequisitionPDF(req.id, req.req_number),
+                            className: "text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1",
+                            title: "Preview Approved Requisition PDF"
+                          },
+                            React.createElement('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                              React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }),
+                              React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" })
+                            ),
+                            'Preview'
                           ),
-                          'PDF'
+                          React.createElement('button', {
+                            onClick: () => downloadRequisitionPDF(req.id, req.req_number),
+                            className: "text-green-600 hover:text-green-800 text-sm font-medium flex items-center gap-1",
+                            title: "Download Approved Requisition PDF"
+                          },
+                            React.createElement('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                              React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
+                            ),
+                            'PDF'
+                          )
                         )
                       )
                     )
@@ -4618,21 +4631,15 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   const selectedRate = Array.isArray(fxRates) ? fxRates.find(r => r.currency_code === vendorCurrency) : null;
   const totalCostZMW = vendorCurrency === 'ZMW' ? totalCost : (totalCost * (selectedRate?.rate_to_zmw || 1));
 
-  // Download Approved Purchase Requisition PDF
+  // Preview Approved Purchase Requisition PDF in browser tab
   const downloadApprovedPDF = async () => {
     try {
       const blob = await api.downloadRequisitionPDF(req.id);
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Approved_PR_${req.req_number}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      window.open(url, '_blank');
     } catch (error) {
-      console.error('Error downloading PDF:', error);
-      alert(error.message || 'Failed to download Approved Purchase Requisition PDF.');
+      console.error('Error previewing PDF:', error);
+      alert(error.message || 'Failed to open PDF.');
     }
   };
 
@@ -13299,7 +13306,7 @@ function StockItems({ user }) {
 
 // Mount the application using React 18 API
 (function() {
-  console.log('Mounting Purchase Requisition Approval System (PRAS)...');
+  console.log('Mounting Internal Approvals System...');
 
   try {
     const rootElement = document.getElementById('root');
