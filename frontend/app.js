@@ -2241,7 +2241,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
         { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(user.role, 'procurement', 'admin') },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
         { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
-        { id: 'purchase-orders-list', label: 'Purchase Orders', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
+        { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
         { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
       ]
