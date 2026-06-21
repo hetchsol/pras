@@ -1,4 +1,4 @@
-const { useState, useEffect } = React;
+﻿const { useState, useEffect } = React;
 // Lucide icons not used in this version - using emoji icons instead
 // const { AlertCircle, CheckCircle, Clock, XCircle, LogOut, Plus, Edit, Trash2, FileText, DollarSign, Users, Package } = lucide;
 
@@ -3497,7 +3497,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       },
         // Modal Header
         React.createElement('div', {
-          className: "flex items-center justify-between mb-6 pb-4",
+          className: "card-header mb-6 pb-4",
           style: { borderBottom: '1px solid var(--border-color)' }
         },
           React.createElement('h2', {
@@ -3780,12 +3780,12 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         React.createElement('table', { className: "w-full" },
           React.createElement('thead', { className: "bg-gray-50" },
             React.createElement('tr', null,
-              React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Req Number"),
-              React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-              React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
-              React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
-              React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-              React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+              React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Req Number"),
+              React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Description"),
+              React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Department"),
+              React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Amount"),
+              React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Status"),
+              React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Action")
             )
           ),
           React.createElement('tbody', { className: "divide-y divide-gray-200" },
@@ -3796,9 +3796,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               : requisitions.map(req =>
                   React.createElement('tr', { key: req.id, className: "hover:bg-gray-50" },
                     React.createElement('td', { className: "px-6 py-4 text-sm font-medium text-gray-900" }, req.req_number),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, req.description || req.title),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, req.department),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, `ZMW ${(req.amount || req.total_amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "tbl-td tbl-td-lg" }, req.description || req.title),
+                    React.createElement('td', { className: "tbl-td tbl-td-lg" }, req.department),
+                    React.createElement('td', { className: "tbl-td tbl-td-lg" }, `ZMW ${(req.amount || req.total_amount || 0).toLocaleString()}`),
                     React.createElement('td', { className: "px-6 py-4" },
                       React.createElement('span', { className: `badge ${getStatusColor(req.status)}` },
                         getStatusText(req.status)
@@ -3846,7 +3846,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       },
         // Modal Header
         React.createElement('div', {
-          className: "flex items-center justify-between mb-4 pb-4",
+          className: "card-header mb-4 pb-4",
           style: { borderBottom: '1px solid var(--border-color)' }
         },
           React.createElement('h2', {
@@ -3886,7 +3886,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       },
         // Modal Header
         React.createElement('div', {
-          className: "flex items-center justify-between mb-4 pb-4",
+          className: "card-header mb-4 pb-4",
           style: { borderBottom: '1px solid var(--border-color)' }
         },
           React.createElement('h2', {
@@ -4285,7 +4285,7 @@ function CreateRequisition({ user, setView, loadData }) {
         className: "inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-200 transition-all"
       }, "\u2190 Back")
     ),
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
+    React.createElement('div', { className: "card card-lg" },
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Create New Requisition"),
 
       // Auto-generated information section
@@ -4316,7 +4316,7 @@ function CreateRequisition({ user, setView, loadData }) {
       React.createElement('div', { className: "space-y-6" },
         // Line Items Section
         React.createElement('div', { className: "border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50" },
-          React.createElement('div', { className: "flex items-center justify-between mb-4" },
+          React.createElement('div', { className: "card-header mb-4" },
             React.createElement('h3', { className: "text-lg font-semibold text-gray-800" },
               `Line Items (${lineItems.length}/15)`
             ),
@@ -4929,8 +4929,8 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   };
 
   return React.createElement('div', { className: "max-w-4xl mx-auto" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card card-lg" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, isDraftEditable ? "Edit Draft Requisition" : "Review Requisition"),
         React.createElement('span', {
           className: `badge ${req.status === 'approved' ? 'badge-success' : req.status === 'draft' ? 'badge-neutral' : 'badge-pending'}`
@@ -5899,13 +5899,13 @@ function AdminPanel({ data, loadData }) {
   };
 
   if (loading && users.length === 0) {
-    return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    return React.createElement('div', { className: "card" },
       React.createElement('p', { className: "text-center text-gray-600" }, "Loading admin data… please wait")
     );
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-4" }, "Admin Panel"),
       React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" },
         React.createElement('div', { className: "p-4 bg-blue-50 rounded-lg" },
@@ -5952,8 +5952,8 @@ function AdminPanel({ data, loadData }) {
         }, "Clients")
       )
     ),
-    activeTab === 'users' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+    activeTab === 'users' && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "User Management"),
         React.createElement('button', {
           onClick: () => {
@@ -5972,7 +5972,7 @@ function AdminPanel({ data, loadData }) {
           className: "btn-primary"
         }, "+ Add User")
       ),
-      showUserForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
+      showUserForm && React.createElement('div', { className: "mb-6 card-section" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingUser ? 'Edit User' : 'New User'),
         React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
           React.createElement('input', {
@@ -6085,7 +6085,7 @@ function AdminPanel({ data, loadData }) {
             React.createElement('tr', { key: user.id, className: "border-b hover:bg-gray-50" },
               React.createElement('td', { className: "py-2 px-4" }, user.username),
               React.createElement('td', { className: "py-2 px-4" }, user.full_name),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, user.email),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, user.email),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', { className: "badge badge-info" }, user.role)
               ),
@@ -6154,8 +6154,8 @@ function AdminPanel({ data, loadData }) {
         )
       )
     ),
-    activeTab === 'vendors' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+    activeTab === 'vendors' && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Vendor Management"),
         React.createElement('div', { className: "flex gap-2" },
           React.createElement('button', {
@@ -6193,7 +6193,7 @@ function AdminPanel({ data, loadData }) {
           className: "mt-3 text-sm text-gray-500 hover:text-gray-700"
         }, "Cancel")
       ),
-      showVendorForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
+      showVendorForm && React.createElement('div', { className: "mb-6 card-section" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingVendor ? 'Edit Vendor' : 'New Vendor'),
         React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" },
           React.createElement('input', {
@@ -6275,10 +6275,10 @@ function AdminPanel({ data, loadData }) {
         React.createElement('tbody', null,
           vendors.map(vendor =>
             React.createElement('tr', { key: vendor.id, className: "border-b hover:bg-gray-50" },
-              React.createElement('td', { className: "py-2 px-4 text-sm text-gray-500" }, vendor.code || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm text-gray-500" }, vendor.code || '-'),
               React.createElement('td', { className: "py-2 px-4 font-semibold" }, vendor.name),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.phone || '-'),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, vendor.country || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, vendor.phone || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, vendor.country || '-'),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', {
                   className: `px-2 py-1 text-xs rounded ${vendor.status === 'active' ? 'border border-green-500 text-green-700 bg-transparent' : 'border border-gray-300 text-gray-600 bg-transparent'}`
@@ -6315,8 +6315,8 @@ function AdminPanel({ data, loadData }) {
     ),
 
     // Departments Tab
-    activeTab === 'departments' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+    activeTab === 'departments' && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Department Management"),
         React.createElement('button', {
           onClick: () => {
@@ -6327,7 +6327,7 @@ function AdminPanel({ data, loadData }) {
           className: "btn-primary"
         }, "+ Add Department")
       ),
-      showDepartmentForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
+      showDepartmentForm && React.createElement('div', { className: "mb-6 card-section" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingDepartment ? 'Edit Department' : 'New Department'),
         React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
           React.createElement('input', {
@@ -6417,8 +6417,8 @@ function AdminPanel({ data, loadData }) {
     ),
 
     // Department Codes Tab
-    activeTab === 'codes' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+    activeTab === 'codes' && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Department Codes Management"),
         React.createElement('button', {
           onClick: () => {
@@ -6429,7 +6429,7 @@ function AdminPanel({ data, loadData }) {
           className: "btn-primary"
         }, "+ Add Code")
       ),
-      showCodeForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
+      showCodeForm && React.createElement('div', { className: "mb-6 card-section" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingCode ? 'Edit Code' : 'New Code'),
         React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
           React.createElement('select', {
@@ -6522,7 +6522,7 @@ function AdminPanel({ data, loadData }) {
     ),
 
     // Reroute Requisitions Tab
-    activeTab === 'reroute' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    activeTab === 'reroute' && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "Reroute Requisitions"),
       showRerouteModal && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" },
         React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },
@@ -6599,12 +6599,12 @@ function AdminPanel({ data, loadData }) {
         )
       )
     ),
-    activeTab === 'grn-approvers' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    activeTab === 'grn-approvers' && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "GRN Approver Assignments"),
       React.createElement('p', { className: "text-sm text-gray-500 mb-4" }, "Assign finance approvers for GRN creators. When a user creates a GRN, it will be routed to their assigned approver."),
 
       // Add form
-      React.createElement('div', { className: "flex flex-wrap gap-3 mb-6 p-4 bg-gray-50 rounded-lg" },
+      React.createElement('div', { className: "flex flex-wrap gap-3 mb-6 card-section" },
         React.createElement('select', {
           value: grnApproverForm.initiator_name,
           onChange: (e) => setGrnApproverForm({ ...grnApproverForm, initiator_name: e.target.value }),
@@ -6633,9 +6633,9 @@ function AdminPanel({ data, loadData }) {
         : React.createElement('table', { className: "w-full" },
             React.createElement('thead', { className: "bg-gray-50" },
               React.createElement('tr', null,
-                React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" }, "Initiator (GRN Creator)"),
-                React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" }, "Assigned Approver"),
-                React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                React.createElement('th', { className: "tbl-th tbl-td-sm uppercase" }, "Initiator (GRN Creator)"),
+                React.createElement('th', { className: "tbl-th tbl-td-sm uppercase" }, "Assigned Approver"),
+                React.createElement('th', { className: "tbl-th tbl-td-sm uppercase" }, "Actions")
               )
             ),
             React.createElement('tbody', { className: "divide-y divide-gray-200" },
@@ -6656,8 +6656,8 @@ function AdminPanel({ data, loadData }) {
     ),
 
     // Clients Tab
-    activeTab === 'clients' && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+    activeTab === 'clients' && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" }, "Client Management"),
         React.createElement('div', { className: "flex gap-2" },
           React.createElement('button', {
@@ -6696,7 +6696,7 @@ function AdminPanel({ data, loadData }) {
         }, "Cancel")
       ),
       // Client Form
-      showClientForm && React.createElement('div', { className: "mb-6 p-4 bg-gray-50 rounded-lg" },
+      showClientForm && React.createElement('div', { className: "mb-6 card-section" },
         React.createElement('h4', { className: "font-semibold mb-4" }, editingClient ? 'Edit Client' : 'New Client'),
         React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" },
           React.createElement('input', {
@@ -6781,10 +6781,10 @@ function AdminPanel({ data, loadData }) {
           clients.map(client =>
             React.createElement('tr', { key: client.id, className: "border-b hover:bg-gray-50" },
               React.createElement('td', { className: "py-2 px-4 font-semibold" }, client.name),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.contact_person || '-'),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.email || '-'),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.phone || '-'),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, client.country || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, client.contact_person || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, client.email || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, client.phone || '-'),
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, client.country || '-'),
               React.createElement('td', { className: "py-2 px-4" },
                 React.createElement('span', {
                   className: `px-2 py-1 text-xs rounded ${client.status === 'active' ? 'border border-green-500 text-green-700 bg-transparent' : 'border border-gray-300 text-gray-600 bg-transparent'}`
@@ -6855,7 +6855,7 @@ function Reports({ data }) {
   };
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "System Reports"),
       React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" },
         React.createElement('div', { className: "p-4 bg-blue-50 rounded-lg" },
@@ -6880,7 +6880,7 @@ function Reports({ data }) {
         React.createElement('p', { className: "text-3xl font-bold text-purple-900" }, `ZMW ${totalValue.toLocaleString()}`)
       )
     ),
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "Export Requisitions Report"),
       React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4" },
         React.createElement('div', null,
@@ -7281,7 +7281,7 @@ function AnalyticsDashboard({ user }) {
         borderColor: 'var(--border-color)'
       }
     },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', {
           className: "text-2xl font-bold transition-colors",
           style: { color: 'var(--text-primary)' }
@@ -7807,8 +7807,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
 
   return React.createElement('div', { className: "space-y-6" },
     // Header
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" },
           `Approval Console - ${user.role.toUpperCase()}`
         ),
@@ -7868,14 +7868,14 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Type"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Ref #"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Initiator"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "tbl-th" }, "Type"),
+                  React.createElement('th', { className: "tbl-th" }, "Ref #"),
+                  React.createElement('th', { className: "tbl-th" }, "Description"),
+                  React.createElement('th', { className: "tbl-th" }, "Amount"),
+                  React.createElement('th', { className: "tbl-th" }, "Initiator"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "bg-white divide-y divide-gray-200" },
@@ -7995,8 +7995,8 @@ function ApproveExpenseClaim({ claim, user, setView }) {
   };
 
   return React.createElement('div', { className: "max-w-4xl mx-auto" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card card-lg" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Expense Claim"),
         React.createElement('span', {
           className: `px-4 py-2 rounded-full text-sm font-medium bg-pink-100 text-pink-700`
@@ -8031,17 +8031,17 @@ function ApproveExpenseClaim({ claim, user, setView }) {
             React.createElement('table', { className: "w-full border" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "#"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Description"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Amount")
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "#"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Description"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Amount")
                 )
               ),
               React.createElement('tbody', null,
                 claim.items.map((item, idx) =>
                   React.createElement('tr', { key: idx, className: "border-t" },
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, idx + 1),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.description || item.item_description),
-                    React.createElement('td', { className: "px-4 py-2 text-sm font-semibold" }, `K ${parseFloat(item.amount || item.total || 0).toLocaleString()}`)
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, idx + 1),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.description || item.item_description),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm font-semibold" }, `K ${parseFloat(item.amount || item.total || 0).toLocaleString()}`)
                   )
                 )
               )
@@ -8050,7 +8050,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
         ),
 
         // Purpose/Reason
-        React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+        React.createElement('div', { className: "card-section" },
           React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Purpose / Reason for Trip"),
           React.createElement('p', { className: "text-gray-900" }, claim.reason_for_trip || claim.purpose || 'N/A')
         ),
@@ -8172,8 +8172,8 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
 
   return React.createElement('div', { className: "max-w-4xl mx-auto" },
     React.createElement(EFTLockBanner, { action: 'approve', access: eftAccess }),
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card card-lg" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review EFT Requisition"),
         React.createElement('span', {
           className: `px-4 py-2 rounded-full text-sm font-medium border border-cyan-500 text-cyan-700 bg-transparent`
@@ -8222,7 +8222,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         ),
 
         // Purpose
-        React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+        React.createElement('div', { className: "card-section" },
           React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Purpose"),
           React.createElement('p', { className: "text-gray-900" }, requisition.purpose || requisition.description || 'N/A')
         ),
@@ -8350,8 +8350,8 @@ function ApprovePettyCash({ requisition, user, setView }) {
   };
 
   return React.createElement('div', { className: "max-w-4xl mx-auto" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card card-lg" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Petty Cash Requisition"),
         React.createElement('span', {
           className: `px-4 py-2 rounded-full text-sm font-medium border border-orange-400 text-orange-700 bg-transparent`
@@ -8386,19 +8386,19 @@ function ApprovePettyCash({ requisition, user, setView }) {
             React.createElement('table', { className: "w-full border" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "#"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Description"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Qty"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Amount")
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "#"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Description"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Qty"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Amount")
                 )
               ),
               React.createElement('tbody', null,
                 requisition.items.map((item, idx) =>
                   React.createElement('tr', { key: idx, className: "border-t" },
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.item_no || idx + 1),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.description),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.quantity || 1),
-                    React.createElement('td', { className: "px-4 py-2 text-sm font-semibold" }, `K ${parseFloat(item.amount || 0).toLocaleString()}`)
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.item_no || idx + 1),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.description),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.quantity || 1),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm font-semibold" }, `K ${parseFloat(item.amount || 0).toLocaleString()}`)
                   )
                 )
               )
@@ -8407,7 +8407,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
         ),
 
         // Purpose
-        React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+        React.createElement('div', { className: "card-section" },
           React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Purpose"),
           React.createElement('p', { className: "text-gray-900" }, requisition.purpose || requisition.description || 'N/A')
         ),
@@ -8657,7 +8657,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       className: "rounded-lg p-6",
       style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-sm)' }
     },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', {
           className: "text-2xl font-bold",
           style: { color: 'var(--text-primary)' }
@@ -8794,7 +8794,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' },
         onClick: (e) => e.stopPropagation()
       },
-        React.createElement('div', { className: "flex items-center justify-between mb-4" },
+        React.createElement('div', { className: "card-header mb-4" },
           React.createElement('h3', { className: "text-xl font-bold", style: { color: 'var(--text-primary)' } },
             `Edit ${editingPR.req_number || editingPR.id}`
           ),
@@ -8985,8 +8985,8 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Petty Cash Requisitions"),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
@@ -9008,22 +9008,22 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Payee"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Purpose"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "tbl-th" }, "ID"),
+                  React.createElement('th', { className: "tbl-th" }, "Payee"),
+                  React.createElement('th', { className: "tbl-th" }, "Purpose"),
+                  React.createElement('th', { className: "tbl-th" }, "Amount"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 requisitions.map(req =>
                   React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, req.id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, req.payee_name),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, req.purpose),
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
+                    React.createElement('td', { className: "tbl-td" }, req.payee_name),
+                    React.createElement('td', { className: "tbl-td" }, req.purpose),
+                    React.createElement('td', { className: "tbl-td font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
@@ -9033,7 +9033,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                         }`
                       }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(req.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
@@ -9191,8 +9191,8 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Expense Claims"),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
@@ -9214,22 +9214,22 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Employee"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Reason"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "tbl-th" }, "ID"),
+                  React.createElement('th', { className: "tbl-th" }, "Employee"),
+                  React.createElement('th', { className: "tbl-th" }, "Reason"),
+                  React.createElement('th', { className: "tbl-th" }, "Amount"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 claims.map(claim =>
                   React.createElement('tr', { key: claim._id || claim.id, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, claim.id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, claim.employee_name || claim.initiator_name),
-                    React.createElement('td', { className: "px-4 py-3 text-sm max-w-xs truncate" }, claim.reason_for_trip || 'N/A'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-semibold" }, `K ${parseFloat(claim.total_claim || claim.amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, claim.id),
+                    React.createElement('td', { className: "tbl-td" }, claim.employee_name || claim.initiator_name),
+                    React.createElement('td', { className: "tbl-td max-w-xs truncate" }, claim.reason_for_trip || 'N/A'),
+                    React.createElement('td', { className: "tbl-td font-semibold" }, `K ${parseFloat(claim.total_claim || claim.amount || 0).toLocaleString()}`),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
@@ -9239,7 +9239,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                         }`
                       }, claim.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(claim.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
@@ -9397,8 +9397,8 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "EFT Requisitions"),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
@@ -9420,22 +9420,22 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "In Favour Of"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Purpose"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Amount"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "tbl-th" }, "ID"),
+                  React.createElement('th', { className: "tbl-th" }, "In Favour Of"),
+                  React.createElement('th', { className: "tbl-th" }, "Purpose"),
+                  React.createElement('th', { className: "tbl-th" }, "Amount"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 requisitions.map(req =>
                   React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, req.id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, req.in_favour_of),
-                    React.createElement('td', { className: "px-4 py-3 text-sm max-w-xs truncate" }, req.purpose || req.description || 'N/A'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
+                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
+                    React.createElement('td', { className: "tbl-td" }, req.in_favour_of),
+                    React.createElement('td', { className: "tbl-td max-w-xs truncate" }, req.purpose || req.description || 'N/A'),
+                    React.createElement('td', { className: "tbl-td font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `px-2 py-1 text-xs font-semibold rounded-full ${
@@ -9445,7 +9445,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                         }`
                       }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
                     ),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(req.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
@@ -9578,8 +9578,8 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
 
   return React.createElement('div', { className: "space-y-6" },
     // Header
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, 'Requisition Adjudication'),
         React.createElement('button', {
           onClick: fetchPendingRequisitions,
@@ -9606,13 +9606,13 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Req #"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Quantity"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Urgency"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "HOD Approved"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Req #"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Description"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Quantity"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Urgency"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Department"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "HOD Approved"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "bg-white divide-y divide-gray-200" },
@@ -9802,7 +9802,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
         borderColor: 'var(--border-color)'
       }
     },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', {
           className: "text-2xl font-bold",
           style: { color: 'var(--text-primary)' }
@@ -9860,7 +9860,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
                 }
               },
                 // Header Row
-                React.createElement('div', { className: "flex items-center justify-between mb-4" },
+                React.createElement('div', { className: "card-header mb-4" },
                   React.createElement('div', null,
                     React.createElement('h3', {
                       className: "text-lg font-bold",
@@ -10367,13 +10367,13 @@ function PurchaseOrders({ user }) {
   };
 
   if (loading) {
-    return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    return React.createElement('div', { className: "card" },
       React.createElement('p', { className: "text-center text-gray-600" }, "Loading Purchase Orders… please wait")
     );
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Purchase Orders"),
 
       pos.length === 0
@@ -10389,13 +10389,13 @@ function PurchaseOrders({ user }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "PO Number"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Requisition"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Total Amount"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Created"),
-                  React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Action")
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "PO Number"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Requisition"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Description"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Department"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Total Amount"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Created"),
+                  React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Action")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
@@ -10404,11 +10404,11 @@ function PurchaseOrders({ user }) {
                     React.createElement('td', { className: "px-6 py-4" },
                       React.createElement('span', { className: "text-sm font-medium text-blue-600" }, po.po_number)
                     ),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, po.req_number),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" },
+                    React.createElement('td', { className: "tbl-td tbl-td-lg" }, po.req_number),
+                    React.createElement('td', { className: "tbl-td tbl-td-lg" },
                       React.createElement('div', { className: "max-w-xs truncate", title: po.description }, po.description || 'N/A')
                     ),
-                    React.createElement('td', { className: "px-6 py-4 text-sm text-gray-700" }, po.department),
+                    React.createElement('td', { className: "tbl-td tbl-td-lg" }, po.department),
                     React.createElement('td', { className: "px-6 py-4 text-sm font-semibold text-gray-900" },
                       `ZMW ${(po.total_amount || 0).toLocaleString()}`
                     ),
@@ -10508,14 +10508,14 @@ function BudgetManagement({ user }) {
   };
 
   if (loading) {
-    return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    return React.createElement('div', { className: "card" },
       React.createElement('p', { className: "text-center text-gray-600" }, "Loading budget data… please wait")
     );
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Budget Management"),
         React.createElement('div', { className: "flex items-center gap-4" },
           React.createElement('select', {
@@ -10631,7 +10631,7 @@ function BudgetManagement({ user }) {
         )
       )
     ),
-    selectedDept && deptDetails && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    selectedDept && deptDetails && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" },
         `${selectedDept} Department - Detailed View`
       ),
@@ -10663,7 +10663,7 @@ function BudgetManagement({ user }) {
                   className: `badge ${expense.expense_type === 'committed' ? 'badge-pending' : 'badge-success'}`
                 }, expense.expense_type)
               ),
-              React.createElement('td', { className: "py-2 px-4 text-sm text-gray-600" },
+              React.createElement('td', { className: "tbl-td tbl-td-sm text-gray-600" },
                 new Date(expense.created_at).toLocaleDateString()
               )
             )
@@ -10762,14 +10762,14 @@ function FXRatesManagement({ user }) {
   };
 
   if (loading) {
-    return React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    return React.createElement('div', { className: "card" },
       React.createElement('p', { className: "text-center text-gray-600" }, "Loading FX rates… please wait")
     );
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "FX Rate Management"),
         React.createElement('button', {
           onClick: () => api.downloadFXRatesExcel(),
@@ -10807,8 +10807,8 @@ function FXRatesManagement({ user }) {
         )
       )
     ),
-    showHistory && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-4" },
+    showHistory && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h3', { className: "text-xl font-bold text-gray-800" },
           `Rate History - ${selectedCurrency}`
         ),
@@ -10830,19 +10830,19 @@ function FXRatesManagement({ user }) {
         React.createElement('tbody', null,
           history.map((item, idx) =>
             React.createElement('tr', { key: idx, className: "border-b hover:bg-gray-50" },
-              React.createElement('td', { className: "py-2 px-4 text-sm" },
+              React.createElement('td', { className: "tbl-td tbl-td-sm" },
                 new Date(item.created_at).toLocaleString()
               ),
               React.createElement('td', { className: "py-2 px-4" }, item.old_rate),
               React.createElement('td', { className: "py-2 px-4 font-semibold" }, item.new_rate),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, item.changed_by_name),
-              React.createElement('td', { className: "py-2 px-4 text-sm text-gray-600" }, item.change_reason)
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.changed_by_name),
+              React.createElement('td', { className: "tbl-td tbl-td-sm text-gray-600" }, item.change_reason)
             )
           )
         )
       ) : React.createElement('p', { className: "text-gray-600 text-center py-4" }, "No history available")
     ),
-    (user.role === 'finance' || user.role === 'md' || user.role === 'admin') && allRates.length > 0 && React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    (user.role === 'finance' || user.role === 'md' || user.role === 'admin') && allRates.length > 0 && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "All FX Rates (Including Inactive)"),
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
@@ -10867,20 +10867,20 @@ function FXRatesManagement({ user }) {
                   className: `badge ${rate.is_active ? 'badge-success' : 'badge-neutral'}`
                 }, rate.is_active ? 'Active' : 'Inactive')
               ),
-              React.createElement('td', { className: "py-2 px-4 text-sm" },
+              React.createElement('td', { className: "tbl-td tbl-td-sm" },
                 new Date(rate.effective_from).toLocaleDateString()
               ),
-              React.createElement('td', { className: "py-2 px-4 text-sm" },
+              React.createElement('td', { className: "tbl-td tbl-td-sm" },
                 new Date(rate.updated_at).toLocaleDateString()
               ),
-              React.createElement('td', { className: "py-2 px-4 text-sm" }, rate.updated_by_name)
+              React.createElement('td', { className: "tbl-td tbl-td-sm" }, rate.updated_by_name)
             )
           )
         )
       )
     ),
     (user.role === 'finance' || user.role === 'md' || user.role === 'procurement' || user.role === 'admin') &&
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "Update FX Rate"),
       React.createElement('form', { onSubmit: handleSubmit, className: "space-y-4" },
         React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
@@ -11235,7 +11235,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-4" }, "Adjudication Management"),
 
       // Requisitions list
@@ -11276,7 +11276,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
 
       // Selected requisition view
       selectedReq && React.createElement('div', null,
-        React.createElement('div', { className: "flex items-center justify-between mb-6" },
+        React.createElement('div', { className: "card-header mb-6" },
           React.createElement('div', null,
             React.createElement('button', {
               onClick: () => {
@@ -11935,8 +11935,8 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Issue Slips"),
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
@@ -11958,28 +11958,28 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Issued To"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Created By"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                  React.createElement('th', { className: "tbl-th" }, "ID"),
+                  React.createElement('th', { className: "tbl-th" }, "Issued To"),
+                  React.createElement('th', { className: "tbl-th" }, "Department"),
+                  React.createElement('th', { className: "tbl-th" }, "Created By"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Actions")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 slips.map(slip =>
                   React.createElement('tr', { key: slip.id, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, slip.id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.issued_to),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.department || slip.initiator_department || 'N/A'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.initiator_name),
+                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, slip.id),
+                    React.createElement('td', { className: "tbl-td" }, slip.issued_to),
+                    React.createElement('td', { className: "tbl-td" }, slip.department || slip.initiator_department || 'N/A'),
+                    React.createElement('td', { className: "tbl-td" }, slip.initiator_name),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
                         className: `badge ${getStatusBadge(slip.status)}`
                       }, slip.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
                     ),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(slip.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
@@ -12143,8 +12143,8 @@ function ApproveIssueSlip({ slip, user, setView }) {
   };
 
   return React.createElement('div', { className: "max-w-4xl mx-auto" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-8" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card card-lg" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review Issue Slip"),
         React.createElement('span', {
           className: `badge ${
@@ -12191,23 +12191,23 @@ function ApproveIssueSlip({ slip, user, setView }) {
             React.createElement('table', { className: "w-full border" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "#"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Item Code"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Item Name"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Description"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Qty"),
-                  React.createElement('th', { className: "px-4 py-2 text-left text-xs font-medium text-gray-500" }, "Unit")
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "#"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Item Code"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Item Name"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Description"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Qty"),
+                  React.createElement('th', { className: "tbl-th tbl-td-sm" }, "Unit")
                 )
               ),
               React.createElement('tbody', null,
                 slipData.items.map((item, idx) =>
                   React.createElement('tr', { key: idx, className: "border-t" },
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, idx + 1),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.item_code || '-'),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.item_name),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.description || '-'),
-                    React.createElement('td', { className: "px-4 py-2 text-sm font-semibold" }, item.quantity),
-                    React.createElement('td', { className: "px-4 py-2 text-sm" }, item.unit || 'pcs')
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, idx + 1),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.item_code || '-'),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.item_name),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.description || '-'),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm font-semibold" }, item.quantity),
+                    React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.unit || 'pcs')
                   )
                 )
               )
@@ -12216,7 +12216,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
         ),
 
         // Remarks
-        slipData.remarks && React.createElement('div', { className: "p-4 bg-gray-50 rounded-lg" },
+        slipData.remarks && React.createElement('div', { className: "card-section" },
           React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Remarks"),
           React.createElement('p', { className: "text-gray-900" }, slipData.remarks)
         ),
@@ -12349,8 +12349,8 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Picking Slips"),
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
@@ -12372,24 +12372,24 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "ID"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Picked By"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Destination"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Department"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Created By"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                  React.createElement('th', { className: "tbl-th" }, "ID"),
+                  React.createElement('th', { className: "tbl-th" }, "Picked By"),
+                  React.createElement('th', { className: "tbl-th" }, "Destination"),
+                  React.createElement('th', { className: "tbl-th" }, "Department"),
+                  React.createElement('th', { className: "tbl-th" }, "Created By"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Actions")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 slips.map(slip =>
                   React.createElement('tr', { key: slip.id, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-blue-600" }, slip.id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.picked_by),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.destination),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.department || slip.initiator_department || 'N/A'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, slip.initiator_name),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, slip.id),
+                    React.createElement('td', { className: "tbl-td" }, slip.picked_by),
+                    React.createElement('td', { className: "tbl-td" }, slip.destination),
+                    React.createElement('td', { className: "tbl-td" }, slip.department || slip.initiator_department || 'N/A'),
+                    React.createElement('td', { className: "tbl-td" }, slip.initiator_name),
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(slip.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
@@ -12480,8 +12480,8 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Goods Receipt Notes"),
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
@@ -12503,14 +12503,14 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "GRN ID"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "PR Ref"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Supplier"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Received By"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Status"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Customer"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Date"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                  React.createElement('th', { className: "tbl-th" }, "GRN ID"),
+                  React.createElement('th', { className: "tbl-th" }, "PR Ref"),
+                  React.createElement('th', { className: "tbl-th" }, "Supplier"),
+                  React.createElement('th', { className: "tbl-th" }, "Received By"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Customer"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Actions")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
@@ -12537,16 +12537,16 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                   );
 
                   return React.createElement('tr', { key: grn.id, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium text-amber-700" }, grn.id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-blue-600" }, grn.pr_id),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.supplier || 'N/A'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, grn.received_by),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" },
+                    React.createElement('td', { className: "tbl-td font-medium text-amber-700" }, grn.id),
+                    React.createElement('td', { className: "tbl-td text-blue-600" }, grn.pr_id),
+                    React.createElement('td', { className: "tbl-td" }, grn.supplier || 'N/A'),
+                    React.createElement('td', { className: "tbl-td" }, grn.received_by),
+                    React.createElement('td', { className: "tbl-td" },
                       React.createElement('span', {
                         className: `badge ${grnBadgeCls}`
                       }, statusLabels[grn.status] || grn.status)
                     ),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" },
+                    React.createElement('td', { className: "tbl-td" },
                       grn.customer
                         ? React.createElement('span', {
                             className: "px-2 py-1 text-xs rounded",
@@ -12554,7 +12554,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                           }, grn.customer)
                         : 'N/A'
                     ),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-500" },
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(grn.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
@@ -12696,9 +12696,9 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
   const approval = (grnData.approvals && grnData.approvals.length > 0) ? grnData.approvals[0] : null;
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       // Header
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('div', null,
           React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Goods Receipt Note"),
           React.createElement('p', { className: "text-sm mt-1", style: { color: '#d97706' } }, grnData.id)
@@ -12709,7 +12709,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       ),
 
       // Info Grid
-      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg" },
+      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 card-section" },
         React.createElement('div', null,
           React.createElement('span', { className: "text-sm text-gray-500" }, "Receipt Date"),
           React.createElement('p', { className: "font-medium" }, new Date(grnData.receipt_date || grnData.created_at).toLocaleDateString())
@@ -12825,25 +12825,25 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
           React.createElement('table', { className: "w-full" },
             React.createElement('thead', { className: "bg-gray-50" },
               React.createElement('tr', null,
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "#"),
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Code"),
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Qty Ordered"),
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Qty Received"),
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Unit"),
-                React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Condition")
+                React.createElement('th', { className: "tbl-th" }, "#"),
+                React.createElement('th', { className: "tbl-th" }, "Code"),
+                React.createElement('th', { className: "tbl-th" }, "Description"),
+                React.createElement('th', { className: "tbl-th" }, "Qty Ordered"),
+                React.createElement('th', { className: "tbl-th" }, "Qty Received"),
+                React.createElement('th', { className: "tbl-th" }, "Unit"),
+                React.createElement('th', { className: "tbl-th" }, "Condition")
               )
             ),
             React.createElement('tbody', { className: "divide-y divide-gray-200" },
               (grnData.items || []).map((item, idx) =>
                 React.createElement('tr', { key: idx },
-                  React.createElement('td', { className: "px-4 py-3 text-sm" }, idx + 1),
-                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.item_code || '-'),
-                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.description || item.item_name || '-'),
-                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.quantity_ordered || 0),
-                  React.createElement('td', { className: "px-4 py-3 text-sm font-medium" }, item.quantity_received || 0),
-                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.unit || 'pcs'),
-                  React.createElement('td', { className: "px-4 py-3 text-sm" }, item.condition_notes || 'Good')
+                  React.createElement('td', { className: "tbl-td" }, idx + 1),
+                  React.createElement('td', { className: "tbl-td" }, item.item_code || '-'),
+                  React.createElement('td', { className: "tbl-td" }, item.description || item.item_name || '-'),
+                  React.createElement('td', { className: "tbl-td" }, item.quantity_ordered || 0),
+                  React.createElement('td', { className: "tbl-td font-medium" }, item.quantity_received || 0),
+                  React.createElement('td', { className: "tbl-td" }, item.unit || 'pcs'),
+                  React.createElement('td', { className: "tbl-td" }, item.condition_notes || 'Good')
                 )
               )
             )
@@ -12908,8 +12908,8 @@ function StockRegister({ user }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Real-Time Stock Register"),
         React.createElement('button', {
           onClick: fetchStockRegister,
@@ -12925,26 +12925,26 @@ function StockRegister({ user }) {
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Item Code"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Item Name"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Unit"),
-                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Stock In"),
-                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Stock Out"),
-                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Reserved"),
-                  React.createElement('th', { className: "px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase" }, "Available")
+                  React.createElement('th', { className: "tbl-th" }, "Item Code"),
+                  React.createElement('th', { className: "tbl-th" }, "Item Name"),
+                  React.createElement('th', { className: "tbl-th" }, "Unit"),
+                  React.createElement('th', { className: "tbl-th tbl-th-right" }, "Stock In"),
+                  React.createElement('th', { className: "tbl-th tbl-th-right" }, "Stock Out"),
+                  React.createElement('th', { className: "tbl-th tbl-th-right" }, "Reserved"),
+                  React.createElement('th', { className: "tbl-th tbl-th-right" }, "Available")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 stockItems.map((item, idx) =>
                   React.createElement('tr', { key: idx, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-medium" }, item.item_code || '-'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, item.item_name),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" }, item.unit),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-right font-medium text-blue-600" }, item.stock_in),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-right font-medium text-orange-600" }, item.stock_out),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-right font-medium", style: { color: '#d97706' } }, item.reserved),
+                    React.createElement('td', { className: "tbl-td font-medium" }, item.item_code || '-'),
+                    React.createElement('td', { className: "tbl-td" }, item.item_name),
+                    React.createElement('td', { className: "tbl-td" }, item.unit),
+                    React.createElement('td', { className: "tbl-td text-right font-medium text-blue-600" }, item.stock_in),
+                    React.createElement('td', { className: "tbl-td text-right font-medium text-orange-600" }, item.stock_out),
+                    React.createElement('td', { className: "tbl-td text-right font-medium", style: { color: '#d97706' } }, item.reserved),
                     React.createElement('td', {
-                      className: `px-4 py-3 text-sm text-right font-bold ${item.available > 0 ? 'text-green-600' : 'text-red-600'}`
+                      className: `tbl-td text-right font-bold ${item.available > 0 ? 'text-green-600' : 'text-red-600'}`
                     }, item.available)
                   )
                 )
@@ -13144,9 +13144,9 @@ function StockItems({ user }) {
   }
 
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6" },
+    React.createElement('div', { className: "card" },
       // Header
-      React.createElement('div', { className: "flex items-center justify-between mb-6" },
+      React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Stock Items Master Catalog"),
         React.createElement('div', { className: "flex gap-2" },
           React.createElement('button', {
@@ -13271,23 +13271,23 @@ function StockItems({ user }) {
             React.createElement('table', { className: "min-w-full divide-y divide-gray-200" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Item Number"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Description"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Unit"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Packaging UoM"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Preferred Vendor"),
-                  React.createElement('th', { className: "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" }, "Actions")
+                  React.createElement('th', { className: "tbl-th" }, "Item Number"),
+                  React.createElement('th', { className: "tbl-th" }, "Description"),
+                  React.createElement('th', { className: "tbl-th" }, "Unit"),
+                  React.createElement('th', { className: "tbl-th" }, "Packaging UoM"),
+                  React.createElement('th', { className: "tbl-th" }, "Preferred Vendor"),
+                  React.createElement('th', { className: "tbl-th" }, "Actions")
                 )
               ),
               React.createElement('tbody', { className: "bg-white divide-y divide-gray-200" },
                 filteredItems.map((item, idx) =>
                   React.createElement('tr', { key: item._id || idx, className: "hover:bg-gray-50" },
-                    React.createElement('td', { className: "px-4 py-3 text-sm font-mono text-gray-700" }, item.item_number || '-'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-900" }, item.item_description),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-600" }, item.unit),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-600" }, item.packaging_uom || '-'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm text-gray-600" }, item.preferred_vendor || '-'),
-                    React.createElement('td', { className: "px-4 py-3 text-sm" },
+                    React.createElement('td', { className: "tbl-td font-mono text-gray-700" }, item.item_number || '-'),
+                    React.createElement('td', { className: "tbl-td text-gray-900" }, item.item_description),
+                    React.createElement('td', { className: "tbl-td text-gray-600" }, item.unit),
+                    React.createElement('td', { className: "tbl-td text-gray-600" }, item.packaging_uom || '-'),
+                    React.createElement('td', { className: "tbl-td text-gray-600" }, item.preferred_vendor || '-'),
+                    React.createElement('td', { className: "tbl-td" },
                       React.createElement('div', { className: "flex gap-2" },
                         React.createElement('button', {
                           onClick: () => handleEdit(item),
