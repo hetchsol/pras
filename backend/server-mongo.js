@@ -2825,8 +2825,77 @@ app.get('/api/budgets/overview', authenticate, async (req, res) => {
 
 app.get('/api/budgets/department/:department', authenticate, async (req, res) => {
   try {
-    const dept = await db.Department.findOne({ name: req.params.department }).lean();
-    res.json(withAvailable(dept) || { budget: 0, spent: 0, committed: 0, available: 0 });
+    const deptName = req.params.department;
+    const fiscalYear = req.query.fiscal_year || String(new Date().getFullYear());
+    const yearStart = new Date(`${fiscalYear}-01-01`);
+    const yearEnd   = new Date(`${parseInt(fiscalYear) + 1}-01-01`);
+
+    const dept = await db.Department.findOne({ name: deptName }).lean();
+    const budget = withAvailable(dept) || {
+      allocated_amount: 0, committed_amount: 0, available_amount: 0, spent_amount: 0
+    };
+
+    const reqs = await db.Requisition.find({
+      department: deptName,
+      status: { $in: ['pending_finance', 'pending_md', 'approved', 'completed'] },
+      created_at: { $gte: yearStart, $lt: yearEnd }
+    }).lean();
+
+    const expenses = reqs.map(r => ({
+      id: r._id,
+      req_number: r.req_number,
+      title: r.description || r.title || 'N/A',
+      amount: r.amount || r.total_amount || 0,
+      expense_type: ['approved', 'completed'].includes(r.status) ? 'spent' : 'committed',
+      created_at: r.created_at
+    }));
+
+    res.json({ budget, expenses });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+const BUDGET_MGMT_ROLES = ['admin', 'finance', 'finance_manager', 'md'];
+
+// Create or upsert a budget allocation for a department
+app.post('/api/budgets/create', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised to manage budgets' });
+    }
+    const { department, allocated_amount } = req.body;
+    if (!department || !allocated_amount || Number(allocated_amount) <= 0) {
+      return res.status(400).json({ error: 'department and a positive allocated_amount are required' });
+    }
+    const dept = await db.Department.findOneAndUpdate(
+      { name: department },
+      { $set: { budget: parseFloat(allocated_amount) } },
+      { new: true, upsert: true }
+    ).lean();
+    res.json(withAvailable(dept));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update an existing department's budget allocation (budgetId = dept _id)
+app.put('/api/budgets/:budgetId/allocate', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised to manage budgets' });
+    }
+    const { allocated_amount } = req.body;
+    if (!allocated_amount || Number(allocated_amount) <= 0) {
+      return res.status(400).json({ error: 'A positive allocated_amount is required' });
+    }
+    const dept = await db.Department.findByIdAndUpdate(
+      req.params.budgetId,
+      { $set: { budget: parseFloat(allocated_amount) } },
+      { new: true }
+    ).lean();
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+    res.json(withAvailable(dept));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

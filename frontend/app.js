@@ -11089,7 +11089,7 @@ function BudgetManagement({ user }) {
               className: `px-3 py-1 rounded-full text-xs font-semibold mb-2 ${getUtilizationColor(dept.utilization_percentage || 0)}`
             }, `${(dept.utilization_percentage || 0).toFixed(1)}% Used`),
             dept.budget_id && React.createElement('div', { className: "flex gap-1 mt-2" },
-              (user.role === 'finance' || user.role === 'md' || user.role === 'admin') && editingBudget !== dept.budget_id && React.createElement('button', {
+              (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) && editingBudget !== dept.budget_id && React.createElement('button', {
                 onClick: () => {
                   setEditingBudget(dept.budget_id);
                   setNewAllocation(dept.allocated_amount);
