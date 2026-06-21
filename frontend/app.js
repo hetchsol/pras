@@ -1274,6 +1274,172 @@ function EFTLockBanner({ action, access }) {
 }
 
 // ============================================
+// APPROVAL PROGRESS STEPPER
+// ============================================
+
+const STEPPER_STEPS = {
+  purchase_requisition: [
+    { label: 'Submitted',   key: 'submitted' },
+    { label: 'HOD Review',  key: 'pending_hod' },
+    { label: 'Procurement', key: 'pending_procurement' },
+    { label: 'Finance',     key: 'pending_finance' },
+    { label: 'MD Approval', key: 'pending_md' },
+    { label: 'Approved',    key: 'approved' }
+  ],
+  petty_cash: [
+    { label: 'Submitted',   key: 'submitted' },
+    { label: 'HOD Review',  key: 'pending_hod' },
+    { label: 'Finance',     key: 'pending_finance' },
+    { label: 'MD Approval', key: 'pending_md' },
+    { label: 'Approved',    key: 'approved' }
+  ],
+  eft: [
+    { label: 'Submitted',   key: 'submitted' },
+    { label: 'HOD Review',  key: 'pending_hod' },
+    { label: 'Finance',     key: 'pending_finance' },
+    { label: 'MD Approval', key: 'pending_md' },
+    { label: 'Approved',    key: 'approved' }
+  ],
+  expense_claim: [
+    { label: 'Submitted',   key: 'submitted' },
+    { label: 'HOD Review',  key: 'pending_hod' },
+    { label: 'Finance',     key: 'pending_finance' },
+    { label: 'MD Approval', key: 'pending_md' },
+    { label: 'Approved',    key: 'approved' }
+  ],
+  issue_slip: [
+    { label: 'Submitted',  key: 'submitted' },
+    { label: 'HOD Review', key: 'pending_hod' },
+    { label: 'Finance',    key: 'pending_finance' },
+    { label: 'Approved',   key: 'approved' }
+  ]
+};
+
+const STEPPER_STATUS_INDEX = {
+  purchase_requisition: {
+    draft: 0, pending_hod: 1, hod_approved: 2,
+    pending_procurement: 2, pending_finance: 3,
+    finance_approved: 3, pending_md: 4,
+    approved: 5, completed: 5
+  },
+  petty_cash:    { pending_hod: 1, pending_finance: 2, pending_md: 3, approved: 4 },
+  eft:           { pending_hod: 1, pending_finance: 2, pending_md: 3, approved: 4 },
+  expense_claim: { pending_hod: 1, pending_finance: 2, pending_md: 3, approved: 4 },
+  issue_slip:    { pending_hod: 1, pending_finance: 2, approved: 3 }
+};
+
+function ApprovalStepper({ formType, status, approvals }) {
+  const steps = STEPPER_STEPS[formType] || STEPPER_STEPS.petty_cash;
+  const indexMap = STEPPER_STATUS_INDEX[formType] || STEPPER_STATUS_INDEX.petty_cash;
+  const isRejected = status === 'rejected';
+  const currentIdx = isRejected ? -1 : (indexMap[status] !== undefined ? indexMap[status] : 1);
+
+  const getApprover = (stepKey) => {
+    if (!Array.isArray(approvals)) return null;
+    const roleMap = { pending_hod: 'hod', pending_procurement: 'procurement', pending_finance: 'finance', pending_md: 'md' };
+    const role = roleMap[stepKey];
+    if (!role) return null;
+    return approvals.find(a => a.role === role && a.action === 'approved') || null;
+  };
+
+  return React.createElement('div', {
+    style: {
+      background: 'var(--bg-secondary)',
+      borderRadius: '8px',
+      padding: '16px 20px',
+      marginBottom: '24px'
+    }
+  },
+    React.createElement('p', {
+      style: {
+        fontSize: '11px', fontWeight: '600',
+        color: 'var(--text-tertiary)',
+        textTransform: 'uppercase', letterSpacing: '0.06em',
+        marginBottom: '16px'
+      }
+    }, 'Approval Progress'),
+
+    isRejected
+      ? React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '10px' }
+        },
+          React.createElement('span', {
+            style: {
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: '#EF4444', color: '#fff',
+              fontSize: '13px', fontWeight: '700'
+            }
+          }, '✕'),
+          React.createElement('span', {
+            style: { fontSize: '14px', fontWeight: '600', color: '#991B1B' }
+          }, 'This submission was rejected')
+        )
+      : React.createElement('div', {
+          style: { display: 'flex', alignItems: 'flex-start' }
+        },
+          steps.map((step, i) => {
+            const done = i < currentIdx;
+            const current = i === currentIdx;
+            const last = i === steps.length - 1;
+            const approver = done ? getApprover(step.key) : null;
+
+            return React.createElement('div', {
+              key: step.key,
+              style: {
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                flex: last ? '0 0 auto' : '1', minWidth: 0
+              }
+            },
+              React.createElement('div', {
+                style: { display: 'flex', alignItems: 'center', width: '100%' }
+              },
+                React.createElement('div', {
+                  style: {
+                    width: '28px', height: '28px', minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', fontWeight: '700',
+                    border: '2px solid ' + (done ? '#10B981' : current ? 'var(--color-primary)' : 'var(--border-color)'),
+                    background: done ? '#10B981' : current ? 'var(--color-primary)' : 'transparent',
+                    color: (done || current) ? '#fff' : 'var(--text-tertiary)',
+                    transition: 'all 0.2s ease', flexShrink: 0, zIndex: 1
+                  }
+                }, done ? '✓' : (i + 1)),
+                !last && React.createElement('div', {
+                  style: {
+                    flex: 1, height: '2px',
+                    background: done ? '#10B981' : 'var(--border-color)',
+                    transition: 'background 0.3s ease'
+                  }
+                })
+              ),
+              React.createElement('div', {
+                style: { marginTop: '8px', textAlign: 'center', paddingRight: last ? 0 : '4px', maxWidth: '80px' }
+              },
+                React.createElement('p', {
+                  style: {
+                    fontSize: '11px',
+                    fontWeight: current ? '700' : '500',
+                    color: done ? '#10B981' : current ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                    whiteSpace: 'nowrap'
+                  }
+                }, step.label),
+                approver && React.createElement('p', {
+                  style: {
+                    fontSize: '10px', color: 'var(--text-tertiary)',
+                    marginTop: '2px', whiteSpace: 'nowrap',
+                    overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '72px'
+                  }
+                }, approver.name)
+              )
+            );
+          })
+        )
+  );
+}
+
+// ============================================
 // TOAST NOTIFICATION SYSTEM
 // ============================================
 
@@ -5122,6 +5288,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         }, req.status.replace('_', ' ').toUpperCase())
       ),
       React.createElement('div', { className: "space-y-6" },
+        React.createElement(ApprovalStepper, { formType: 'purchase_requisition', status: req.status, approvals: req.approvals }),
         React.createElement('div', { className: "grid grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition Number"),
@@ -8194,6 +8361,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
 
       // Claim Details
       React.createElement('div', { className: "space-y-6" },
+        React.createElement(ApprovalStepper, { formType: 'expense_claim', status: claim.status, approvals: claim.approvals }),
         React.createElement('div', { className: "grid grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Claim ID"),
@@ -8371,6 +8539,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
 
       // Requisition Details
       React.createElement('div', { className: "space-y-6" },
+        React.createElement(ApprovalStepper, { formType: 'eft', status: requisition.status, approvals: requisition.approvals }),
         React.createElement('div', { className: "grid grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition ID"),
@@ -8549,6 +8718,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
 
       // Requisition Details
       React.createElement('div', { className: "space-y-6" },
+        React.createElement(ApprovalStepper, { formType: 'petty_cash', status: requisition.status, approvals: requisition.approvals }),
         React.createElement('div', { className: "grid grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition ID"),
@@ -12346,6 +12516,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
 
       // Slip Details
       React.createElement('div', { className: "space-y-6" },
+        React.createElement(ApprovalStepper, { formType: 'issue_slip', status: slipData.status, approvals: slipData.approvals }),
         React.createElement('div', { className: "grid grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Slip ID"),
