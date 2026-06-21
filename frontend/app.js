@@ -295,22 +295,11 @@ const api = {
     return res.blob();
   }, */
 
-  // NEW: Download Approved Purchase Requisition PDF (Report 1) after full approval chain
-  // This function now gets the PO ID from requisition ID first, then downloads the PO PDF
   downloadRequisitionPDF: async (reqId) => {
-    // First, get the purchase order for this requisition
-    const poRes = await fetchWithAuth(`${API_URL}/purchase-orders/by-requisition/${reqId}`);
-    if (!poRes.ok) {
-      const errorText = await poRes.text();
-      throw new Error(errorText || 'Purchase order not found for this requisition');
-    }
-    const po = await poRes.json();
-
-    // Now download the PO PDF
-    const res = await fetchWithAuth(`${API_URL}/purchase-orders/${po.id}/pdf`);
+    const res = await fetchWithAuth(`${API_URL}/requisitions/${reqId}/pdf`);
     if (!res.ok) {
       const errorText = await res.text();
-      throw new Error(errorText || 'Failed to download Approved Purchase Requisition PDF');
+      throw new Error(errorText || 'Failed to download PDF');
     }
     return res.blob();
   },

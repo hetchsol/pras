@@ -2283,6 +2283,7 @@ app.post('/api/forms/petty-cash-requisitions', authenticate, async (req, res) =>
 
 // PDF Generation endpoints
 const { generateExpenseClaimPDF, generateEFTPDF, generatePettyCashPDF } = require('./utils/formsPDFGenerator');
+const { generateRequisitionPDF } = require('./utils/pdfGenerator');
 const os = require('os');
 
 // Expense Claim PDF
@@ -2381,9 +2382,42 @@ app.get('/api/forms/petty-cash-requisitions/:id/pdf', authenticate, async (req, 
   }
 });
 
-// Purchase Requisition PDF (placeholder)
-app.get('/api/requisitions/:id/pdf', authenticate, (req, res) => {
-  res.status(501).json({ error: 'PDF generation not available for purchase requisitions in this version' });
+// Purchase Requisition PDF
+app.get('/api/requisitions/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    let requisition = null;
+    try {
+      requisition = await db.Requisition.findById(reqId).lean();
+    } catch (e) {}
+    if (!requisition) {
+      requisition = await db.Requisition.findOne({ id: reqId }).lean();
+    }
+    if (!requisition) {
+      return res.status(404).json({ error: 'Requisition not found' });
+    }
+
+    const mapped = {
+      ...mapRequisitionFields(requisition),
+      approved_vendor: requisition.selected_vendor || 'TBD',
+      account_code: requisition.account_code || 'N/A',
+      md_approved_at: requisition.md_approved_at || null,
+    };
+
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      generateRequisitionPDF(mapped, mapped.items || [], (err, buffer) => {
+        if (err) reject(err);
+        else resolve(buffer);
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="PR_${mapped.req_number}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
 });
 
 // ============================================
