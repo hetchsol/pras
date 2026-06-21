@@ -2717,11 +2717,11 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     {
       id: 'fin-planning-group',
       label: 'Financial Planning',
-      show: hasRole(user.role, 'finance', 'md', 'admin'),
+      show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin'),
       isGroup: true,
       children: [
-        { id: 'budget', label: 'Budgets', show: hasRole(user.role, 'finance', 'md', 'admin') },
-        { id: 'fx-rates', label: 'FX Rates', show: hasRole(user.role, 'finance', 'md', 'procurement', 'admin') }
+        { id: 'budget', label: 'Budgets', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') },
+        { id: 'fx-rates', label: 'FX Rates', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'procurement', 'admin') }
       ]
     },
     // Reports & Analytics Group
