@@ -1274,6 +1274,32 @@ function EFTLockBanner({ action, access }) {
 }
 
 // ============================================
+// STATUS STRIPE HELPER
+// Returns a boxShadow style that paints a 3px coloured left edge on a <tr>
+// without changing padding or layout.
+// ============================================
+
+const STATUS_STRIPE_COLORS = {
+  draft:               '#9CA3AF',
+  pending_hod:         '#F59E0B',
+  hod_approved:        '#EA580C',
+  pending_procurement: '#EA580C',
+  pending_finance:     '#0070AF',
+  finance_approved:    '#7C3AED',
+  pending_md:          '#7C3AED',
+  pending_approval:    '#F59E0B',
+  approved:            '#10B981',
+  completed:           '#10B981',
+  received:            '#10B981',
+  rejected:            '#EF4444'
+};
+
+function statusStripe(status) {
+  const color = STATUS_STRIPE_COLORS[status] || '#9CA3AF';
+  return { boxShadow: `inset 3px 0 0 ${color}` };
+}
+
+// ============================================
 // SKELETON LOADERS
 // ============================================
 
@@ -4255,7 +4281,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   React.createElement('td', { colSpan: "6", className: "px-6 py-8 text-center text-gray-500" }, "No requisitions found")
                 )
               : requisitions.map(req =>
-                  React.createElement('tr', { key: req.id, className: "hover:bg-gray-50" },
+                  React.createElement('tr', { key: req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
                     React.createElement('td', { className: "px-6 py-4 text-sm font-medium text-gray-900" }, req.req_number),
                     React.createElement('td', { className: "tbl-td tbl-td-lg" }, req.description || req.title),
                     React.createElement('td', { className: "tbl-td tbl-td-lg" }, req.department),
@@ -8358,7 +8384,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
                 filteredItems.map(item =>
                   React.createElement('tr', {
                     key: item.id || item._id,
-                    className: "hover:bg-gray-50 transition-colors"
+                    className: "hover:bg-gray-50 transition-colors",
+                    style: statusStripe(item.status)
                   },
                     React.createElement('td', { className: "px-4 py-4 whitespace-nowrap" }, getTypeBadge(item.displayType)),
                     React.createElement('td', { className: "px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600" },
@@ -9494,7 +9521,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 requisitions.map(req =>
-                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50" },
+                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
                     React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
                     React.createElement('td', { className: "tbl-td" }, req.payee_name),
                     React.createElement('td', { className: "tbl-td" }, req.purpose),
@@ -9696,7 +9723,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 claims.map(claim =>
-                  React.createElement('tr', { key: claim._id || claim.id, className: "hover:bg-gray-50" },
+                  React.createElement('tr', { key: claim._id || claim.id, className: "hover:bg-gray-50", style: statusStripe(claim.status) },
                     React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, claim.id),
                     React.createElement('td', { className: "tbl-td" }, claim.employee_name || claim.initiator_name),
                     React.createElement('td', { className: "tbl-td max-w-xs truncate" }, claim.reason_for_trip || 'N/A'),
@@ -9898,7 +9925,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 requisitions.map(req =>
-                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50" },
+                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
                     React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
                     React.createElement('td', { className: "tbl-td" }, req.in_favour_of),
                     React.createElement('td', { className: "tbl-td max-w-xs truncate" }, req.purpose || req.description || 'N/A'),
@@ -12405,7 +12432,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 slips.map(slip =>
-                  React.createElement('tr', { key: slip.id, className: "hover:bg-gray-50" },
+                  React.createElement('tr', { key: slip.id, className: "hover:bg-gray-50", style: statusStripe(slip.status) },
                     React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, slip.id),
                     React.createElement('td', { className: "tbl-td" }, slip.issued_to),
                     React.createElement('td', { className: "tbl-td" }, slip.department || slip.initiator_department || 'N/A'),
@@ -12974,7 +13001,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     ['admin', 'finance', 'finance_manager', 'md'].includes(user.role)
                   );
 
-                  return React.createElement('tr', { key: grn.id, className: "hover:bg-gray-50" },
+                  return React.createElement('tr', { key: grn.id, className: "hover:bg-gray-50", style: statusStripe(grn.status) },
                     React.createElement('td', { className: "tbl-td font-medium text-amber-700" }, grn.id),
                     React.createElement('td', { className: "tbl-td text-blue-600" }, grn.pr_id),
                     React.createElement('td', { className: "tbl-td" }, grn.supplier || 'N/A'),
