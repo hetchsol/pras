@@ -1,4 +1,4 @@
-﻿const PDFDocument = require('pdfkit');
+const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,119 +12,129 @@ function fmtMoney(n) {
   return `K ${Number(n || 0).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PURCHASE REQUISITION PDF  — accent: navy blue
+// ─────────────────────────────────────────────────────────────────────────────
 const generateRequisitionPDF = (requisition, items, callback) => {
   try {
-    // A4: 595 × 842 pt. Content area x: 50–545, y: 50–792.
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    const PAGE_W = 495;
+    const PW = 495, LX = 50, RX = 545;
     const chunks = [];
 
-    doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => callback(null, Buffer.concat(chunks)));
-    doc.on('error', err => callback(err, null));
+    // Navy accent palette
+    const ACC     = '#1E3A5F';  // navy-900  — heading text
+    const ACC_MID = '#2563EB';  // blue-600  — borders / rule
+    const ACC_LT  = '#EEF2F8'; // blue-50   — fills
+    const ACC_HDR = '#1D4ED8'; // blue-700  — doc type + id
 
-    // ── HEADER ────────────────────────────────────────────────────
+    doc.on('data',  chunk => chunks.push(chunk));
+    doc.on('end',   ()    => callback(null, Buffer.concat(chunks)));
+    doc.on('error', err   => callback(err, null));
+
+    // ── HEADER ──────────────────────────────────────────────────
     const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 50, 28, { height: 52 });
-    }
-    doc.font('Helvetica-Bold').fontSize(18).fillColor('#000000')
-       .text('KSB ZAMBIA LIMITED', 140, 34, { align: 'center', width: 355 });
-    doc.font('Helvetica-Bold').fontSize(13).fillColor('#000000')
-       .text('PURCHASE REQUISITION', 140, 57, { align: 'center', width: 355 });
+    if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 30, { height: 50 });
 
-    // Status badge (top-right — no cursor movement)
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+       .text('KSB ZAMBIA LIMITED', 148, 33, { align: 'center', width: 349, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
+       .text('PURCHASE REQUISITION', 148, 58, { align: 'center', width: 349, lineBreak: false });
+
+    // Status badge
     const rawStatus = (requisition.status || 'pending').toLowerCase().replace(/_/g, ' ');
-    let badgeBg, badgeBorder, badgeColor;
+    let bdBg, bdBdr, bdTxt;
     if (rawStatus.includes('approved') || rawStatus === 'completed') {
-      badgeBg = '#E8F5E9'; badgeBorder = '#388E3C'; badgeColor = '#1B5E20';
+      bdBg = '#D1FAE5'; bdBdr = '#059669'; bdTxt = '#065F46';
     } else if (rawStatus.includes('rejected') || rawStatus.includes('declined')) {
-      badgeBg = '#FFEBEE'; badgeBorder = '#D32F2F'; badgeColor = '#B71C1C';
+      bdBg = '#FEE2E2'; bdBdr = '#DC2626'; bdTxt = '#991B1B';
     } else {
-      badgeBg = '#FFF8E1'; badgeBorder = '#F9A825'; badgeColor = '#E65100';
+      bdBg = ACC_LT; bdBdr = ACC_MID; bdTxt = ACC;
     }
-    doc.rect(415, 28, 130, 24).fill(badgeBg).stroke(badgeBorder);
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(badgeColor)
-       .text(rawStatus.toUpperCase(), 417, 36, { width: 126, align: 'center', lineBreak: false });
-    doc.fillColor('#000000');
+    doc.roundedRect(421, 30, 124, 22, 4).fillAndStroke(bdBg, bdBdr);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(bdTxt)
+       .text(rawStatus.toUpperCase(), 423, 38, { width: 120, align: 'center', lineBreak: false });
 
-    // Divider
-    let y = 92;
-    doc.moveTo(50, y).lineTo(545, y).lineWidth(1.5).strokeColor('#003399').stroke();
-    y += 8;
+    let y = 90;
+    doc.moveTo(LX, y).lineTo(RX, y).lineWidth(2).strokeColor(ACC_MID).stroke();
+    y += 6;
 
-    // PR Number row
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-       .text('PR Number:', 50, y, { width: 72, lineBreak: false });
-    doc.font('Helvetica-Bold').fillColor('#0000CC')
-       .text(requisition.req_number || requisition.id || '—', 126, y, { width: 280, lineBreak: false });
-    doc.font('Helvetica-Bold').fillColor('#333333')
-       .text('Date:', 400, y, { width: 30, lineBreak: false });
-    doc.font('Helvetica').fillColor('#000000')
-       .text(fmtDate(requisition.created_at), 434, y, { width: 111, lineBreak: false });
-    y += 18;
+    // ── DOCUMENT ID ROW ─────────────────────────────────────────
+    doc.rect(LX, y, PW, 20).fill(ACC_LT);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+       .text('PR NUMBER:', LX + 6, y + 5, { width: 68, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC_HDR)
+       .text(requisition.req_number || requisition.id || '—', LX + 76, y + 5, { width: 250, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+       .text('Date:', 382, y + 5, { width: 36, lineBreak: false });
+    doc.font('Helvetica').fontSize(9).fillColor('#000000')
+       .text(fmtDate(requisition.created_at), 422, y + 5, { width: 118, lineBreak: false });
+    y += 24;
 
-    doc.moveTo(50, y).lineTo(545, y).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
-    y += 10;
+    // ── INFO GRID  4 rows × 2 cols ───────────────────────────────
+    const ROWH = 20;
+    const C1L = LX, C1LW = 115, C1V = 168, C1VW = 133;
+    const C2L = 307, C2LW = 104, C2V = 415, C2VW = 130;
 
-    // ── INFO GRID ─────────────────────────────────────────────────
-    const L1 = 50, V1 = 162, V1W = 135, LW = 108;
-    const L2 = 305, V2 = 403, V2W = 142, L2W = 94;
-    const ROW_H = 17;
+    doc.rect(LX, y, PW, ROWH * 4).stroke('#CCCCCC');
+    doc.moveTo(305, y).lineTo(305, y + ROWH * 4).stroke('#CCCCCC');
+    [1, 2, 3].forEach(n =>
+      doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE')
+    );
 
-    function infoRow(lbl, val, rLbl, rVal) {
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-         .text(lbl, L1, y, { width: LW, lineBreak: false });
-      doc.font('Helvetica').fillColor('#000000')
-         .text(String(val || 'N/A'), V1, y, { width: V1W, lineBreak: false });
-      if (rLbl) {
-        doc.font('Helvetica-Bold').fillColor('#333333')
-           .text(rLbl, L2, y, { width: L2W, lineBreak: false });
-        doc.font('Helvetica').fillColor('#000000')
-           .text(String(rVal || 'N/A'), V2, y, { width: V2W, lineBreak: false });
+    const gridRows = [
+      ['Requested By:',    requisition.created_by_name,           'Department:',    requisition.department],
+      ['Required Date:',   fmtDate(requisition.required_date),    'Urgency:',       requisition.urgency || 'Medium'],
+      ['Approved Vendor:', requisition.approved_vendor || 'TBD',  'Account Code:',  requisition.account_code],
+      ['Delivery Loc:',    requisition.delivery_location,         'Approved Date:', fmtDate(requisition.md_approved_at)],
+    ];
+
+    gridRows.forEach(([l1, v1, l2, v2], row) => {
+      const ry = y + row * ROWH;
+      if (row % 2 === 1) {
+        doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F0F4FF');
+        doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F0F4FF');
       }
-      y += ROW_H;
-    }
+      const ty = ry + 5;
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+         .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+         .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW, lineBreak: false });
+    });
+    y += ROWH * 4 + 10;
 
-    infoRow('Requested By:', requisition.created_by_name, 'Department:', requisition.department);
-    infoRow('Required Date:', fmtDate(requisition.required_date), 'Urgency:', requisition.urgency || 'Medium');
-    infoRow('Approved Vendor:', requisition.approved_vendor || 'TBD', 'Account Code:', requisition.account_code);
-    infoRow('Delivery Location:', requisition.delivery_location, 'Approved Date:', fmtDate(requisition.md_approved_at));
-    y += 8;
-
-    doc.moveTo(50, y).lineTo(545, y).lineWidth(0.5).strokeColor('#DDDDDD').stroke();
-    y += 10;
-
-    // Description
+    // ── DESCRIPTION ─────────────────────────────────────────────
     if (requisition.description) {
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-         .text('Description:', 50, y, { width: 108, lineBreak: false });
-      doc.font('Helvetica').fillColor('#000000')
-         .text(requisition.description, 162, y, { width: PAGE_W - 112, lineBreak: false });
-      y += 17;
-      y += 4;
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+         .text('Description:', LX, y, { width: 108, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(requisition.description, LX + 112, y, { width: PW - 112 });
+      y += Math.max(1, Math.ceil(requisition.description.length / 62)) * 13 + 10;
     }
 
     y += 6;
 
-    // ── ITEMS TABLE ───────────────────────────────────────────────
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000')
-       .text('ITEMS', 50, y, { width: PAGE_W, lineBreak: false });
-    y += 16;
+    // ── ITEMS TABLE ──────────────────────────────────────────────
+    doc.rect(LX, y, PW, 20).fill(ACC_LT);
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+       .text('ITEMS', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+    y += 24;
 
     const cols = [
-      { label: '#',          w: 24  },
-      { label: 'Code',       w: 55  },
-      { label: 'Description',w: 163 },
-      { label: 'Qty',        w: 40  },
-      { label: 'Unit Price', w: 72  },
-      { label: 'Total',      w: 72  },
-      { label: 'Vendor',     w: 69  },
-    ]; // sum = 495
+      { label: '#',           w: 24  },
+      { label: 'Code',        w: 55  },
+      { label: 'Description', w: 163 },
+      { label: 'Qty',         w: 40  },
+      { label: 'Unit Price',  w: 72  },
+      { label: 'Total',       w: 72  },
+      { label: 'Vendor',      w: 69  },
+    ]; // 24+55+163+40+72+72+69 = 495
 
-    // Header row
-    doc.rect(50, y, PAGE_W, 18).fill('#003366').stroke('#003366');
-    let cx = 50;
+    doc.rect(LX, y, PW, 18).fill(ACC);
+    let cx = LX;
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
     cols.forEach(col => {
       doc.text(col.label, cx + 3, y + 5, { width: col.w - 6, lineBreak: false });
@@ -132,16 +142,14 @@ const generateRequisitionPDF = (requisition, items, callback) => {
     });
     y += 18;
 
-    // Item rows
     let subtotal = 0;
-    doc.fillColor('#000000').font('Helvetica').fontSize(8);
     items.forEach((item, idx) => {
       if (y > 710) { doc.addPage(); y = 50; }
-      const bg = idx % 2 === 0 ? '#FFFFFF' : '#F5F7FA';
-      doc.rect(50, y, PAGE_W, 18).fill(bg).stroke('#DDDDDD');
+      const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0F4FF';
+      doc.rect(LX, y, PW, 18).fillAndStroke(rowBg, '#D1D5DB');
       const itemTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
       subtotal += itemTotal;
-      cx = 50;
+      cx = LX;
       const row = [
         String(idx + 1),
         item.item_code || '—',
@@ -151,7 +159,7 @@ const generateRequisitionPDF = (requisition, items, callback) => {
         fmtMoney(itemTotal),
         item.vendor_name || requisition.approved_vendor || 'TBD',
       ];
-      doc.fillColor('#000000');
+      doc.font('Helvetica').fontSize(8).fillColor('#111111');
       row.forEach((val, i) => {
         doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6, lineBreak: false });
         cx += cols[i].w;
@@ -159,105 +167,102 @@ const generateRequisitionPDF = (requisition, items, callback) => {
       y += 18;
     });
 
-    // Totals rows
+    // Totals
     const vat = subtotal * 0.16;
     const grandTotal = subtotal + vat;
-    const totals = [
-      ['Subtotal:', fmtMoney(subtotal)],
-      ['VAT (16%):', fmtMoney(vat)],
-    ];
-    const COL_LABEL_X = 349;
-    const COL_VAL_X   = 431;
-    const COL_LABEL_W = 80;
-    const COL_VAL_W   = 64;
+    const TLX = 349, TVX = 431, TLW = 80, TVW = 64;
 
-    totals.forEach(([lbl, val]) => {
-      doc.rect(50, y, PAGE_W, 16).fill('#F5F7FA').stroke('#DDDDDD');
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#333333')
-         .text(lbl, COL_LABEL_X, y + 4, { width: COL_LABEL_W, lineBreak: false });
-      doc.font('Helvetica').fillColor('#000000')
-         .text(val, COL_VAL_X, y + 4, { width: COL_VAL_W, lineBreak: false });
+    [['Subtotal:', fmtMoney(subtotal)], ['VAT (16%):', fmtMoney(vat)]].forEach(([lbl, val]) => {
+      doc.rect(LX, y, PW, 16).fillAndStroke('#F3F4F6', '#D1D5DB');
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#444444')
+         .text(lbl, TLX, y + 4, { width: TLW, lineBreak: false });
+      doc.font('Helvetica').fontSize(8).fillColor('#111111')
+         .text(val, TVX, y + 4, { width: TVW, lineBreak: false });
       y += 16;
     });
 
-    doc.rect(50, y, PAGE_W, 20).fill('#E8F0FE').stroke('#003399');
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#003399')
-       .text('GRAND TOTAL:', COL_LABEL_X, y + 5, { width: COL_LABEL_W, lineBreak: false });
-    doc.font('Helvetica-Bold').fillColor('#003399')
-       .text(fmtMoney(grandTotal), COL_VAL_X, y + 5, { width: COL_VAL_W, lineBreak: false });
-    doc.fillColor('#000000');
-    y += 28;
+    doc.roundedRect(LX, y, PW, 22, 3).fillAndStroke('#DBEAFE', ACC_MID);
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+       .text('GRAND TOTAL:', TLX, y + 6, { width: TLW, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+       .text(fmtMoney(grandTotal), TVX, y + 6, { width: TVW, lineBreak: false });
+    y += 30;
 
-    // ── APPROVAL TRAIL ────────────────────────────────────────────
+    // ── APPROVAL TRAIL ───────────────────────────────────────────
     const approvalSteps = [
       {
         label: 'HOD Approval',
-        done: !!requisition.hod_approved_by,
-        by: requisition.hod_approved_by_name || requisition.hod_approved_by,
-        at: requisition.hod_approved_at,
+        done:  !!requisition.hod_approved_by,
+        by:    requisition.hod_approved_by_name || requisition.hod_approved_by,
+        at:    requisition.hod_approved_at,
         comments: requisition.hod_comments,
-        action: 'Approved',
       },
       {
-        label: 'MD Approval',
-        done: !!requisition.md_approved_at,
-        by: requisition.md_approved_by_name || requisition.md_approved_by,
-        at: requisition.md_approved_at,
+        label: 'MD / Executive Approval',
+        done:  !!requisition.md_approved_at,
+        by:    requisition.md_approved_by_name || requisition.md_approved_by,
+        at:    requisition.md_approved_at,
         comments: requisition.md_comments,
-        action: 'Approved',
       },
     ].filter(s => s.done);
 
     if (approvalSteps.length > 0) {
-      if (y > 660) { doc.addPage(); y = 50; }
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000')
-         .text('APPROVAL TRAIL', 50, y, { width: PAGE_W, lineBreak: false });
-      y += 14;
+      if (y > 640) { doc.addPage(); y = 50; }
+      doc.rect(LX, y, PW, 20).fill(ACC_LT);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+         .text('APPROVAL TRAIL', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+      y += 24;
 
       approvalSteps.forEach(step => {
-        const boxH = step.comments ? 54 : 40;
-        doc.rect(50, y, PAGE_W, boxH).fill('#E8F5E9').stroke('#4CAF50');
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1B5E20')
-           .text(step.label, 60, y + 7, { width: 120, lineBreak: false });
-        doc.font('Helvetica').fillColor('#1B5E20')
-           .text(`${step.action} by: ${step.by || 'N/A'}`, 60, y + 22, { width: 230, lineBreak: false });
-        doc.font('Helvetica-Bold')
-           .text('Date:', 300, y + 22, { width: 34, lineBreak: false });
-        doc.font('Helvetica')
-           .text(fmtDate(step.at), 337, y + 22, { width: 150, lineBreak: false });
+        if (y > 680) { doc.addPage(); y = 50; }
+        const boxH = step.comments ? 56 : 42;
+        doc.roundedRect(LX, y, PW, boxH, 4).fillAndStroke('#D1FAE5', '#059669');
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#065F46')
+           .text(`${step.label}: APPROVED`, LX + 10, y + 8, { width: PW - 20, lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(8).fillColor('#065F46')
+           .text('Approved by:', LX + 10, y + 24, { width: 80, lineBreak: false });
+        doc.font('Helvetica').fontSize(8).fillColor('#065F46')
+           .text(step.by || 'N/A', LX + 92, y + 24, { width: 160, lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(8).fillColor('#065F46')
+           .text('Date:', 330, y + 24, { width: 32, lineBreak: false });
+        doc.font('Helvetica').fontSize(8).fillColor('#065F46')
+           .text(fmtDate(step.at), 365, y + 24, { width: 120, lineBreak: false });
         if (step.comments) {
-          doc.font('Helvetica-Bold').fillColor('#1B5E20')
-             .text('Comments:', 60, y + 37, { width: 70, lineBreak: false });
-          doc.font('Helvetica')
-             .text(step.comments, 133, y + 37, { width: PAGE_W - 90, lineBreak: false });
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#065F46')
+             .text('Comments:', LX + 10, y + 40, { width: 66, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor('#065F46')
+             .text(step.comments, LX + 78, y + 40, { width: PW - 88, lineBreak: false });
         }
-        doc.fillColor('#000000');
         y += boxH + 8;
       });
     }
 
-    // Procurement details
-    if (requisition.procurement_status === 'completed' && requisition.procurement_comments) {
+    // ── PROCUREMENT COMPLETION ───────────────────────────────────
+    if (requisition.procurement_status === 'completed') {
       if (y > 680) { doc.addPage(); y = 50; }
-      doc.rect(50, y, PAGE_W, 40).fill('#EDE7F6').stroke('#7E57C2');
+      const procH = requisition.procurement_comments ? 56 : 42;
+      doc.roundedRect(LX, y, PW, procH, 4).fillAndStroke('#EDE7F6', '#7E57C2');
       doc.font('Helvetica-Bold').fontSize(9).fillColor('#4527A0')
-         .text('Procurement', 60, y + 7, { width: 100, lineBreak: false });
-      doc.font('Helvetica').fillColor('#4527A0')
-         .text(`Completed: ${fmtDate(requisition.procurement_completed_at)}`, 60, y + 22, { width: 230, lineBreak: false });
-      doc.font('Helvetica-Bold')
-         .text('Comments:', 300, y + 22, { width: 72, lineBreak: false });
-      doc.font('Helvetica')
-         .text(requisition.procurement_comments, 376, y + 22, { width: 160, lineBreak: false });
-      doc.fillColor('#000000');
-      y += 48;
+         .text('Procurement: COMPLETED', LX + 10, y + 8, { width: PW - 20, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#4527A0')
+         .text('Completed:', LX + 10, y + 24, { width: 62, lineBreak: false });
+      doc.font('Helvetica').fontSize(8).fillColor('#4527A0')
+         .text(fmtDate(requisition.procurement_completed_at), LX + 74, y + 24, { width: 140, lineBreak: false });
+      if (requisition.procurement_comments) {
+        doc.font('Helvetica-Bold').fontSize(8).fillColor('#4527A0')
+           .text('Notes:', LX + 10, y + 40, { width: 40, lineBreak: false });
+        doc.font('Helvetica').fontSize(8).fillColor('#4527A0')
+           .text(requisition.procurement_comments, LX + 52, y + 40, { width: PW - 62, lineBreak: false });
+      }
+      y += procH + 8;
     }
 
-    // Footer
-    if (y > 750) { doc.addPage(); y = 50; }
-    doc.font('Helvetica').fontSize(8).fillColor('#888888')
+    // ── FOOTER ───────────────────────────────────────────────────
+    doc.moveTo(LX, 782).lineTo(RX, 782).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+    doc.font('Helvetica').fontSize(7).fillColor('#888888')
        .text(
-         `Generated ${new Date().toLocaleString()} | KSB Internal Approvals System`,
-         50, y + 10, { align: 'center', width: PAGE_W, lineBreak: false }
+         `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${requisition.req_number || requisition.id || ''}`,
+         LX, 790, { width: PW, align: 'center', lineBreak: false }
        );
 
     doc.end();
@@ -266,6 +271,4 @@ const generateRequisitionPDF = (requisition, items, callback) => {
   }
 };
 
-module.exports = {
-    generateRequisitionPDF
-};
+module.exports = { generateRequisitionPDF };
