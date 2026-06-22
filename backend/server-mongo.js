@@ -2452,8 +2452,8 @@ app.get('/api/requisitions/:id/pdf', authenticate, async (req, res) => {
     res.setHeader('Content-Disposition', `inline; filename="PR_${mapped.req_number}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('PDF generation error:', error);
-    res.status(500).json({ error: 'Failed to generate PDF' });
+    console.error('PR PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF. Please try again.' });
   }
 });
 

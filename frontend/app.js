@@ -298,8 +298,9 @@ const api = {
   downloadRequisitionPDF: async (reqId) => {
     const res = await fetchWithAuth(`${API_URL}/requisitions/${reqId}/pdf`);
     if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(errorText || 'Failed to download PDF');
+      let msg = 'Failed to generate PDF';
+      try { const j = await res.json(); msg = j.error || msg; } catch (_) {}
+      throw new Error(msg);
     }
     return res.blob();
   },
@@ -3888,6 +3889,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
     try {
       let blob, filename;
       switch (form.formType) {
+        case 'purchase_requisition':
+        case 'purchase':
+          blob = await api.downloadRequisitionPDF(form.id);
+          filename = `PR_${form.req_number || form.id}.pdf`;
+          break;
         case 'expense':
           blob = await api.downloadExpenseClaimPDF(form.id);
           filename = `ExpenseClaim_${form.id}.pdf`;
@@ -3921,6 +3927,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
     try {
       let blob, title;
       switch (form.formType) {
+        case 'purchase_requisition':
+        case 'purchase':
+          blob = await api.downloadRequisitionPDF(form.id);
+          title = `Purchase Requisition - ${form.req_number || form.id}`;
+          break;
         case 'expense':
           blob = await api.downloadExpenseClaimPDF(form.id);
           title = `Expense Claim - ${form.id}`;
