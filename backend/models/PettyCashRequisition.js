@@ -7,6 +7,15 @@ const pettyCashItemSchema = new mongoose.Schema({
   amount: { type: Number, required: true }
 });
 
+const receiptSchema = new mongoose.Schema({
+  filename:    { type: String, required: true },
+  mimetype:    { type: String, required: true },
+  size:        { type: Number, required: true },
+  data:        { type: String, required: true }, // base64
+  uploaded_by: String,
+  uploaded_at: { type: Date, default: Date.now }
+});
+
 const pettyCashRequisitionSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   payee_name: { type: String, required: true },
@@ -26,6 +35,7 @@ const pettyCashRequisitionSchema = new mongoose.Schema({
     comments: String,
     date: { type: Date, default: Date.now }
   }],
+  receipts: [receiptSchema],
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });

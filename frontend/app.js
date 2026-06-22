@@ -448,6 +448,37 @@ const api = {
     return res.json();
   },
 
+  // Petty Cash Receipts
+  getPettyCashReceipts: async (id) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${id}/receipts`);
+    if (!res.ok) throw new Error('Failed to fetch receipts');
+    return res.json();
+  },
+  uploadPettyCashReceipts: async (id, files) => {
+    const form = new FormData();
+    files.forEach(f => form.append('receipts', f));
+    const res = await fetch(`${API_URL}/forms/petty-cash-requisitions/${id}/receipts`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      body: form
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Upload failed'); }
+    return res.json();
+  },
+  downloadPettyCashReceipt: (id, receiptId, filename) => {
+    const a = document.createElement('a');
+    a.href = `${API_URL}/forms/petty-cash-requisitions/${id}/receipts/${receiptId}`;
+    a.setAttribute('download', filename);
+    // inject auth token via URL param since we can't set headers on anchor
+    a.href += `?token=${encodeURIComponent(localStorage.getItem('token') || '')}`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  },
+  deletePettyCashReceipt: async (id, receiptId) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${id}/receipts/${receiptId}`, { method: 'DELETE' });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Delete failed'); }
+    return res.json();
+  },
+
   lockBudget: async (budgetId, locked, reason) => {
     const res = await fetchWithAuth(`${API_URL}/budgets/${budgetId}/lock`, {
       method: 'PUT',
@@ -8852,6 +8883,162 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
 // ============================================
 // APPROVE PETTY CASH COMPONENT
 // ============================================
+// ── Petty Cash Receipt Upload Panel ──────────────────────────────────────
+const RECEIPT_EXPIRY_MS = 48 * 60 * 60 * 1000;
+
+function formatReceiptExpiry(uploadedAt) {
+  const ms = new Date(uploadedAt).getTime() + RECEIPT_EXPIRY_MS - Date.now();
+  if (ms <= 0) return 'Expired';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return `${h}h ${m}m remaining`;
+}
+
+function formatBytes(b) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function PettyCashReceiptsPanel({ pcId, user }) {
+  const [receipts, setReceipts]     = useState(null);
+  const [uploading, setUploading]   = useState(false);
+  const [fileInput, setFileInput]   = useState(null);
+  const [dragOver, setDragOver]     = useState(false);
+
+  useEffect(() => { loadReceipts(); }, [pcId]);
+
+  const loadReceipts = async () => {
+    try {
+      const data = await api.getPettyCashReceipts(pcId);
+      setReceipts(data.receipts || []);
+    } catch (e) { setReceipts([]); }
+  };
+
+  const handleFiles = async (files) => {
+    const arr = Array.from(files);
+    if (!arr.length) return;
+    const allowed = ['image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'];
+    const invalid = arr.filter(f => !allowed.includes(f.type));
+    if (invalid.length) return showToast('Only JPEG, WebP and PDF files are accepted.');
+    const tooBig = arr.filter(f => f.size > 2 * 1024 * 1024);
+    if (tooBig.length) return showToast('Each file must be under 2 MB.');
+    if ((receipts || []).length + arr.length > 3) return showToast('Maximum 3 receipts per request.');
+    setUploading(true);
+    try {
+      const data = await api.uploadPettyCashReceipts(pcId, arr);
+      setReceipts(data.receipts || []);
+      showToast(`${arr.length} receipt${arr.length > 1 ? 's' : ''} uploaded`);
+    } catch (e) { showToast(e.message); }
+    finally { setUploading(false); }
+  };
+
+  const handleDelete = async (receiptId) => {
+    if (!confirm('Remove this receipt?')) return;
+    try {
+      const data = await api.deletePettyCashReceipt(pcId, receiptId);
+      setReceipts(data.receipts || []);
+      showToast('Receipt removed');
+    } catch (e) { showToast(e.message); }
+  };
+
+  const inputId = `receipt-input-${pcId}`;
+  const canUpload = receipts !== null && receipts.length < 3;
+
+  return React.createElement('div', {
+    style: { background: 'var(--bg-secondary)', borderRadius: '10px', padding: '18px 20px', marginTop: '20px' }
+  },
+    // Header
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' } },
+      React.createElement('p', { style: { fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' } },
+        `Receipts (${receipts ? receipts.length : '…'}/3)`
+      ),
+      canUpload && React.createElement('label', {
+        htmlFor: inputId,
+        style: { cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: '600', color: '#3B82F6' }
+      }, uploading ? 'Uploading…' : '+ Upload Receipt')
+    ),
+
+    // 48-hour warning banner
+    React.createElement('div', {
+      style: {
+        background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px',
+        padding: '10px 14px', marginBottom: '14px', fontSize: '12px', color: '#92400E'
+      }
+    },
+      React.createElement('strong', null, 'Download receipts within 48 hours.'),
+      ' Uploaded files are automatically purged after 48 hours and cannot be recovered. Save copies to your device or email promptly.'
+    ),
+
+    // Hidden file input
+    React.createElement('input', {
+      id: inputId, type: 'file', multiple: true, accept: '.jpg,.jpeg,.webp,.pdf',
+      style: { display: 'none' },
+      onChange: e => { handleFiles(e.target.files); e.target.value = ''; }
+    }),
+
+    // Drop zone (shown when no receipts yet or < 3)
+    canUpload && React.createElement('div', {
+      onDragOver: e => { e.preventDefault(); setDragOver(true); },
+      onDragLeave: () => setDragOver(false),
+      onDrop: e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); },
+      onClick: () => document.getElementById(inputId) && document.getElementById(inputId).click(),
+      style: {
+        border: `2px dashed ${dragOver ? '#3B82F6' : 'var(--border-color)'}`,
+        borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer',
+        marginBottom: receipts && receipts.length ? '14px' : '0',
+        background: dragOver ? '#EFF6FF' : 'transparent', transition: 'all 0.2s'
+      }
+    },
+      React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-tertiary)' } },
+        'Drag and drop files here, or click to browse'
+      ),
+      React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' } },
+        'JPEG · WebP · PDF — max 2 MB each · max 3 files'
+      )
+    ),
+
+    // Receipt list
+    receipts && receipts.length > 0 && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+      receipts.map(r => {
+        const expiry = formatReceiptExpiry(r.uploaded_at);
+        const expired = expiry === 'Expired';
+        return React.createElement('div', {
+          key: r._id,
+          style: {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            background: 'var(--bg-primary)', borderRadius: '8px', padding: '10px 14px',
+            border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '8px'
+          }
+        },
+          React.createElement('div', { style: { flex: 1, minWidth: '140px' } },
+            React.createElement('p', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' } }, r.filename),
+            React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-tertiary)' } },
+              `${formatBytes(r.size)} · ${r.uploaded_by} · `,
+              React.createElement('span', { style: { color: expired ? '#EF4444' : '#F59E0B', fontWeight: '600' } }, expiry)
+            )
+          ),
+          React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+            !expired && React.createElement('button', {
+              onClick: () => api.downloadPettyCashReceipt(pcId, r._id, r.filename),
+              className: 'btn-primary btn-sm'
+            }, 'Download'),
+            (['admin', 'finance', 'finance_manager'].includes(user.role) || r.uploaded_by === (user.full_name || user.username)) &&
+              React.createElement('button', {
+                onClick: () => handleDelete(r._id),
+                className: 'btn-danger btn-sm'
+              }, 'Remove')
+          )
+        );
+      })
+    ),
+
+    receipts && receipts.length === 0 && React.createElement('p', {
+      style: { fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: '8px' }
+    }, 'No receipts uploaded yet.')
+  );
+}
+
 function ApprovePettyCash({ requisition, user, setView }) {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -8998,6 +9185,9 @@ function ApprovePettyCash({ requisition, user, setView }) {
           React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Amount in Words"),
           React.createElement('p', { className: "text-gray-900 italic" }, requisition.amount_in_words)
         ),
+
+        // Receipts
+        React.createElement(PettyCashReceiptsPanel, { pcId: requisition.id, user }),
 
         // Comments Section
         React.createElement('div', null,
@@ -9453,6 +9643,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
 function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
   const [requisitions, setRequisitions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedReceipts, setExpandedReceipts] = useState(null); // pcId
 
   useEffect(() => {
     fetchPettyCashRequisitions();
@@ -9597,45 +9788,57 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
                 requisitions.map(req =>
-                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
-                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
-                    React.createElement('td', { className: "tbl-td" }, req.payee_name),
-                    React.createElement('td', { className: "tbl-td" }, req.purpose),
-                    React.createElement('td', { className: "tbl-td font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
-                    React.createElement('td', { className: "px-4 py-3" },
-                      React.createElement('span', {
-                        className: `px-2 py-1 text-xs font-semibold rounded-full ${
-                          req.status === 'approved' ? 'border border-green-500 text-green-700 bg-transparent' :
-                          req.status === 'rejected' ? 'bg-red-600 text-white' :
-                          'border border-yellow-400 text-yellow-700 bg-transparent'
-                        }`
-                      }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+                  React.createElement(React.Fragment, { key: req._id || req.id },
+                    React.createElement('tr', { className: "hover:bg-gray-50", style: statusStripe(req.status) },
+                      React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
+                      React.createElement('td', { className: "tbl-td" }, req.payee_name),
+                      React.createElement('td', { className: "tbl-td" }, req.purpose),
+                      React.createElement('td', { className: "tbl-td font-semibold" }, `K ${parseFloat(req.amount || 0).toLocaleString()}`),
+                      React.createElement('td', { className: "px-4 py-3" },
+                        React.createElement('span', {
+                          className: `px-2 py-1 text-xs font-semibold rounded-full ${
+                            req.status === 'approved' ? 'border border-green-500 text-green-700 bg-transparent' :
+                            req.status === 'rejected' ? 'bg-red-600 text-white' :
+                            'border border-yellow-400 text-yellow-700 bg-transparent'
+                          }`
+                        }, req.status?.replace('_', ' ').toUpperCase() || 'PENDING')
+                      ),
+                      React.createElement('td', { className: "tbl-td text-gray-500" },
+                        new Date(req.created_at).toLocaleDateString()
+                      ),
+                      React.createElement('td', { className: "px-4 py-3" },
+                        React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                          React.createElement('button', {
+                            onClick: () => handleView(req),
+                            className: "btn-primary btn-sm"
+                          }, 'View'),
+                          canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                            onClick: () => handleApprove(req),
+                            className: "btn-primary btn-sm"
+                          }, 'Approve'),
+                          canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                            onClick: () => handleReject(req),
+                            className: "btn-danger btn-sm"
+                          }, 'Reject'),
+                          isApproved(req.status) && React.createElement('button', {
+                            onClick: () => handlePreviewPDF(req),
+                            className: "btn-primary btn-sm"
+                          }, 'Preview'),
+                          isApproved(req.status) && React.createElement('button', {
+                            onClick: () => handleDownloadPDF(req),
+                            className: "btn-primary btn-sm"
+                          }, 'Download'),
+                          React.createElement('button', {
+                            onClick: () => setExpandedReceipts(expandedReceipts === req.id ? null : req.id),
+                            className: "btn-secondary btn-sm"
+                          }, expandedReceipts === req.id ? 'Hide Receipts' : `Receipts${req.receipts && req.receipts.length ? ` (${req.receipts.length})` : ''}`)
+                        )
+                      )
                     ),
-                    React.createElement('td', { className: "tbl-td text-gray-500" },
-                      new Date(req.created_at).toLocaleDateString()
-                    ),
-                    React.createElement('td', { className: "px-4 py-3" },
-                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                        React.createElement('button', {
-                          onClick: () => handleView(req),
-                          className: "btn-primary btn-sm"
-                        }, 'View'),
-                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
-                          onClick: () => handleApprove(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Approve'),
-                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
-                          onClick: () => handleReject(req),
-                          className: "btn-danger btn-sm"
-                        }, 'Reject'),
-                        isApproved(req.status) && React.createElement('button', {
-                          onClick: () => handlePreviewPDF(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Preview'),
-                        isApproved(req.status) && React.createElement('button', {
-                          onClick: () => handleDownloadPDF(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Download')
+                    // Expandable receipts row
+                    expandedReceipts === req.id && React.createElement('tr', null,
+                      React.createElement('td', { colSpan: 7, style: { padding: '0 16px 16px', background: 'var(--bg-secondary)' } },
+                        React.createElement(PettyCashReceiptsPanel, { pcId: req.id, user })
                       )
                     )
                   )

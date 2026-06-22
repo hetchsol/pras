@@ -7,8 +7,31 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const multer = require('multer');
 const db = require('./database-mongo');
 const { sendStatusNotification } = require('./utils/emailService');
+
+// ── Receipt upload middleware ──────────────────────────────────────────────
+const RECEIPT_ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'];
+const receiptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 3 },
+  fileFilter: (req, file, cb) => {
+    cb(null, RECEIPT_ALLOWED_TYPES.includes(file.mimetype));
+  }
+});
+
+// ── 48-hour receipt cleanup (runs every hour) ──────────────────────────────
+const RECEIPT_TTL_MS = 48 * 60 * 60 * 1000;
+setInterval(async () => {
+  try {
+    const cutoff = new Date(Date.now() - RECEIPT_TTL_MS);
+    await db.PettyCashRequisition.updateMany(
+      { 'receipts.0': { $exists: true } },
+      { $pull: { receipts: { uploaded_at: { $lt: cutoff } } } }
+    );
+  } catch (e) { /* non-fatal background job */ }
+}, 60 * 60 * 1000);
 
 // Typed error for validation failures inside transactions. Thrown inside
 // session.withTransaction to abort the transaction; caught in the route
@@ -105,11 +128,13 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // JWT Middleware
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // Also accept ?token=<jwt> for direct browser download links (receipt files)
+  const queryToken = req.query && req.query.token;
+  if (!authHeader && !queryToken) {
     return res.status(401).json({ error: 'No token provided' });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader ? authHeader.split(' ')[1] : queryToken;
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
@@ -4045,6 +4070,113 @@ app.get('/api/test-email', authenticate, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// PETTY CASH RECEIPT ROUTES
+// ============================================
+
+// POST /api/forms/petty-cash-requisitions/:id/receipts
+// Upload 1–3 receipts (JPEG / WebP / PDF, max 2 MB each).
+// Returns the updated receipts array (metadata only — no base64).
+app.post(
+  '/api/forms/petty-cash-requisitions/:id/receipts',
+  authenticate,
+  receiptUpload.array('receipts', 3),
+  async (req, res) => {
+    try {
+      const pc = await db.PettyCashRequisition.findOne({ id: req.params.id });
+      if (!pc) return res.status(404).json({ error: 'Petty cash requisition not found' });
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No valid files uploaded. Accepted: JPEG, WebP, PDF (max 2 MB each).' });
+      }
+
+      const existing = pc.receipts ? pc.receipts.length : 0;
+      if (existing + req.files.length > 3) {
+        return res.status(400).json({ error: `Maximum 3 receipts allowed. This request already has ${existing}.` });
+      }
+
+      const newReceipts = req.files.map(f => ({
+        filename:    f.originalname,
+        mimetype:    f.mimetype,
+        size:        f.size,
+        data:        f.buffer.toString('base64'),
+        uploaded_by: req.user.full_name || req.user.username,
+        uploaded_at: new Date()
+      }));
+
+      pc.receipts.push(...newReceipts);
+      await pc.save();
+
+      // Return metadata only (omit base64 data for bandwidth)
+      const meta = pc.receipts.map(r => ({
+        _id: r._id, filename: r.filename, mimetype: r.mimetype,
+        size: r.size, uploaded_by: r.uploaded_by, uploaded_at: r.uploaded_at
+      }));
+      res.json({ receipts: meta });
+    } catch (e) {
+      console.error('Receipt upload error:', e);
+      res.status(500).json({ error: 'Upload failed' });
+    }
+  }
+);
+
+// GET /api/forms/petty-cash-requisitions/:id/receipts
+// Returns receipt metadata list (no base64 blobs).
+app.get('/api/forms/petty-cash-requisitions/:id/receipts', authenticate, async (req, res) => {
+  try {
+    const pc = await db.PettyCashRequisition.findOne({ id: req.params.id }).lean();
+    if (!pc) return res.status(404).json({ error: 'Not found' });
+    const meta = (pc.receipts || []).map(r => ({
+      _id: r._id, filename: r.filename, mimetype: r.mimetype,
+      size: r.size, uploaded_by: r.uploaded_by, uploaded_at: r.uploaded_at
+    }));
+    res.json({ receipts: meta });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/forms/petty-cash-requisitions/:id/receipts/:receiptId
+// Stream a single receipt file for download / inline view.
+app.get('/api/forms/petty-cash-requisitions/:id/receipts/:receiptId', authenticate, async (req, res) => {
+  try {
+    const pc = await db.PettyCashRequisition.findOne({ id: req.params.id }).lean();
+    if (!pc) return res.status(404).json({ error: 'Not found' });
+    const receipt = (pc.receipts || []).find(r => String(r._id) === req.params.receiptId);
+    if (!receipt) return res.status(404).json({ error: 'Receipt not found' });
+    const buf = Buffer.from(receipt.data, 'base64');
+    res.setHeader('Content-Type', receipt.mimetype);
+    res.setHeader('Content-Disposition', `attachment; filename="${receipt.filename}"`);
+    res.setHeader('Content-Length', buf.length);
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE /api/forms/petty-cash-requisitions/:id/receipts/:receiptId
+app.delete('/api/forms/petty-cash-requisitions/:id/receipts/:receiptId', authenticate, async (req, res) => {
+  try {
+    const pc = await db.PettyCashRequisition.findOne({ id: req.params.id });
+    if (!pc) return res.status(404).json({ error: 'Not found' });
+    // Only uploader, admin, finance, finance_manager can delete
+    const receipt = (pc.receipts || []).find(r => String(r._id) === req.params.receiptId);
+    if (!receipt) return res.status(404).json({ error: 'Receipt not found' });
+    const canDelete = ['admin', 'finance', 'finance_manager'].includes(req.user.role)
+      || receipt.uploaded_by === (req.user.full_name || req.user.username);
+    if (!canDelete) return res.status(403).json({ error: 'Not authorised to delete this receipt' });
+    pc.receipts.pull({ _id: req.params.receiptId });
+    await pc.save();
+    const meta = pc.receipts.map(r => ({
+      _id: r._id, filename: r.filename, mimetype: r.mimetype,
+      size: r.size, uploaded_by: r.uploaded_by, uploaded_at: r.uploaded_at
+    }));
+    res.json({ receipts: meta });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
