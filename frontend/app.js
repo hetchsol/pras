@@ -1994,6 +1994,11 @@ function App() {
     });
   };
 
+  // Hooks must come before all early returns (Rules of Hooks)
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(() => { if (isMobile) setSidebarOpen(false); }, [view]);
+
   // Show loading screen while checking authentication
   if (initializing) return React.createElement(SkeletonApp);
 
@@ -2010,12 +2015,6 @@ function App() {
       forced: true
     });
   }
-
-  const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Auto-close sidebar when the view changes on mobile
-  useEffect(() => { if (isMobile) setSidebarOpen(false); }, [view]);
 
   if (loading) return React.createElement(SkeletonApp);
 
