@@ -415,193 +415,239 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
 async function generateGRNPDF(grn, items, outputPath) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50 });
+      // A4: 595 × 842 pt. Content area x: 50–545, y: 50–792.
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const PAGE_W = 495; // 545 - 50
       const stream = fs.createWriteStream(outputPath);
-
       doc.pipe(stream);
 
-      // Header
-      addHeader(doc, 'GOODS RECEIPT NOTE');
-
-      // GRN ID and Status
-      const statusText = grn.status.replace(/_/g, ' ').toUpperCase();
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.fillColor('#000000').text('GRN ID:', 50, 120);
-      doc.fillColor('#0000CC').text(grn.id, 95, 120);
-      doc.fillColor('#000000').text('Status:', 420, 120);
-      doc.fillColor('#0000CC').text(statusText, 460, 120);
-      doc.fillColor('#000000').moveDown();
-
-      // Add status stamp below ID/Status line
-      addStatusStamp(doc, grn.status);
-
-      // Draw info section
-      let yPos = 150;
-
-      // Left column
-      doc.font('Helvetica-Bold').text('Receipt Date:', 50, yPos);
-      doc.font('Helvetica').text(formatDate(grn.receipt_date || grn.created_at), 160, yPos);
-
-      doc.font('Helvetica-Bold').text('PR Reference:', 50, yPos + 20);
-      doc.font('Helvetica').text(grn.pr_id || 'N/A', 160, yPos + 20);
-
-      doc.font('Helvetica-Bold').text('Supplier:', 50, yPos + 40);
-      doc.font('Helvetica').text(grn.supplier || 'N/A', 160, yPos + 40);
-
-      doc.font('Helvetica-Bold').text('Department:', 50, yPos + 60);
-      doc.font('Helvetica').text(grn.department || 'N/A', 160, yPos + 60);
-
-      // Right column
-      doc.font('Helvetica-Bold').text('Received By:', 300, yPos);
-      doc.font('Helvetica').text(grn.received_by || 'N/A', 410, yPos);
-
-      doc.font('Helvetica-Bold').text('Delivery Note #:', 300, yPos + 20);
-      doc.font('Helvetica').text(grn.delivery_note_number || 'N/A', 410, yPos + 20);
-
-      doc.font('Helvetica-Bold').text('Invoice #:', 300, yPos + 40);
-      doc.font('Helvetica').text(grn.invoice_number || 'N/A', 410, yPos + 40);
-
-      doc.font('Helvetica-Bold').text('Created By:', 300, yPos + 60);
-      doc.font('Helvetica').text(grn.initiator_name || 'N/A', 410, yPos + 60);
-
-      yPos += 90;
-
-      // Customer reservation (amber highlight if present)
-      if (grn.customer) {
-        doc.rect(50, yPos, 500, 30).fill('#FFF8E1').stroke('#F59E0B');
-        doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(10)
-           .text(`RESERVED FOR CUSTOMER: ${grn.customer}`, 60, yPos + 8, { width: 480 });
-        doc.fillColor('black');
-        yPos += 40;
+      // ── HEADER ──────────────────────────────────────────────────
+      const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 28, { height: 52 });
       }
+      doc.font('Helvetica-Bold').fontSize(18).fillColor('#000000')
+         .text('KSB ZAMBIA LIMITED', 140, 34, { align: 'center', width: 355 });
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#000000')
+         .text('GOODS RECEIPT NOTE', 140, 57, { align: 'center', width: 355 });
 
-      // PR Description
-      if (grn.pr_description) {
-        doc.font('Helvetica-Bold').fontSize(10).text('PR Description:', 50, yPos);
-        doc.font('Helvetica').text(grn.pr_description, 150, yPos, { width: 400 });
-        yPos += 25;
+      // Status badge (top-right, doesn't affect y flow)
+      const rawStatus = (grn.status || 'pending').toLowerCase();
+      const statusLabel = (grn.status || 'pending').replace(/_/g, ' ').toUpperCase();
+      let badgeBg, badgeBorder, badgeColor;
+      if (rawStatus === 'approved' || rawStatus === 'received') {
+        badgeBg = '#E8F5E9'; badgeBorder = '#388E3C'; badgeColor = '#1B5E20';
+      } else if (rawStatus === 'rejected') {
+        badgeBg = '#FFEBEE'; badgeBorder = '#D32F2F'; badgeColor = '#B71C1C';
+      } else {
+        badgeBg = '#FFF8E1'; badgeBorder = '#F9A825'; badgeColor = '#E65100';
       }
+      doc.rect(415, 28, 130, 24).fill(badgeBg).stroke(badgeBorder);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(badgeColor)
+         .text(statusLabel, 417, 36, { width: 126, align: 'center', lineBreak: false });
+      doc.fillColor('#000000');
 
-      // Remarks
-      if (grn.remarks) {
-        doc.font('Helvetica-Bold').text('Remarks:', 50, yPos);
-        doc.font('Helvetica').text(grn.remarks, 120, yPos, { width: 430 });
-        yPos += 30;
-      }
+      // Divider
+      let y = 92;
+      doc.moveTo(50, y).lineTo(545, y).lineWidth(1.5).strokeColor('#003399').stroke();
+      y += 8;
 
-      // Items table
-      yPos += 15;
-      doc.font('Helvetica-Bold').fontSize(12).text('ITEMS RECEIVED', 50, yPos);
-      yPos += 20;
+      // GRN ID row
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+         .text('GRN ID:', 50, y, { width: 48, lineBreak: false });
+      doc.font('Helvetica-Bold').fillColor('#0000CC')
+         .text(grn.id || '', 102, y, { width: 340, lineBreak: false });
+      doc.font('Helvetica-Bold').fillColor('#333333')
+         .text('Date:', 400, y, { width: 30, lineBreak: false });
+      doc.font('Helvetica').fillColor('#000000')
+         .text(formatDate(grn.receipt_date || grn.created_at), 434, y, { width: 111, lineBreak: false });
+      y += 18;
 
-      // Table headers
-      const tableHeaders = ['#', 'Code', 'Description', 'Qty Ordered', 'Qty Received', 'Unit', 'Condition'];
-      const colWidths = [25, 60, 150, 65, 70, 50, 80];
-      let xPos = 50;
+      doc.moveTo(50, y).lineTo(545, y).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      y += 10;
 
-      // Draw header row
-      doc.rect(50, yPos, 500, 20).fill('#f0f0f0').stroke();
-      doc.fillColor('black').fontSize(8).font('Helvetica-Bold');
+      // ── INFO GRID (2 columns × 4 rows) ──────────────────────────
+      // L1=50  V1=162  |  L2=305  V2=405
+      // LW=108          |  L2W=90   V2W=140
+      const L1 = 50, V1 = 162, V1W = 135;
+      const L2 = 305, V2 = 403, V2W = 142;
+      const LW = 108, L2W = 94;
+      const ROW_H = 17;
 
-      tableHeaders.forEach((header, i) => {
-        doc.text(header, xPos + 2, yPos + 5, { width: colWidths[i] - 4, align: 'left' });
-        xPos += colWidths[i];
-      });
-      yPos += 20;
-
-      // Draw item rows
-      doc.font('Helvetica').fontSize(8);
-      items.forEach((item, index) => {
-        if (yPos > 680) {
-          doc.addPage();
-          yPos = 50;
+      function infoRow(lbl, val, rLbl, rVal) {
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+           .text(lbl, L1, y, { width: LW, lineBreak: false });
+        doc.font('Helvetica').fillColor('#000000')
+           .text(String(val || 'N/A'), V1, y, { width: V1W, lineBreak: false });
+        if (rLbl) {
+          doc.font('Helvetica-Bold').fillColor('#333333')
+             .text(rLbl, L2, y, { width: L2W, lineBreak: false });
+          doc.font('Helvetica').fillColor('#000000')
+             .text(String(rVal || 'N/A'), V2, y, { width: V2W, lineBreak: false });
         }
-
-        xPos = 50;
-        doc.rect(50, yPos, 500, 20).stroke();
-
-        const rowData = [
-          (index + 1).toString(),
-          item.item_code || '-',
-          item.description || item.item_name || '-',
-          (item.quantity_ordered || 0).toString(),
-          (item.quantity_received || 0).toString(),
-          item.unit || 'pcs',
-          item.condition_notes || 'Good'
-        ];
-
-        rowData.forEach((data, i) => {
-          doc.text(data, xPos + 2, yPos + 5, { width: colWidths[i] - 4, align: 'left' });
-          xPos += colWidths[i];
-        });
-        yPos += 20;
-      });
-
-      // Approval section
-      yPos += 30;
-      if (yPos > 620) {
-        doc.addPage();
-        yPos = 50;
+        y += ROW_H;
       }
 
-      doc.font('Helvetica-Bold').fontSize(12).fillColor('black').text('APPROVAL', 50, yPos);
-      yPos += 20;
+      infoRow('Receipt Date:', formatDate(grn.receipt_date || grn.created_at), 'Received By:', grn.received_by);
+      infoRow('PR Reference:', grn.pr_id, 'Department:', grn.department);
+      infoRow('Supplier:', grn.supplier, 'Invoice #:', grn.invoice_number);
+      infoRow('Delivery Note #:', grn.delivery_note_number, 'Created By:', grn.initiator_name);
+      y += 8;
+
+      doc.moveTo(50, y).lineTo(545, y).lineWidth(0.5).strokeColor('#DDDDDD').stroke();
+      y += 10;
+
+      // ── RESERVATION ─────────────────────────────────────────────
+      if (grn.customer) {
+        const resType = (grn.reservation_type || '').toLowerCase();
+        const resPrefix = resType === 'internal' ? 'INTERNAL RESERVATION' :
+                          resType === 'external' ? 'EXTERNAL RESERVATION' :
+                          resType === 'stores'   ? 'BOOKED INTO STORES'   : 'RESERVED FOR';
+        doc.rect(50, y, PAGE_W, 22).fill('#FFF8E1').stroke('#F59E0B');
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#92400E')
+           .text(`${resPrefix}: ${grn.customer}`, 58, y + 6, { width: PAGE_W - 16, lineBreak: false });
+        doc.fillColor('#000000');
+        y += 30;
+      }
+
+      // ── PR DESCRIPTION ──────────────────────────────────────────
+      if (grn.pr_description) {
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+           .text('PR Description:', 50, y, { width: 108, lineBreak: false });
+        doc.font('Helvetica').fillColor('#000000')
+           .text(grn.pr_description, 162, y, { width: PAGE_W - 112, lineBreak: false });
+        y += 17;
+      }
+
+      // ── REMARKS ─────────────────────────────────────────────────
+      if (grn.remarks) {
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+           .text('Remarks:', 50, y, { width: 72, lineBreak: false });
+        doc.font('Helvetica').fillColor('#000000')
+           .text(grn.remarks, 126, y, { width: PAGE_W - 76, lineBreak: false });
+        y += 17;
+      }
+
+      y += 12;
+
+      // ── ITEMS TABLE ─────────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000')
+         .text('ITEMS RECEIVED', 50, y, { width: PAGE_W, lineBreak: false });
+      y += 16;
+
+      const colDefs = [
+        { label: '#',             w: 24  },
+        { label: 'Code',          w: 58  },
+        { label: 'Description',   w: 153 },
+        { label: 'Qty Ordered',   w: 62  },
+        { label: 'Qty Received',  w: 62  },
+        { label: 'Unit',          w: 46  },
+        { label: 'Condition',     w: 90  },
+      ]; // sum = 495
+
+      // Header row
+      doc.rect(50, y, PAGE_W, 18).fill('#003366').stroke('#003366');
+      let cx = 50;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
+      colDefs.forEach(col => {
+        doc.text(col.label, cx + 3, y + 5, { width: col.w - 6, lineBreak: false });
+        cx += col.w;
+      });
+      y += 18;
+
+      // Item rows
+      doc.fillColor('#000000').font('Helvetica').fontSize(8);
+      items.forEach((item, idx) => {
+        if (y > 710) { doc.addPage(); y = 50; }
+        const bg = idx % 2 === 0 ? '#FFFFFF' : '#F5F7FA';
+        doc.rect(50, y, PAGE_W, 18).fill(bg).stroke('#DDDDDD');
+        cx = 50;
+        const row = [
+          String(idx + 1),
+          item.item_code || '—',
+          item.description || item.item_name || '—',
+          String(item.quantity_ordered ?? 0),
+          String(item.quantity_received ?? 0),
+          item.unit || 'pcs',
+          item.condition_notes || 'Good',
+        ];
+        doc.fillColor('#000000');
+        row.forEach((val, i) => {
+          doc.text(val, cx + 3, y + 5, { width: colDefs[i].w - 6, lineBreak: false });
+          cx += colDefs[i].w;
+        });
+        y += 18;
+      });
+      y += 18;
+
+      // ── APPROVAL ────────────────────────────────────────────────
+      if (y > 660) { doc.addPage(); y = 50; }
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000')
+         .text('APPROVAL', 50, y, { width: PAGE_W, lineBreak: false });
+      y += 14;
 
       const approval = (grn.approvals && grn.approvals.length > 0) ? grn.approvals[0] : null;
-      const approvalStatus = approval && approval.action !== 'pending' ? approval.action.toUpperCase() : 'PENDING';
-
-      // Approval status box
+      let aBg, aBorder, aColor;
       if (approval && approval.action === 'approved') {
-        doc.rect(50, yPos, 500, 60).fill('#E8F5E9').stroke('#4CAF50');
-        doc.fillColor('#0000CC').font('Helvetica-Bold').fontSize(10)
-           .text('Finance Approval: APPROVED', 60, yPos + 8);
-        doc.fillColor('#0000CC').font('Helvetica')
-           .text(`Approved By: ${approval.name || 'N/A'}`, 60, yPos + 24);
-        doc.text(`Date: ${approval.date ? formatDate(approval.date) : 'N/A'}`, 300, yPos + 24);
-        if (approval.comments) {
-          doc.text(`Comments: ${approval.comments}`, 60, yPos + 40, { width: 480 });
-        }
+        aBg = '#E8F5E9'; aBorder = '#4CAF50'; aColor = '#1B5E20';
       } else if (approval && approval.action === 'rejected') {
-        doc.rect(50, yPos, 500, 60).fill('#FFEBEE').stroke('#F44336');
-        doc.fillColor('#C62828').font('Helvetica-Bold').fontSize(10)
-           .text('Finance Approval: REJECTED', 60, yPos + 8);
-        doc.fillColor('#C62828').font('Helvetica')
-           .text(`Rejected By: ${approval.name || 'N/A'}`, 60, yPos + 24);
-        doc.text(`Date: ${approval.date ? formatDate(approval.date) : 'N/A'}`, 300, yPos + 24);
-        if (approval.comments) {
-          doc.text(`Comments: ${approval.comments}`, 60, yPos + 40, { width: 480 });
-        }
+        aBg = '#FFEBEE'; aBorder = '#F44336'; aColor = '#B71C1C';
       } else {
-        doc.rect(50, yPos, 500, 40).fill('#FFF8E1').stroke('#FFC107');
-        doc.fillColor('#F57F17').font('Helvetica-Bold').fontSize(10)
-           .text('Finance Approval: PENDING', 60, yPos + 8);
-        if (grn.assigned_approver) {
-          doc.fillColor('#F57F17').font('Helvetica')
-             .text(`Assigned Approver: ${grn.assigned_approver}`, 60, yPos + 24);
+        aBg = '#FFF8E1'; aBorder = '#FFC107'; aColor = '#E65100';
+      }
+
+      const hasComments = approval && approval.comments;
+      const aBoxH = hasComments ? 66 : 50;
+      doc.rect(50, y, PAGE_W, aBoxH).fill(aBg).stroke(aBorder);
+
+      const aTitle = (approval && approval.action === 'approved') ? 'Finance Approval: APPROVED' :
+                     (approval && approval.action === 'rejected') ? 'Finance Approval: REJECTED' :
+                     'Finance Approval: PENDING';
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(aColor)
+         .text(aTitle, 60, y + 9, { width: PAGE_W - 20, lineBreak: false });
+
+      if (approval && approval.action && approval.action !== 'pending') {
+        const byLabel = approval.action === 'approved' ? 'Approved By:' : 'Rejected By:';
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(aColor)
+           .text(byLabel, 60, y + 26, { width: 82, lineBreak: false });
+        doc.font('Helvetica')
+           .text(approval.name || 'N/A', 146, y + 26, { width: 148, lineBreak: false });
+        doc.font('Helvetica-Bold')
+           .text('Date:', 304, y + 26, { width: 36, lineBreak: false });
+        doc.font('Helvetica')
+           .text(approval.date ? formatDate(approval.date) : 'N/A', 344, y + 26, { width: 150, lineBreak: false });
+        if (hasComments) {
+          doc.font('Helvetica-Bold').fillColor(aColor)
+             .text('Comments:', 60, y + 43, { width: 70, lineBreak: false });
+          doc.font('Helvetica')
+             .text(approval.comments, 134, y + 43, { width: PAGE_W - 90, lineBreak: false });
         }
+      } else if (grn.assigned_approver) {
+        doc.font('Helvetica').fontSize(9).fillColor(aColor)
+           .text(`Assigned Approver: ${grn.assigned_approver}`, 60, y + 26, { width: PAGE_W - 20, lineBreak: false });
       }
 
-      doc.fillColor('black');
-      yPos += 75;
+      doc.fillColor('#000000');
+      y += aBoxH + 22;
 
-      // Signature section
-      if (yPos > 650) {
-        doc.addPage();
-        yPos = 50;
-      }
+      // ── SIGNATURES ──────────────────────────────────────────────
+      if (y > 730) { doc.addPage(); y = 50; }
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000')
+         .text('Received By:', 50, y, { width: 90, lineBreak: false });
+      doc.font('Helvetica')
+         .text(grn.received_by || 'N/A', 144, y, { width: 146, lineBreak: false });
+      doc.font('Helvetica-Bold')
+         .text('Verified By:', 310, y, { width: 84, lineBreak: false });
+      y += 28;
 
-      doc.font('Helvetica-Bold').fontSize(10);
-      doc.text('Received By:', 50, yPos);
-      doc.font('Helvetica').text(grn.received_by || 'N/A', 130, yPos);
-      doc.text('_______________________', 50, yPos + 30);
-      doc.font('Helvetica-Bold').text('Signature', 50, yPos + 47);
-
-      doc.font('Helvetica-Bold').text('Verified By:', 300, yPos);
-      doc.font('Helvetica').text('_______________________', 300, yPos + 30);
-      doc.font('Helvetica-Bold').text('Signature', 300, yPos + 47);
+      doc.moveTo(50, y).lineTo(232, y).lineWidth(0.8).strokeColor('#000000').stroke();
+      doc.moveTo(310, y).lineTo(490, y).stroke();
+      y += 5;
+      doc.font('Helvetica-Bold').fontSize(9)
+         .text('Signature', 50, y, { width: 100, lineBreak: false });
+      doc.text('Signature', 310, y, { width: 100, lineBreak: false });
 
       doc.end();
-
       stream.on('finish', () => resolve(outputPath));
       stream.on('error', reject);
     } catch (error) {
