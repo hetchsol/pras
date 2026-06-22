@@ -1297,6 +1297,32 @@ function EFTLockBanner({ action, access }) {
 }
 
 // ============================================
+// EMPTY STATE COMPONENT
+// ============================================
+
+function EmptyState({ heading, sub, action }) {
+  return React.createElement('div', {
+    style: { textAlign: 'center', padding: '48px 24px' }
+  },
+    React.createElement('p', {
+      style: {
+        fontSize: '15px', fontWeight: '600',
+        color: 'var(--text-primary)', marginBottom: '8px'
+      }
+    }, heading),
+    sub && React.createElement('p', {
+      style: {
+        fontSize: '13px', color: 'var(--text-tertiary)',
+        marginBottom: action ? '20px' : '0'
+      }
+    }, sub),
+    action && React.createElement('button', {
+      onClick: action.onClick, className: 'btn-primary'
+    }, action.label)
+  );
+}
+
+// ============================================
 // STATUS STRIPE HELPER
 // Returns a boxShadow style that paints a 3px coloured left edge on a <tr>
 // without changing padding or layout.
@@ -4303,7 +4329,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           React.createElement('tbody', { className: "divide-y divide-gray-200" },
             requisitions.length === 0 
               ? React.createElement('tr', null,
-                  React.createElement('td', { colSpan: "6", className: "px-6 py-8 text-center text-gray-500" }, "No requisitions found")
+                  React.createElement('td', { colSpan: '6' },
+                    React.createElement(EmptyState, { heading: 'No requisitions found', sub: 'Requisitions you submit will appear here.' })
+                  )
                 )
               : requisitions.map(req =>
                   React.createElement('tr', { key: req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
@@ -8387,10 +8415,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
 
       // Items Table
       filteredItems.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500 text-lg" }, "No items pending your approval"),
-            React.createElement('p', { className: "text-gray-400 text-sm mt-2" }, "Great! You're all caught up.")
-          )
+        ? React.createElement(EmptyState, { heading: "Nothing awaiting your approval", sub: "You're all caught up — check back later." })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -9228,9 +9253,12 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
 
       // Table or empty / loading state
       loading ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-secondary)' } }, 'Loading…')
-      : filtered.length === 0 ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-tertiary)' } },
-          filter === 'all' ? emptyAll : 'No submissions of this type.'
-        )
+      : filtered.length === 0 ? React.createElement(EmptyState, {
+          heading: filter === 'all' ? emptyAll : 'No submissions of this type.',
+          sub: filter === 'all'
+            ? (effectiveMode === 'mine' ? 'Submit a form to get started.' : effectiveMode === 'approved' ? 'Approved items will be listed here.' : 'Rejected submissions requiring attention will appear here.')
+            : 'Try switching to a different filter.'
+        })
       : React.createElement('div', { className: "overflow-x-auto" },
           React.createElement('table', { className: "w-full text-sm" },
             React.createElement('thead', null,
@@ -9528,9 +9556,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
       ),
 
       requisitions.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No petty cash requisitions found")
-          )
+        ? React.createElement(EmptyState, { heading: 'No petty cash requisitions yet', sub: 'Submitted petty cash requests will appear here.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -9730,9 +9756,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
       ),
 
       claims.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No expense claims found")
-          )
+        ? React.createElement(EmptyState, { heading: 'No expense claims yet', sub: 'Submitted expense claims will appear here.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -9932,9 +9956,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
       ),
 
       requisitions.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No EFT requisitions found")
-          )
+        ? React.createElement(EmptyState, { heading: 'No EFT requisitions yet', sub: 'Submitted EFT / cheque requests will appear here.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -10113,10 +10135,7 @@ function RequisitionProcessing({ user, setView, setSelectedReq, loadData }) {
 
       // Requisitions Table
       requisitions.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500 text-lg" }, "No requisitions awaiting adjudication"),
-            React.createElement('p', { className: "text-gray-400 text-sm mt-2" }, "All requisitions are up to date!")
-          )
+        ? React.createElement(EmptyState, { heading: 'No requisitions awaiting adjudication', sub: 'HOD-approved requisitions ready for vendor selection will appear here.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -10347,16 +10366,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
 
       // Requisitions List
       requisitions.length === 0
-        ? React.createElement('div', {
-            className: "text-center py-12",
-            style: { color: 'var(--text-secondary)' }
-          },
-            React.createElement('p', { className: "text-lg" }, "No rejected requisitions"),
-            React.createElement('p', {
-              className: "text-sm mt-2",
-              style: { color: 'var(--text-tertiary)' }
-            }, "Great! All requisitions are on track.")
-          )
+        ? React.createElement(EmptyState, { heading: 'No rejected requisitions', sub: 'Any requisitions returned for revision will appear here.' })
         : React.createElement('div', { className: "space-y-4" },
             requisitions.map(req =>
               React.createElement('div', {
@@ -10797,11 +10807,10 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
     loading
       ? React.createElement('p', null, 'Loading…')
       : filtered.length === 0
-        ? React.createElement('div', {
-            style: { textAlign: 'center', padding: 48, color: '#888', background: '#f9fafb', borderRadius: 8 }
-          },
-            React.createElement('p', { style: { margin: 0 } }, search ? 'No results match your search.' : 'No PRs are currently in the pipeline.')
-          )
+        ? React.createElement(EmptyState, {
+            heading: search ? 'No results match your search.' : 'No PRs in the pipeline',
+            sub: search ? 'Try a different search term.' : 'Requisitions pending procurement processing will appear here.'
+          })
         : React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 14 } },
             React.createElement('thead', null,
               React.createElement('tr', { style: { background: '#1e3a5f', color: 'white' } },
@@ -10881,14 +10890,12 @@ function PurchaseOrders({ user }) {
       React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Purchase Orders"),
 
       pos.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500 text-lg mb-2" }, "No Purchase Orders Found"),
-            React.createElement('p', { className: "text-gray-400 text-sm" },
-              hasRole(user.role, 'initiator')
-                ? "You'll see Purchase Orders here once your requisitions are approved by MD"
-                : "Purchase Orders will appear here once requisitions are approved by MD"
-            )
-          )
+        ? React.createElement(EmptyState, {
+            heading: 'No purchase orders yet',
+            sub: hasRole(user.role, 'initiator')
+              ? "Your purchase orders will appear here once your requisitions are fully approved."
+              : "Purchase orders are generated automatically when an MD-approved requisition is processed."
+          })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -11095,7 +11102,7 @@ function HODBudgetView({ user }) {
         React.createElement('h3', { className: 'text-lg font-bold text-gray-800' }, 'Supplement Request History')
       ),
       supplements.length === 0
-        ? React.createElement('p', { style: { color: 'var(--text-tertiary)', padding: '24px 0', textAlign: 'center' } }, 'No supplement requests yet.')
+        ? React.createElement(EmptyState, { heading: 'No supplement requests yet', sub: 'Use the button above to request additional budget allocation.' })
         : React.createElement('div', { className: 'overflow-x-auto' },
             React.createElement('table', { className: 'w-full' },
               React.createElement('thead', null,
@@ -12029,7 +12036,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
         ),
         React.createElement('div', { className: "space-y-3" },
           requisitions.length === 0
-            ? React.createElement('p', { className: "text-center text-gray-500 py-8" }, "No requisitions available for quotes")
+            ? React.createElement(EmptyState, { heading: 'No requisitions available for quotes', sub: 'HOD-approved requisitions will appear here for vendor quote upload.' })
             : requisitions.map(req =>
                 React.createElement('div', {
                   key: req.id,
@@ -12729,9 +12736,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
       ),
 
       slips.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No issue slips found")
-          )
+        ? React.createElement(EmptyState, { heading: 'No issue slips yet', sub: 'Issue slips created from this panel will appear here.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -13149,9 +13154,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
       ),
 
       slips.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No picking slips found")
-          )
+        ? React.createElement(EmptyState, { heading: 'No picking slips yet', sub: 'Picking slips will appear here once created.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -13276,9 +13279,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
       ),
 
       grns.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No goods receipt notes found")
-          )
+        ? React.createElement(EmptyState, { heading: 'No goods receipt notes yet', sub: 'GRNs are created when goods are received against an approved purchase requisition.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -13694,9 +13695,7 @@ function StockRegister({ user }) {
       ),
 
       stockItems.length === 0
-        ? React.createElement('div', { className: "text-center py-12" },
-            React.createElement('p', { className: "text-gray-500" }, "No stock data available. Create GRNs to populate the stock register.")
-          )
+        ? React.createElement(EmptyState, { heading: 'Stock register is empty', sub: 'Receive goods via a GRN to populate the stock register.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
@@ -14038,7 +14037,7 @@ function StockItems({ user }) {
 
       // Table
       filteredItems.length === 0
-        ? React.createElement('p', { className: "text-gray-500 text-center py-8" }, "No stock items found. Add items manually or upload a spreadsheet.")
+        ? React.createElement(EmptyState, { heading: 'No stock items in the catalogue', sub: 'Add items manually or upload a spreadsheet to get started.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "min-w-full divide-y divide-gray-200" },
               React.createElement('thead', { className: "bg-gray-50" },
