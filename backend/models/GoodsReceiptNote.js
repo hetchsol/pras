@@ -21,7 +21,8 @@ const goodsReceiptNoteSchema = new mongoose.Schema({
   invoice_number: { type: String },
   received_by: { type: String, required: true },
   department: { type: String },
-  customer: { type: String },  // "Reserved for" - items can only be issued to this customer
+  reservation_type: { type: String, enum: ['none', 'internal', 'external', 'stores'], default: 'none' },
+  customer: { type: String },  // Name of employee/client/vendor the GRN is reserved for
   remarks: { type: String },
   initiator_id: { type: mongoose.Schema.Types.Mixed, required: true },
   initiator_name: { type: String, required: true },

@@ -3615,7 +3615,7 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
     const {
       pr_id, pr_description, supplier, receipt_date,
       delivery_note_number, invoice_number, received_by,
-      department, customer, remarks, items
+      department, customer, reservation_type, remarks, items
     } = req.body;
 
     if (!pr_id) {
@@ -3666,6 +3666,7 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
       invoice_number,
       received_by,
       department: department || req.user.department,
+      reservation_type: reservation_type || 'none',
       customer,
       remarks,
       initiator_id: userId,

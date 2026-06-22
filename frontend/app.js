@@ -13792,14 +13792,14 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                           onClick: () => handleView(grn),
                           className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
                         }, 'View'),
-                        canApprove && React.createElement('button', {
-                          onClick: () => handleView(grn),
-                          className: "btn-primary btn-sm"
-                        }, 'Approve'),
                         React.createElement('button', {
                           onClick: () => handlePreviewPDF(grn),
                           className: "btn-primary btn-sm"
                         }, 'Preview'),
+                        canApprove && React.createElement('button', {
+                          onClick: () => handleView(grn),
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        }, 'Approve'),
                         React.createElement('button', {
                           onClick: () => handleDownloadPDF(grn),
                           className: "btn-primary btn-sm"
@@ -13940,36 +13940,36 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       // Info Grid
       React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 card-section" },
         React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Receipt Date"),
-          React.createElement('p', { className: "font-medium" }, new Date(grnData.receipt_date || grnData.created_at).toLocaleDateString())
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Receipt Date"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, new Date(grnData.receipt_date || grnData.created_at).toLocaleDateString())
         ),
         React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "PR Reference"),
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "PR Reference"),
           React.createElement('p', { className: "font-medium text-blue-600" }, grnData.pr_id)
         ),
         React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Supplier"),
-          React.createElement('p', { className: "font-medium" }, grnData.supplier || 'N/A')
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Supplier"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, grnData.supplier || 'N/A')
         ),
         React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Received By"),
-          React.createElement('p', { className: "font-medium" }, grnData.received_by)
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Received By"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, grnData.received_by)
         ),
         React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Department"),
-          React.createElement('p', { className: "font-medium" }, grnData.department || 'N/A')
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Department"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, grnData.department || 'N/A')
         ),
         React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Created By"),
-          React.createElement('p', { className: "font-medium" }, grnData.initiator_name)
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Created By"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, grnData.initiator_name)
         ),
         grnData.delivery_note_number && React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Delivery Note #"),
-          React.createElement('p', { className: "font-medium" }, grnData.delivery_note_number)
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Delivery Note #"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, grnData.delivery_note_number)
         ),
         grnData.invoice_number && React.createElement('div', null,
-          React.createElement('span', { className: "text-sm text-gray-500" }, "Invoice #"),
-          React.createElement('p', { className: "font-medium" }, grnData.invoice_number)
+          React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-1", style: { color: 'var(--text-tertiary)' } }, "Invoice #"),
+          React.createElement('p', { className: "font-medium", style: { color: 'var(--text-primary)' } }, grnData.invoice_number)
         )
       ),
 
@@ -14022,10 +14022,8 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         )
       ),
 
-      // Customer Reservation — plain card with a left amber accent strip
-      // so the reservation status registers without flooding the whole
-      // surface with colour.
-      grnData.customer && React.createElement('div', {
+      // Reservation section
+      (grnData.customer || grnData.reservation_type === 'stores') && React.createElement('div', {
         className: "mb-6 p-4 rounded-lg border",
         style: {
           backgroundColor: 'var(--bg-primary)',
@@ -14033,11 +14031,17 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
           borderLeft: '3px solid var(--color-warning)'
         }
       },
+        React.createElement('p', { className: "text-xs font-medium uppercase tracking-wide mb-2", style: { color: 'var(--text-tertiary)' } }, "Reservation"),
         React.createElement('p', { className: "font-semibold", style: { color: 'var(--text-primary)' } },
-          'Reserved For Customer: ' + grnData.customer
+          grnData.reservation_type === 'stores' ? 'Booked into Stores' :
+          grnData.reservation_type === 'internal' ? ('Employee: ' + grnData.customer) :
+          grnData.reservation_type === 'external' ? ('Client / Vendor: ' + grnData.customer) :
+          ('Reserved For: ' + grnData.customer)
         ),
         React.createElement('p', { className: "text-sm mt-1", style: { color: 'var(--text-secondary)' } },
-          'Items from this GRN can only be issued to this customer.'
+          grnData.reservation_type === 'stores'
+            ? 'Items from this GRN have been booked into the main store inventory.'
+            : 'Items from this GRN are reserved for the named party above.'
         )
       ),
 
@@ -14059,22 +14063,27 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
                 React.createElement('th', { className: "tbl-th" }, "Description"),
                 React.createElement('th', { className: "tbl-th" }, "Qty Ordered"),
                 React.createElement('th', { className: "tbl-th" }, "Qty Received"),
+                React.createElement('th', { className: "tbl-th" }, "Outstanding"),
                 React.createElement('th', { className: "tbl-th" }, "Unit"),
                 React.createElement('th', { className: "tbl-th" }, "Condition")
               )
             ),
             React.createElement('tbody', { className: "divide-y divide-gray-200" },
-              (grnData.items || []).map((item, idx) =>
-                React.createElement('tr', { key: idx },
+              (grnData.items || []).map((item, idx) => {
+                const outstanding = Math.max(0, (item.quantity_ordered || 0) - (item.quantity_received || 0));
+                return React.createElement('tr', { key: idx },
                   React.createElement('td', { className: "tbl-td" }, idx + 1),
                   React.createElement('td', { className: "tbl-td" }, item.item_code || '-'),
                   React.createElement('td', { className: "tbl-td" }, item.description || item.item_name || '-'),
                   React.createElement('td', { className: "tbl-td" }, item.quantity_ordered || 0),
                   React.createElement('td', { className: "tbl-td font-medium" }, item.quantity_received || 0),
+                  React.createElement('td', { className: "tbl-td font-medium", style: { color: outstanding > 0 ? '#d97706' : '#6b7280' } },
+                    outstanding > 0 ? outstanding : '—'
+                  ),
                   React.createElement('td', { className: "tbl-td" }, item.unit || 'pcs'),
                   React.createElement('td', { className: "tbl-td" }, item.condition_notes || 'Good')
-                )
-              )
+                );
+              })
             )
           )
         )
@@ -14086,20 +14095,20 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
         React.createElement('p', { className: "text-gray-800" }, grnData.remarks)
       ),
 
-      // Action Buttons
-      React.createElement('div', { className: "flex gap-4 mt-6" },
-        React.createElement('button', {
-          onClick: handlePreviewPDF,
-          className: "btn-primary btn-lg flex-1"
-        }, 'Preview PDF'),
-        React.createElement('button', {
-          onClick: handleDownloadPDF,
-          className: "flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-        }, 'Download PDF'),
+      // Action Buttons — order: Back, Preview, Download
+      React.createElement('div', { className: "flex gap-3 mt-6 flex-wrap" },
         React.createElement('button', {
           onClick: () => setView('grns'),
           className: "btn-secondary btn-lg"
-        }, 'Back')
+        }, 'Back to List'),
+        React.createElement('button', {
+          onClick: handlePreviewPDF,
+          className: "btn-primary btn-lg"
+        }, 'Preview PDF'),
+        React.createElement('button', {
+          onClick: handleDownloadPDF,
+          className: "py-2 px-6 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+        }, 'Download PDF')
       )
     )
   );

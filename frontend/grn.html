@@ -31,6 +31,42 @@
         .nav-header { max-width: 1000px; }
         .container  { max-width: 1000px; }
 
+        /* Reservation type radio group */
+        .reservation-type-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .reservation-type-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            padding: 7px 13px;
+            border: 1.5px solid #D1D5DB;
+            border-radius: 6px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .reservation-type-group label:has(input:checked) {
+            border-color: #F59E0B;
+            background: #FFFBEB;
+            color: #92400E;
+        }
+        .reservation-type-group input[type="radio"] { accent-color: #F59E0B; }
+        .stores-note {
+            background: #F0FDF4;
+            border: 1px solid #86EFAC;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #166534;
+            margin-top: 8px;
+        }
+
         /* PR info box shown when a purchase requisition is linked */
         .pr-info-box {
             background: #FFFBEB;
@@ -140,11 +176,23 @@
                         <label for="invoice_number">Invoice Number</label>
                         <input type="text" id="invoice_number" placeholder="Invoice reference">
                     </div>
-                    <div class="form-group">
-                        <label for="customer">Reserved For Customer</label>
+                    <div class="form-group full-width">
+                        <label>Reservation Type</label>
+                        <div class="reservation-type-group" id="reservationTypeGroup">
+                            <label><input type="radio" name="reservation_type" value="none" checked onchange="handleReservationType()"> None</label>
+                            <label><input type="radio" name="reservation_type" value="internal" onchange="handleReservationType()"> Internal (Employee / Staff)</label>
+                            <label><input type="radio" name="reservation_type" value="external" onchange="handleReservationType()"> External (Client / Vendor)</label>
+                            <label><input type="radio" name="reservation_type" value="stores" onchange="handleReservationType()"> Book into Stores</label>
+                        </div>
+                    </div>
+                    <div class="form-group full-width" id="reservationDropdownGroup" style="display:none;">
+                        <label for="customer" id="reservationDropdownLabel">Reserved For</label>
                         <select id="customer">
-                            <option value="">-- No reservation (optional) --</option>
+                            <option value="">-- Select --</option>
                         </select>
+                    </div>
+                    <div class="stores-note" id="storesNote" style="display:none;">
+                        Items from this GRN will be booked directly into the main store inventory.
                     </div>
                     <div class="form-group full-width">
                         <label for="remarks">Remarks</label>
@@ -165,13 +213,14 @@
                                 <th>Description</th>
                                 <th style="width: 90px;">Qty Ordered</th>
                                 <th style="width: 90px;">Qty Received *</th>
+                                <th style="width: 90px;">Outstanding</th>
                                 <th style="width: 80px;">Unit</th>
                                 <th style="width: 140px;">Condition Notes</th>
                             </tr>
                         </thead>
                         <tbody id="itemsTableBody">
                             <tr>
-                                <td colspan="7" style="text-align: center; color: #999; padding: 20px;">
+                                <td colspan="8" style="text-align: center; color: #999; padding: 20px;">
                                     Select a PR above to populate items
                                 </td>
                             </tr>
@@ -195,6 +244,9 @@
         let usersList = [];
         let selectedPR = null;
 
+        let vendorsList = [];
+        let clientsList = [];
+
         // Initialize form
         document.addEventListener('DOMContentLoaded', async function() {
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
@@ -206,7 +258,7 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('receipt_date').value = today;
 
-            await Promise.all([loadApprovedPRs(), loadUsers(), loadVendors()]);
+            await Promise.all([loadApprovedPRs(), loadUsers(), loadExternalOptions()]);
         });
 
         async function loadApprovedPRs() {
@@ -247,24 +299,17 @@
             }
         }
 
-        async function loadVendors() {
+        async function loadExternalOptions() {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_URL}/vendors`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    const vendors = await response.json();
-                    const select = document.getElementById('customer');
-                    vendors.forEach(v => {
-                        const opt = document.createElement('option');
-                        opt.value = v.name;
-                        opt.textContent = v.name;
-                        select.appendChild(opt);
-                    });
-                }
+                const [vRes, cRes] = await Promise.all([
+                    fetch(`${API_URL}/vendors`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_URL}/clients`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                if (vRes.ok) vendorsList = await vRes.json();
+                if (cRes.ok) clientsList = await cRes.json();
             } catch (e) {
-                console.error('Failed to load vendors:', e);
+                console.error('Failed to load external options:', e);
             }
         }
 
@@ -292,6 +337,91 @@
             }
         }
 
+        function handleReservationType() {
+            const type = document.querySelector('input[name="reservation_type"]:checked').value;
+            const dropdownGroup = document.getElementById('reservationDropdownGroup');
+            const label = document.getElementById('reservationDropdownLabel');
+            const select = document.getElementById('customer');
+            const storesNote = document.getElementById('storesNote');
+
+            // Reset
+            dropdownGroup.style.display = 'none';
+            storesNote.style.display = 'none';
+            select.innerHTML = '<option value="">-- Select --</option>';
+
+            if (type === 'internal') {
+                label.textContent = 'Reserved For (Employee / Staff)';
+                usersList.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.full_name;
+                    opt.textContent = `${u.full_name}${u.department ? ' — ' + u.department : ''}`;
+                    select.appendChild(opt);
+                });
+                dropdownGroup.style.display = 'block';
+            } else if (type === 'external') {
+                label.textContent = 'Reserved For (Client / Vendor)';
+                if (clientsList.length) {
+                    const grp = document.createElement('optgroup');
+                    grp.label = 'Clients';
+                    clientsList.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.name;
+                        opt.textContent = c.name;
+                        grp.appendChild(opt);
+                    });
+                    select.appendChild(grp);
+                }
+                if (vendorsList.length) {
+                    const grp = document.createElement('optgroup');
+                    grp.label = 'Vendors';
+                    vendorsList.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.name;
+                        opt.textContent = v.name;
+                        grp.appendChild(opt);
+                    });
+                    select.appendChild(grp);
+                }
+                dropdownGroup.style.display = 'block';
+            } else if (type === 'stores') {
+                storesNote.style.display = 'block';
+            }
+        }
+
+        function computeOutstanding(input) {
+            const row = input.closest('tr');
+            const qtyOrdered = parseFloat(row.querySelector('.quantity_ordered').value) || 0;
+            const qtyReceived = parseFloat(input.value) || 0;
+            const outstanding = Math.max(0, qtyOrdered - qtyReceived);
+            const cell = row.querySelector('.qty_outstanding');
+            if (cell) {
+                cell.textContent = outstanding > 0 ? outstanding : '—';
+                cell.style.color = outstanding > 0 ? '#d97706' : '#6b7280';
+                cell.style.fontWeight = outstanding > 0 ? '600' : 'normal';
+            }
+        }
+
+        const UOM_OPTIONS = [
+            { group: 'Count',     options: ['pcs', 'units', 'pairs', 'dozen'] },
+            { group: 'Weight',    options: ['kg', 'g', 'mg', 'tonne', 'lb'] },
+            { group: 'Volume',    options: ['ltr', 'ml', 'gal', 'm³'] },
+            { group: 'Length',    options: ['m', 'cm', 'mm', 'ft'] },
+            { group: 'Area',      options: ['m²', 'ft²'] },
+            { group: 'Packaging', options: ['box', 'carton', 'crate', 'pallet', 'bag', 'sack', 'drum', 'can', 'bottle', 'roll', 'reel', 'sheet', 'set', 'kit', 'pack', 'bundle'] }
+        ];
+
+        function buildUomSelect(selected) {
+            let html = '';
+            UOM_OPTIONS.forEach(({ group, options }) => {
+                html += `<optgroup label="${group}">`;
+                options.forEach(o => {
+                    html += `<option value="${o}"${o === selected ? ' selected' : ''}>${o}</option>`;
+                });
+                html += '</optgroup>';
+            });
+            return html;
+        }
+
         function handlePRSelect() {
             const select = document.getElementById('pr_select');
             const prInfoBox = document.getElementById('prInfoBox');
@@ -299,7 +429,7 @@
 
             if (!select.value) {
                 prInfoBox.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';
                 selectedPR = null;
                 return;
             }
@@ -318,7 +448,7 @@
                 ? `${selectedPR.vendor_currency || 'ZMW'} ${parseFloat(selectedPR.amount).toLocaleString()}`
                 : 'N/A';
 
-            // Populate items table from PR (single-item PR)
+            // Populate items table
             tbody.innerHTML = '';
             const row = tbody.insertRow();
             row.innerHTML = `
@@ -326,18 +456,9 @@
                 <td><input type="text" class="item_code" value="" placeholder="Code"></td>
                 <td><input type="text" class="description" value="${escapeHtml(selectedPR.description)}" readonly style="background:#f5f5f5;"></td>
                 <td><input type="number" class="quantity_ordered" value="${selectedPR.quantity}" readonly style="background:#f5f5f5;"></td>
-                <td><input type="number" class="quantity_received" min="0" step="1" value="${selectedPR.quantity}" required></td>
-                <td>
-                    <select class="unit">
-                        <option value="pcs">pcs</option>
-                        <option value="kg">kg</option>
-                        <option value="ltr">ltr</option>
-                        <option value="box">box</option>
-                        <option value="set">set</option>
-                        <option value="roll">roll</option>
-                        <option value="pack">pack</option>
-                    </select>
-                </td>
+                <td><input type="number" class="quantity_received" min="0" step="1" value="${selectedPR.quantity}" required oninput="computeOutstanding(this)"></td>
+                <td class="qty_outstanding" style="text-align:center; color:#6b7280; padding: 8px;">—</td>
+                <td><select class="unit">${buildUomSelect('pcs')}</select></td>
                 <td><input type="text" class="condition_notes" placeholder="e.g. Good, Damaged"></td>
             `;
         }
@@ -361,6 +482,11 @@
                 showAlert('Please select or enter who received the goods', 'error');
                 return;
             }
+
+            const reservationType = document.querySelector('input[name="reservation_type"]:checked')?.value || 'none';
+            const reservedFor = reservationType === 'stores'
+                ? 'Stores'
+                : (reservationType !== 'none' ? document.getElementById('customer').value : '');
 
             const rows = document.getElementById('itemsTableBody').rows;
             if (rows.length === 0) {
@@ -396,7 +522,8 @@
                 invoice_number: document.getElementById('invoice_number').value.trim(),
                 received_by: receivedBy,
                 department: document.getElementById('department').value,
-                customer: document.getElementById('customer').value,
+                reservation_type: reservationType,
+                customer: reservedFor,
                 remarks: document.getElementById('remarks').value.trim(),
                 items: items
             };
@@ -420,7 +547,9 @@
                     showAlert(`GRN created successfully! ID: ${data.grn.id} - Pending approval`, 'success');
                     document.getElementById('grnForm').reset();
                     document.getElementById('prInfoBox').style.display = 'none';
-                    document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';
+                    document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999; padding: 20px;">Select a PR above to populate items</td></tr>';
+                    document.getElementById('reservationDropdownGroup').style.display = 'none';
+                    document.getElementById('storesNote').style.display = 'none';
                     selectedPR = null;
                 } else {
                     showAlert(data.error || 'Failed to submit GRN', 'error');
