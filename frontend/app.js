@@ -448,6 +448,31 @@ const api = {
     return res.json();
   },
 
+  lockBudget: async (budgetId, locked, reason) => {
+    const res = await fetchWithAuth(`${API_URL}/budgets/${budgetId}/lock`, {
+      method: 'PUT',
+      body: JSON.stringify({ locked, reason })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to update lock'); }
+    return res.json();
+  },
+  reallocationBudget: async (fromDepartment, toDepartment, amount, reason) => {
+    const res = await fetchWithAuth(`${API_URL}/budgets/reallocate`, {
+      method: 'POST',
+      body: JSON.stringify({ from_department: fromDepartment, to_department: toDepartment, amount, reason })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to reallocate'); }
+    return res.json();
+  },
+  updateBudgetNotes: async (budgetId, notes) => {
+    const res = await fetchWithAuth(`${API_URL}/budgets/${budgetId}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes })
+    });
+    if (!res.ok) throw new Error('Failed to update notes');
+    return res.json();
+  },
+
   // Budget Supplements
   getBudgetSupplements: async () => {
     const res = await fetchWithAuth(`${API_URL}/budget-supplements`);
@@ -11143,51 +11168,46 @@ function HODBudgetView({ user }) {
 }
 
 function BudgetManagement({ user }) {
-  const [budgets, setBudgets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fiscalYear, setFiscalYear] = useState('2025');
-  const [selectedDept, setSelectedDept] = useState(null);
-  const [deptDetails, setDeptDetails] = useState(null);
+  const canManage = ['finance', 'finance_manager', 'md', 'admin'].includes(user.role);
+
+  // ── State ──
+  const [budgets, setBudgets]             = useState([]);
+  const [overview, setOverview]           = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [fiscalYear, setFiscalYear]       = useState(String(new Date().getFullYear()));
+  const [selectedDept, setSelectedDept]   = useState(null);
+  const [deptDetails, setDeptDetails]     = useState(null);
   const [editingBudget, setEditingBudget] = useState(null);
   const [newAllocation, setNewAllocation] = useState('');
   const [creatingBudget, setCreatingBudget] = useState(null);
-  const [supplements, setSupplements] = useState([]);
-  const [suppComments, setSuppComments] = useState({});  // { id: commentText }
+  const [supplements, setSupplements]     = useState([]);
+  const [suppComments, setSuppComments]   = useState({});
+  const [suppFilter, setSuppFilter]       = useState('pending');
+  // Reallocation
+  const [showReallocate, setShowReallocate] = useState(false);
+  const [reallocForm, setReallocForm]     = useState({ from: '', to: '', amount: '', reason: '' });
+  // Lock
+  const [lockingDept, setLockingDept]     = useState(null);
+  const [lockReason, setLockReason]       = useState('');
+  // Notes
+  const [editingNotes, setEditingNotes]   = useState(null);
+  const [notesText, setNotesText]         = useState('');
 
-  useEffect(() => {
-    loadBudgets();
-    loadSupplements();
-  }, [fiscalYear]);
+  useEffect(() => { loadAll(); }, [fiscalYear]);
 
-  const loadSupplements = async () => {
-    try {
-      const data = await api.getBudgetSupplements();
-      setSupplements(data);
-    } catch (e) { /* non-fatal */ }
-  };
-
-  const handleReviewSupplement = async (id, action) => {
-    try {
-      await api.reviewBudgetSupplement(id, action, suppComments[id] || '');
-      showToast(action === 'approve' ? 'Supplement approved' : 'Supplement rejected');
-      setSuppComments(prev => { const n = { ...prev }; delete n[id]; return n; });
-      loadSupplements();
-      if (action === 'approve') loadBudgets();
-    } catch (e) {
-      showToast(e.message);
-    }
-  };
-
-  const loadBudgets = async () => {
+  const loadAll = async () => {
     setLoading(true);
     try {
-      const data = await api.getAllDepartmentsWithBudgets(fiscalYear);
-      setBudgets(data);
-    } catch (error) {
-      showToast('Failed to load departments: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+      const [depts, ov, supps] = await Promise.all([
+        api.getAllDepartmentsWithBudgets(fiscalYear),
+        api.getBudgetOverview(fiscalYear),
+        api.getBudgetSupplements()
+      ]);
+      setBudgets(depts);
+      setOverview(ov);
+      setSupplements(supps);
+    } catch (e) { showToast('Failed to load budget data: ' + e.message); }
+    finally { setLoading(false); }
   };
 
   const loadDeptDetails = async (department) => {
@@ -11195,279 +11215,493 @@ function BudgetManagement({ user }) {
       const data = await api.getDepartmentBudget(department, fiscalYear);
       setDeptDetails(data);
       setSelectedDept(department);
-    } catch (error) {
-      showToast('Failed to load department details: ' + error.message);
-    }
+    } catch (e) { showToast('Failed to load department details'); }
   };
 
   const handleCreateBudget = async (department) => {
-    if (!newAllocation || newAllocation <= 0) {
-      showToast('Please enter a valid allocation amount');
-      return;
-    }
+    if (!newAllocation || newAllocation <= 0) return showToast('Enter a valid amount');
     try {
       await api.createBudget(department, parseFloat(newAllocation), fiscalYear);
-      showToast('Budget created successfully');
-      setCreatingBudget(null);
-      setNewAllocation('');
-      loadBudgets();
-    } catch (error) {
-      showToast('Failed to create budget: ' + error.message);
-    }
+      showToast('Budget allocated');
+      setCreatingBudget(null); setNewAllocation('');
+      loadAll();
+    } catch (e) { showToast(e.message); }
   };
 
   const handleUpdateAllocation = async (budgetId) => {
-    if (!newAllocation || newAllocation <= 0) {
-      showToast('Please enter a valid allocation amount');
-      return;
-    }
+    if (!newAllocation || newAllocation <= 0) return showToast('Enter a valid amount');
     try {
       await api.updateBudgetAllocation(budgetId, parseFloat(newAllocation));
-      showToast('Budget allocation updated successfully');
-      setEditingBudget(null);
-      setNewAllocation('');
-      loadBudgets();
-      if (selectedDept) {
-        loadDeptDetails(selectedDept);
-      }
-    } catch (error) {
-      showToast('Failed to update budget allocation: ' + error.message);
-    }
+      showToast('Budget updated');
+      setEditingBudget(null); setNewAllocation('');
+      loadAll();
+      if (selectedDept) loadDeptDetails(selectedDept);
+    } catch (e) { showToast(e.message); }
   };
 
-  const getUtilizationColor = (percentage) => {
-    if (percentage >= 90) return 'text-red-600 bg-red-50';
-    if (percentage >= 75) return 'text-orange-600 bg-orange-50';
-    return 'text-green-600 bg-green-50';
+  const handleReviewSupplement = async (id, action) => {
+    try {
+      await api.reviewBudgetSupplement(id, action, suppComments[id] || '');
+      showToast(action === 'approve' ? 'Supplement approved' : 'Supplement rejected');
+      setSuppComments(prev => { const n = { ...prev }; delete n[id]; return n; });
+      loadAll();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleLockToggle = async (dept, lock) => {
+    try {
+      await api.lockBudget(dept.budget_id, lock, lockReason);
+      showToast(lock ? `${dept.department} budget locked` : `${dept.department} budget unlocked`);
+      setLockingDept(null); setLockReason('');
+      loadAll();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleReallocate = async () => {
+    const { from, to, amount, reason } = reallocForm;
+    if (!from || !to || !amount || !reason.trim()) return showToast('All fields are required');
+    try {
+      await api.reallocationBudget(from, to, parseFloat(amount), reason);
+      showToast(`ZMW ${parseFloat(amount).toLocaleString()} moved from ${from} to ${to}`);
+      setShowReallocate(false);
+      setReallocForm({ from: '', to: '', amount: '', reason: '' });
+      loadAll();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleSaveNotes = async (budgetId) => {
+    try {
+      await api.updateBudgetNotes(budgetId, notesText);
+      showToast('Notes saved');
+      setEditingNotes(null); setNotesText('');
+      loadAll();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const utilBar = (pct) => {
+    const clamp = Math.min(100, pct || 0);
+    const colour = clamp >= 90 ? '#EF4444' : clamp >= 75 ? '#F59E0B' : '#10B981';
+    return React.createElement('div', { style: { height: '6px', background: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' } },
+      React.createElement('div', { style: { height: '100%', width: `${clamp}%`, background: colour, borderRadius: '3px', transition: 'width 0.4s ease' } })
+    );
   };
 
   if (loading) return React.createElement(SkeletonCards, { cards: 3, rows: 5 });
 
+  // ── Supplement partition ──
+  const pendingSupps = supplements.filter(s => ['pending_finance', 'pending_md'].includes(s.status));
+  const myActionSupps = ['finance', 'finance_manager'].includes(user.role)
+    ? pendingSupps.filter(s => s.status === 'pending_finance')
+    : user.role === 'md' ? pendingSupps.filter(s => s.status === 'pending_md') : [];
+  const historySupps = supplements.filter(s => ['approved', 'rejected'].includes(s.status));
+  const filteredHistory = suppFilter === 'all' ? supplements
+    : suppFilter === 'pending' ? pendingSupps
+    : historySupps.filter(s => s.status === suppFilter);
+
+  const deptNames = budgets.map(d => d.department);
+
   return React.createElement('div', { className: "space-y-6" },
-    React.createElement('div', { className: "card" },
-      React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Budget Management"),
-        React.createElement('div', { className: "flex items-center gap-4" },
+
+    // ── Organisation Overview Tiles ──
+    overview && React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-4" },
+        React.createElement('h2', { style: { fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Budget Management'),
+        React.createElement('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
           React.createElement('select', {
             value: fiscalYear,
-            onChange: (e) => setFiscalYear(e.target.value),
-            className: "form-input"
+            onChange: e => setFiscalYear(e.target.value),
+            className: 'form-input'
           },
-            React.createElement('option', { value: "2024" }, "FY 2024"),
-            React.createElement('option', { value: "2025" }, "FY 2025"),
-            React.createElement('option', { value: "2026" }, "FY 2026")
+            ['2024','2025','2026'].map(y => React.createElement('option', { key: y, value: y }, `FY ${y}`))
           ),
-          React.createElement('button', {
-            onClick: () => api.downloadBudgetExcel(fiscalYear),
-            className: "btn-primary"
-          }, "Download Excel"),
-          React.createElement('button', {
-            onClick: () => api.downloadBudgetPDF(fiscalYear),
-            className: "btn-danger"
-          }, "Download PDF")
+          canManage && React.createElement('button', {
+            onClick: () => setShowReallocate(v => !v),
+            className: 'btn-secondary btn-sm'
+          }, showReallocate ? 'Cancel Reallocation' : 'Reallocate Budget'),
+          React.createElement('button', { onClick: () => api.downloadBudgetExcel(fiscalYear), className: 'btn-primary btn-sm' }, 'Export Excel'),
+          React.createElement('button', { onClick: () => api.downloadBudgetPDF(fiscalYear), className: 'btn-danger btn-sm' }, 'Export PDF')
         )
       ),
-      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" },
-        budgets.map(dept =>
-          React.createElement('div', {
-            key: dept.dept_id || dept.department,
-            className: "p-4 border rounded-lg hover:shadow-md transition-shadow"
+      // Summary tiles
+      React.createElement('div', { className: 'grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4' },
+        [
+          { label: 'Total Allocated', value: overview.totalBudget, colour: '#3B82F6' },
+          { label: 'Total Spent', value: overview.totalSpent, colour: '#10B981' },
+          { label: 'Total Committed', value: overview.totalCommitted, colour: '#F59E0B' },
+          { label: 'Total Available', value: overview.totalAvailable, colour: overview.totalAvailable < 0 ? '#EF4444' : '#6366F1' }
+        ].map(tile => React.createElement('div', {
+          key: tile.label,
+          style: { background: 'var(--bg-secondary)', borderRadius: '10px', padding: '16px', borderTop: `3px solid ${tile.colour}` }
+        },
+          React.createElement('p', { style: { fontSize: '11px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, tile.label),
+          React.createElement('p', { style: { fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' } },
+            `ZMW ${(tile.value || 0).toLocaleString()}`
+          )
+        ))
+      ),
+      // Org-level utilization bar
+      (() => {
+        const pct = overview.totalBudget > 0
+          ? ((overview.totalSpent + overview.totalCommitted) / overview.totalBudget) * 100 : 0;
+        return React.createElement('div', null,
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+            React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } }, 'Organisation utilisation'),
+            React.createElement('span', { style: { fontSize: '12px', fontWeight: '600', color: pct >= 90 ? '#EF4444' : pct >= 75 ? '#F59E0B' : '#10B981' } }, `${pct.toFixed(1)}%`)
+          ),
+          utilBar(pct)
+        );
+      })()
+    ),
+
+    // ── Budget Reallocation Form ──
+    showReallocate && canManage && React.createElement('div', { className: 'card' },
+      React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px' } }, 'Reallocate Budget Between Departments'),
+      React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' } },
+        'Transfer available (unspent, uncommitted) budget from one department to another. The amount is deducted from the source\'s allocated budget and added to the destination\'s.'
+      ),
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' } },
+        React.createElement('div', null,
+          React.createElement('label', { className: 'form-label' }, 'From Department'),
+          React.createElement('select', {
+            value: reallocForm.from,
+            onChange: e => setReallocForm(f => ({ ...f, from: e.target.value })),
+            className: 'form-input'
           },
-            React.createElement('h3', {
-              onClick: () => dept.budget_id && loadDeptDetails(dept.department),
-              className: `font-semibold text-gray-800 mb-2 ${dept.budget_id ? 'cursor-pointer hover:text-blue-600' : 'text-gray-500'}`
-            }, dept.department),
-            React.createElement('p', { className: "text-xs text-gray-500 mb-2" }, `Code: ${dept.dept_code || 'N/A'}`),
-            !dept.budget_id ? React.createElement('div', { className: "space-y-2" },
-              React.createElement('p', { className: "text-sm text-orange-600 font-medium mb-2" }, "No Budget Allocated"),
-              creatingBudget === dept.department ? React.createElement('div', { className: "space-y-2" },
-                React.createElement('input', {
-                  type: "number",
-                  value: newAllocation,
-                  onChange: (e) => setNewAllocation(e.target.value),
-                  placeholder: "Enter allocation",
-                  className: "w-full px-2 py-1 border rounded text-sm"
-                }),
-                React.createElement('div', { className: "flex gap-1" },
-                  React.createElement('button', {
-                    onClick: () => handleCreateBudget(dept.department),
-                    className: "flex-1 btn-primary btn-sm"
-                  }, "Create"),
-                  React.createElement('button', {
-                    onClick: () => {
-                      setCreatingBudget(null);
-                      setNewAllocation('');
-                    },
-                    className: "btn-secondary btn-sm flex-1"
-                  }, "Cancel")
-                )
-              ) : React.createElement('button', {
-                onClick: () => {
-                  setCreatingBudget(dept.department);
-                  setNewAllocation('');
-                },
-                className: "w-full btn-primary btn-sm"
-              }, "Allocate Budget")
-            ) : editingBudget === dept.budget_id ? React.createElement('div', { className: "space-y-2 mb-2" },
-              React.createElement('input', {
-                type: "number",
-                value: newAllocation,
-                onChange: (e) => setNewAllocation(e.target.value),
-                placeholder: "New allocation",
-                className: "w-full px-2 py-1 border rounded text-sm"
-              }),
-              React.createElement('div', { className: "flex gap-1" },
-                React.createElement('button', {
-                  onClick: () => handleUpdateAllocation(dept.budget_id),
-                  className: "flex-1 btn-primary btn-sm"
-                }, "Save"),
-                React.createElement('button', {
-                  onClick: () => {
-                    setEditingBudget(null);
-                    setNewAllocation('');
-                  },
-                  className: "btn-secondary btn-sm flex-1"
-                }, "Cancel")
+            React.createElement('option', { value: '' }, '— select —'),
+            deptNames.filter(n => n !== reallocForm.to).map(n => React.createElement('option', { key: n, value: n }, n))
+          )
+        ),
+        React.createElement('div', null,
+          React.createElement('label', { className: 'form-label' }, 'To Department'),
+          React.createElement('select', {
+            value: reallocForm.to,
+            onChange: e => setReallocForm(f => ({ ...f, to: e.target.value })),
+            className: 'form-input'
+          },
+            React.createElement('option', { value: '' }, '— select —'),
+            deptNames.filter(n => n !== reallocForm.from).map(n => React.createElement('option', { key: n, value: n }, n))
+          )
+        ),
+        React.createElement('div', null,
+          React.createElement('label', { className: 'form-label' }, 'Amount (ZMW)'),
+          React.createElement('input', {
+            type: 'number', min: '1',
+            value: reallocForm.amount,
+            onChange: e => setReallocForm(f => ({ ...f, amount: e.target.value })),
+            className: 'form-input', placeholder: '0.00'
+          })
+        ),
+        React.createElement('div', null,
+          React.createElement('label', { className: 'form-label' }, 'Reason'),
+          React.createElement('input', {
+            type: 'text',
+            value: reallocForm.reason,
+            onChange: e => setReallocForm(f => ({ ...f, reason: e.target.value })),
+            className: 'form-input', placeholder: 'e.g. Q3 reforecast'
+          })
+        )
+      ),
+      React.createElement('button', { onClick: handleReallocate, className: 'btn-primary' }, 'Transfer Budget')
+    ),
+
+    // ── Department Cards ──
+    React.createElement('div', { className: "card" },
+      React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px' } }, 'Departmental Budgets'),
+      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" },
+        budgets.map(dept => {
+          const pct = dept.utilization_percentage || 0;
+          const isLocked = dept.budget_locked;
+          const isLockingThis = lockingDept === dept.budget_id;
+          const isEditingNotes = editingNotes === dept.budget_id;
+
+          return React.createElement('div', {
+            key: dept.budget_id || dept.department,
+            style: {
+              background: 'var(--bg-secondary)', borderRadius: '12px', padding: '16px 18px',
+              border: isLocked ? '1.5px solid #EF4444' : '1px solid var(--border-color)',
+              position: 'relative'
+            }
+          },
+            // Header row
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' } },
+              React.createElement('h3', {
+                onClick: () => dept.budget_id && loadDeptDetails(dept.department),
+                style: { fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)', cursor: dept.budget_id ? 'pointer' : 'default' }
+              }, dept.department),
+              isLocked && React.createElement('span', {
+                style: { fontSize: '10px', fontWeight: '700', color: '#EF4444', background: '#FEF2F2', padding: '2px 7px', borderRadius: '4px', letterSpacing: '0.04em' }
+              }, 'LOCKED')
+            ),
+            isLocked && dept.budget_locked_reason && React.createElement('p', {
+              style: { fontSize: '11px', color: '#EF4444', marginBottom: '8px', fontStyle: 'italic' }
+            }, `Lock reason: ${dept.budget_locked_reason}`),
+
+            // No budget yet
+            !dept.budget_id ? React.createElement('div', null,
+              React.createElement('p', { style: { fontSize: '13px', color: '#F59E0B', fontWeight: '600', marginBottom: '10px' } }, 'No budget allocated yet'),
+              canManage && (creatingBudget === dept.department
+                ? React.createElement('div', { className: 'space-y-2' },
+                    React.createElement('input', {
+                      type: 'number', value: newAllocation, placeholder: 'Amount (ZMW)',
+                      onChange: e => setNewAllocation(e.target.value), className: 'form-input'
+                    }),
+                    React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+                      React.createElement('button', { onClick: () => handleCreateBudget(dept.department), className: 'btn-primary btn-sm flex-1' }, 'Allocate'),
+                      React.createElement('button', { onClick: () => { setCreatingBudget(null); setNewAllocation(''); }, className: 'btn-secondary btn-sm flex-1' }, 'Cancel')
+                    )
+                  )
+                : React.createElement('button', {
+                    onClick: () => { setCreatingBudget(dept.department); setNewAllocation(''); },
+                    className: 'btn-primary btn-sm'
+                  }, 'Allocate Budget')
               )
             ) : React.createElement('div', null,
-              React.createElement('p', { className: "text-sm text-gray-600 mb-1" },
-                `Allocated: ZMW ${(dept.allocated_amount || 0).toLocaleString()}`
+              // Edit allocation
+              editingBudget === dept.budget_id
+                ? React.createElement('div', { className: 'space-y-2 mb-2' },
+                    React.createElement('input', {
+                      type: 'number', value: newAllocation, placeholder: 'New allocation (ZMW)',
+                      onChange: e => setNewAllocation(e.target.value), className: 'form-input'
+                    }),
+                    React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+                      React.createElement('button', { onClick: () => handleUpdateAllocation(dept.budget_id), className: 'btn-primary btn-sm flex-1' }, 'Save'),
+                      React.createElement('button', { onClick: () => { setEditingBudget(null); setNewAllocation(''); }, className: 'btn-secondary btn-sm flex-1' }, 'Cancel')
+                    )
+                  )
+                : React.createElement('div', null,
+                    [
+                      { label: 'Allocated', value: dept.allocated_amount, colour: 'var(--text-primary)' },
+                      { label: 'Spent', value: dept.spent_amount, colour: '#10B981' },
+                      { label: 'Committed', value: dept.committed_amount, colour: '#F59E0B' },
+                      { label: 'Available', value: dept.available_amount, colour: dept.available_amount < 0 ? '#EF4444' : '#6366F1' }
+                    ].map(row => React.createElement('div', {
+                      key: row.label,
+                      style: { display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }
+                    },
+                      React.createElement('span', { style: { color: 'var(--text-secondary)' } }, row.label),
+                      React.createElement('span', { style: { fontWeight: '600', color: row.colour } },
+                        `ZMW ${(row.value || 0).toLocaleString()}`
+                      )
+                    )),
+                    utilBar(pct),
+                    React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'right', marginTop: '2px' } },
+                      `${pct.toFixed(1)}% utilised`
+                    )
+                  ),
+
+              // Finance Notes
+              isEditingNotes
+                ? React.createElement('div', { style: { marginTop: '10px' } },
+                    React.createElement('textarea', {
+                      value: notesText,
+                      onChange: e => setNotesText(e.target.value),
+                      className: 'form-input',
+                      rows: 2, placeholder: 'Finance notes (internal)…',
+                      style: { width: '100%', resize: 'vertical' }
+                    }),
+                    React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '6px' } },
+                      React.createElement('button', { onClick: () => handleSaveNotes(dept.budget_id), className: 'btn-primary btn-sm flex-1' }, 'Save Notes'),
+                      React.createElement('button', { onClick: () => { setEditingNotes(null); setNotesText(''); }, className: 'btn-secondary btn-sm flex-1' }, 'Cancel')
+                    )
+                  )
+                : dept.finance_notes && React.createElement('p', {
+                    style: { fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: '8px', padding: '6px 8px', background: 'var(--bg-tertiary)', borderRadius: '6px' }
+                  }, dept.finance_notes),
+
+              // Lock form
+              isLockingThis && React.createElement('div', { style: { marginTop: '10px' } },
+                React.createElement('input', {
+                  type: 'text', value: lockReason, placeholder: 'Reason for locking (required)',
+                  onChange: e => setLockReason(e.target.value), className: 'form-input',
+                  style: { marginBottom: '6px', width: '100%' }
+                }),
+                React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+                  React.createElement('button', { onClick: () => handleLockToggle(dept, true), className: 'btn-danger btn-sm flex-1' }, 'Confirm Lock'),
+                  React.createElement('button', { onClick: () => { setLockingDept(null); setLockReason(''); }, className: 'btn-secondary btn-sm flex-1' }, 'Cancel')
+                )
               ),
-              React.createElement('p', { className: "text-sm text-gray-600 mb-1" },
-                `Committed: ZMW ${(dept.committed_amount || 0).toLocaleString()}`
+
+              // Action buttons
+              canManage && !editingBudget && !isLockingThis && !isEditingNotes && React.createElement('div', {
+                style: { display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }
+              },
+                React.createElement('button', {
+                  onClick: () => { setEditingBudget(dept.budget_id); setNewAllocation(dept.allocated_amount); },
+                  className: 'btn-secondary btn-sm'
+                }, 'Edit'),
+                React.createElement('button', {
+                  onClick: () => { setEditingNotes(dept.budget_id); setNotesText(dept.finance_notes || ''); },
+                  className: 'btn-secondary btn-sm'
+                }, 'Notes'),
+                !isLocked
+                  ? React.createElement('button', {
+                      onClick: () => setLockingDept(dept.budget_id),
+                      className: 'btn-danger btn-sm'
+                    }, 'Lock')
+                  : React.createElement('button', {
+                      onClick: () => handleLockToggle(dept, false),
+                      className: 'btn-primary btn-sm'
+                    }, 'Unlock')
+              )
+            )
+          );
+        })
+      )
+    ),
+
+    // ── Dept Detail Drill-down ──
+    selectedDept && deptDetails && React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'card-header mb-4' },
+        React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } },
+          `${selectedDept} — Expense Breakdown`
+        ),
+        React.createElement('button', { onClick: () => { setSelectedDept(null); setDeptDetails(null); }, className: 'btn-secondary btn-sm' }, 'Close')
+      ),
+      React.createElement('div', { style: { display: 'flex', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' } },
+        [
+          ['Allocated', deptDetails.budget.allocated_amount, 'var(--text-primary)'],
+          ['Spent',     deptDetails.budget.spent_amount,     '#10B981'],
+          ['Committed', deptDetails.budget.committed_amount, '#F59E0B'],
+          ['Available', deptDetails.budget.available_amount, deptDetails.budget.available_amount < 0 ? '#EF4444' : '#6366F1']
+        ].map(([lbl, val, col]) => React.createElement('div', { key: lbl },
+          React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase' } }, lbl),
+          React.createElement('p', { style: { fontSize: '16px', fontWeight: '700', color: col } },
+            `ZMW ${(val || 0).toLocaleString()}`
+          )
+        ))
+      ),
+      deptDetails.expenses.length > 0
+        ? React.createElement('div', { className: 'overflow-x-auto' },
+            React.createElement('table', { className: 'w-full text-sm' },
+              React.createElement('thead', null,
+                React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                  ['Req #', 'Description', 'Amount (ZMW)', 'Type', 'Date'].map(h =>
+                    React.createElement('th', { key: h, className: 'tbl-th' }, h)
+                  )
+                )
               ),
-              React.createElement('p', { className: "text-sm text-gray-600 mb-2" },
-                `Available: ZMW ${(dept.available_amount || 0).toLocaleString()}`
+              React.createElement('tbody', null,
+                deptDetails.expenses.map(exp =>
+                  React.createElement('tr', { key: exp.id, style: { borderBottom: '1px solid var(--border-color)' } },
+                    React.createElement('td', { className: 'tbl-td' }, exp.req_number),
+                    React.createElement('td', { className: 'tbl-td' }, exp.title),
+                    React.createElement('td', { className: 'tbl-td font-semibold' }, (exp.amount || 0).toLocaleString()),
+                    React.createElement('td', { className: 'tbl-td' },
+                      React.createElement('span', { className: `badge ${exp.expense_type === 'committed' ? 'badge-pending' : 'badge-success'}` }, exp.expense_type)
+                    ),
+                    React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)' } },
+                      new Date(exp.created_at).toLocaleDateString()
+                    )
+                  )
+                )
+              )
+            )
+          )
+        : React.createElement(EmptyState, { heading: 'No expenses recorded', sub: 'Approved requisitions for this department will appear here.' })
+    ),
+
+    // ── Supplement Action Queue (items requiring my action) ──
+    myActionSupps.length > 0 && React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'card-header mb-4' },
+        React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Budget Supplement Requests — Awaiting Your Action'),
+        React.createElement('span', { className: 'badge badge-pending' }, `${myActionSupps.length} Pending`)
+      ),
+      React.createElement('div', { className: 'space-y-4' },
+        myActionSupps.map(s =>
+          React.createElement('div', {
+            key: s._id,
+            style: { background: 'var(--bg-secondary)', borderRadius: '10px', padding: '16px 20px', borderLeft: '4px solid #F59E0B' }
+          },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' } },
+              React.createElement('div', null,
+                React.createElement('p', { style: { fontWeight: '700', color: 'var(--text-primary)', fontSize: '15px' } },
+                  `${s.department} — ZMW ${s.requested_amount.toLocaleString()}`
+                ),
+                React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' } },
+                  `Requested by ${s.requested_by_name} · ${new Date(s.created_at).toLocaleDateString()}`
+                )
+              ),
+              React.createElement('span', { className: `badge ${s.status === 'pending_finance' ? 'badge-pending' : 'badge-info'}` },
+                s.status.replace(/_/g, ' ').toUpperCase()
               )
             ),
-            dept.budget_id && React.createElement('div', {
-              className: `px-3 py-1 rounded-full text-xs font-semibold mb-2 ${getUtilizationColor(dept.utilization_percentage || 0)}`
-            }, `${(dept.utilization_percentage || 0).toFixed(1)}% Used`),
-            dept.budget_id && React.createElement('div', { className: "flex gap-1 mt-2" },
-              (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) && editingBudget !== dept.budget_id && React.createElement('button', {
-                onClick: () => {
-                  setEditingBudget(dept.budget_id);
-                  setNewAllocation(dept.allocated_amount);
-                },
-                className: "flex-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200"
-              }, "Edit"),
-              // COMMENTED OUT: Departmental PDF download - replaced with approved requisition download for initiators
-              /* React.createElement('button', {
-                onClick: () => api.downloadDepartmentPDF(dept.department, fiscalYear),
-                className: "flex-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200"
-              }, "PDF") */
+            React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '10px' } },
+              `"${s.justification}"`
+            ),
+            s.finance_comments && React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '8px' } },
+              `Finance note: ${s.finance_comments}`
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+              React.createElement('input', {
+                type: 'text', placeholder: 'Optional comment…',
+                value: suppComments[s._id] || '',
+                onChange: e => setSuppComments(prev => ({ ...prev, [s._id]: e.target.value })),
+                className: 'form-input', style: { flex: 1, minWidth: '180px' }
+              }),
+              React.createElement('button', { onClick: () => handleReviewSupplement(s._id, 'approve'), className: 'btn-primary btn-sm' }, 'Approve'),
+              React.createElement('button', { onClick: () => handleReviewSupplement(s._id, 'reject'), className: 'btn-danger btn-sm' }, 'Reject')
             )
           )
         )
       )
     ),
-    selectedDept && deptDetails && React.createElement('div', { className: "card" },
-      React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" },
-        `${selectedDept} Department - Detailed View`
-      ),
-      React.createElement('div', { className: "mb-4" },
-        React.createElement('p', { className: "text-sm text-gray-600" },
-          `Budget: ZMW ${(deptDetails.budget.allocated_amount || 0).toLocaleString()} | `,
-          `Committed: ZMW ${(deptDetails.budget.committed_amount || 0).toLocaleString()} | `,
-          `Available: ZMW ${(deptDetails.budget.available_amount || 0).toLocaleString()}`
-        )
-      ),
-      deptDetails.expenses.length > 0 ? React.createElement('table', { className: "w-full" },
-        React.createElement('thead', null,
-          React.createElement('tr', { className: "border-b" },
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Requisition"),
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Title"),
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Amount (ZMW)"),
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Type"),
-            React.createElement('th', { className: "text-left py-2 px-4" }, "Date")
-          )
-        ),
-        React.createElement('tbody', null,
-          deptDetails.expenses.map(expense =>
-            React.createElement('tr', { key: expense.id, className: "border-b hover:bg-gray-50" },
-              React.createElement('td', { className: "py-2 px-4" }, expense.req_number),
-              React.createElement('td', { className: "py-2 px-4" }, expense.title),
-              React.createElement('td', { className: "py-2 px-4" }, (expense.amount || 0).toLocaleString()),
-              React.createElement('td', { className: "py-2 px-4" },
-                React.createElement('span', {
-                  className: `badge ${expense.expense_type === 'committed' ? 'badge-pending' : 'badge-success'}`
-                }, expense.expense_type)
-              ),
-              React.createElement('td', { className: "tbl-td tbl-td-sm text-gray-600" },
-                new Date(expense.created_at).toLocaleDateString()
-              )
-            )
+
+    // ── Full Supplement History ──
+    React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'card-header mb-4' },
+        React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Supplement Request History'),
+        React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+          [['pending', 'All Pending'], ['approved', 'Approved'], ['rejected', 'Rejected'], ['all', 'All']].map(([val, lbl]) =>
+            React.createElement('button', {
+              key: val,
+              onClick: () => setSuppFilter(val),
+              className: suppFilter === val ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'
+            }, lbl)
           )
         )
-      ) : React.createElement('p', { className: "text-gray-600 text-center py-4" }, "No expenses recorded for this department")
-    ),
-
-    // ── Supplement Requests (Finance sees pending_finance, MD sees pending_md) ──
-    (() => {
-      const relevantStatus = ['finance', 'finance_manager'].includes(user.role)
-        ? 'pending_finance'
-        : user.role === 'md' ? 'pending_md' : null;
-      const pending = relevantStatus
-        ? supplements.filter(s => s.status === relevantStatus)
-        : supplements.filter(s => ['pending_finance', 'pending_md'].includes(s.status));
-      if (pending.length === 0) return null;
-
-      return React.createElement('div', { className: 'card' },
-        React.createElement('div', { className: 'card-header mb-4' },
-          React.createElement('h3', { className: 'text-lg font-bold text-gray-800' }, 'Budget Supplement Requests'),
-          React.createElement('span', { className: 'badge badge-pending' }, `${pending.length} Pending`)
-        ),
-        React.createElement('div', { className: 'space-y-4' },
-          pending.map(s =>
-            React.createElement('div', {
-              key: s._id,
-              style: {
-                background: 'var(--bg-secondary)', borderRadius: '10px',
-                padding: '16px 20px', borderLeft: '4px solid #F59E0B'
-              }
-            },
-              React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' } },
-                React.createElement('div', null,
-                  React.createElement('p', { style: { fontWeight: '700', color: 'var(--text-primary)', fontSize: '15px' } },
-                    `${s.department} — ZMW ${s.requested_amount.toLocaleString()}`
-                  ),
-                  React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' } },
-                    `Requested by ${s.requested_by_name} · ${new Date(s.created_at).toLocaleDateString()}`
+      ),
+      filteredHistory.length === 0
+        ? React.createElement(EmptyState, { heading: 'No supplement requests', sub: 'Requests matching this filter will appear here.' })
+        : React.createElement('div', { className: 'overflow-x-auto' },
+            React.createElement('table', { className: 'w-full text-sm' },
+              React.createElement('thead', null,
+                React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                  ['Department', 'Amount', 'Justification', 'Requested By', 'Status', 'Finance Review', 'MD Review', 'Date'].map(h =>
+                    React.createElement('th', { key: h, className: 'tbl-th' }, h)
                   )
-                ),
-                React.createElement('span', { className: `badge ${s.status === 'pending_finance' ? 'badge-pending' : 'badge-info'}` },
-                  s.status.replace(/_/g, ' ').toUpperCase()
                 )
               ),
-              React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px', fontStyle: 'italic' } },
-                `"${s.justification}"`
-              ),
-              s.finance_comments && React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '10px' } },
-                `Finance note: ${s.finance_comments}`
-              ),
-              React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
-                React.createElement('input', {
-                  type: 'text',
-                  placeholder: 'Optional comment…',
-                  value: suppComments[s._id] || '',
-                  onChange: e => setSuppComments(prev => ({ ...prev, [s._id]: e.target.value })),
-                  className: 'form-input',
-                  style: { flex: 1, minWidth: '180px' }
-                }),
-                React.createElement('button', {
-                  onClick: () => handleReviewSupplement(s._id, 'approve'),
-                  className: 'btn-primary btn-sm'
-                }, 'Approve'),
-                React.createElement('button', {
-                  onClick: () => handleReviewSupplement(s._id, 'reject'),
-                  className: 'btn-danger btn-sm'
-                }, 'Reject')
+              React.createElement('tbody', null,
+                filteredHistory.map(s =>
+                  React.createElement('tr', { key: s._id, style: statusStripe(s.status) },
+                    React.createElement('td', { className: 'tbl-td font-semibold' }, s.department),
+                    React.createElement('td', { className: 'tbl-td' }, `ZMW ${s.requested_amount.toLocaleString()}`),
+                    React.createElement('td', { className: 'tbl-td', style: { maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.justification),
+                    React.createElement('td', { className: 'tbl-td' }, s.requested_by_name),
+                    React.createElement('td', { className: 'tbl-td' },
+                      React.createElement('span', {
+                        className: `badge ${s.status === 'approved' ? 'badge-success' : s.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`
+                      }, s.status.replace(/_/g, ' '))
+                    ),
+                    React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)' } },
+                      s.finance_reviewed_by_name
+                        ? `${s.finance_reviewed_by_name}${s.finance_comments ? ` — "${s.finance_comments}"` : ''}`
+                        : '—'
+                    ),
+                    React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)' } },
+                      s.md_reviewed_by_name
+                        ? `${s.md_reviewed_by_name}${s.md_comments ? ` — "${s.md_comments}"` : ''}`
+                        : '—'
+                    ),
+                    React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)' } },
+                      new Date(s.created_at).toLocaleDateString()
+                    )
+                  )
+                )
               )
             )
           )
-        )
-      );
-    })()
+    )
   );
 }
 

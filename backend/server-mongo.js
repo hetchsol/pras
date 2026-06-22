@@ -1792,6 +1792,16 @@ app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) 
 
     // Budget gate only applies on approve. Reject is free.
     if (approve) {
+      // Block approval if the department budget is locked by Finance
+      const deptRecord = await db.Department.findOne({ name: pr.department }).lean();
+      if (deptRecord && deptRecord.budget_locked) {
+        return res.status(409).json({
+          error: `The ${pr.department} department budget is currently locked.`,
+          locked: true,
+          reason: deptRecord.budget_locked_reason || ''
+        });
+      }
+
       amountZMW = await getRequisitionAmountZMW(pr);
       const check = await checkBudget(pr.department, amountZMW);
 
@@ -2791,7 +2801,10 @@ function withAvailable(dept) {
     spent_amount: spent,
     committed_amount: committed,
     available_amount: available,
-    utilization_percentage: utilization
+    utilization_percentage: utilization,
+    budget_locked: dept.budget_locked || false,
+    budget_locked_reason: dept.budget_locked_reason || '',
+    finance_notes: dept.finance_notes || ''
   };
 }
 
@@ -2892,6 +2905,72 @@ app.put('/api/budgets/:budgetId/allocate', authenticate, async (req, res) => {
     const dept = await db.Department.findByIdAndUpdate(
       req.params.budgetId,
       { $set: { budget: parseFloat(allocated_amount) } },
+      { new: true }
+    ).lean();
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+    res.json(withAvailable(dept));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Lock / unlock a department budget
+app.put('/api/budgets/:budgetId/lock', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised to lock budgets' });
+    }
+    const { locked, reason } = req.body;
+    const dept = await db.Department.findByIdAndUpdate(
+      req.params.budgetId,
+      { $set: { budget_locked: !!locked, budget_locked_reason: reason || '' } },
+      { new: true }
+    ).lean();
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+    res.json(withAvailable(dept));
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Reallocate budget between two departments atomically
+app.post('/api/budgets/reallocate', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised to reallocate budgets' });
+    }
+    const { from_department, to_department, amount, reason } = req.body;
+    if (!from_department || !to_department || !amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'from_department, to_department and a positive amount are required' });
+    }
+    if (from_department === to_department) {
+      return res.status(400).json({ error: 'Source and destination departments must differ' });
+    }
+    const fromDept = await db.Department.findOne({ name: from_department }).lean();
+    if (!fromDept) return res.status(404).json({ error: `Department '${from_department}' not found` });
+    const available = (fromDept.budget || 0) - (fromDept.spent || 0) - (fromDept.committed || 0);
+    if (available < Number(amount)) {
+      return res.status(400).json({ error: `Insufficient available budget in ${from_department}. Available: ZMW ${available.toLocaleString()}` });
+    }
+    await db.Department.updateOne({ name: from_department }, { $inc: { budget: -Number(amount) } });
+    await db.Department.updateOne({ name: to_department },   { $inc: { budget:  Number(amount) } });
+    const updatedFrom = withAvailable(await db.Department.findOne({ name: from_department }).lean());
+    const updatedTo   = withAvailable(await db.Department.findOne({ name: to_department }).lean());
+    res.json({ from: updatedFrom, to: updatedTo, amount: Number(amount), reason });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update finance notes on a department budget
+app.patch('/api/budgets/:budgetId/notes', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised to update budget notes' });
+    }
+    const dept = await db.Department.findByIdAndUpdate(
+      req.params.budgetId,
+      { $set: { finance_notes: req.body.notes || '' } },
       { new: true }
     ).lean();
     if (!dept) return res.status(404).json({ error: 'Department not found' });
