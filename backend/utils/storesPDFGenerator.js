@@ -415,154 +415,185 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
 async function generateGRNPDF(grn, items, outputPath) {
   return new Promise((resolve, reject) => {
     try {
-      // A4: 595 × 842 pt. Content area x: 50–545, y: 50–792.
+      // A4: 595 × 842 pt. Content area: x 50–545, y 50–792.
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      const PAGE_W = 495; // 545 - 50
+      const PW = 495;   // page content width
+      const LX = 50;    // left margin
+      const RX = 545;   // right margin
       const stream = fs.createWriteStream(outputPath);
       doc.pipe(stream);
 
-      // ── HEADER ──────────────────────────────────────────────────
+      // ─────────────────────────────────────────────────────────────
+      // HEADER BAND
+      // ─────────────────────────────────────────────────────────────
       const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 28, { height: 52 });
+        doc.image(logoPath, LX, 30, { height: 50 });
       }
-      doc.font('Helvetica-Bold').fontSize(18).fillColor('#000000')
-         .text('KSB ZAMBIA LIMITED', 140, 34, { align: 'center', width: 355 });
-      doc.font('Helvetica-Bold').fontSize(13).fillColor('#000000')
-         .text('GOODS RECEIPT NOTE', 140, 57, { align: 'center', width: 355 });
 
-      // Status badge (top-right, doesn't affect y flow)
+      // Company name + document title (centred in remaining width)
+      doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+         .text('KSB ZAMBIA LIMITED', 148, 33, { align: 'center', width: 349, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('#003399')
+         .text('GOODS RECEIPT NOTE', 148, 58, { align: 'center', width: 349, lineBreak: false });
+
+      // Status badge — top-right corner, fixed position, no effect on y flow
       const rawStatus = (grn.status || 'pending').toLowerCase();
-      const statusLabel = (grn.status || 'pending').replace(/_/g, ' ').toUpperCase();
-      let badgeBg, badgeBorder, badgeColor;
+      const statusLabel = rawStatus.replace(/_/g, ' ').toUpperCase();
+      let bdBg, bdBorder, bdText;
       if (rawStatus === 'approved' || rawStatus === 'received') {
-        badgeBg = '#E8F5E9'; badgeBorder = '#388E3C'; badgeColor = '#1B5E20';
+        bdBg = '#D1FAE5'; bdBorder = '#059669'; bdText = '#065F46';
       } else if (rawStatus === 'rejected') {
-        badgeBg = '#FFEBEE'; badgeBorder = '#D32F2F'; badgeColor = '#B71C1C';
+        bdBg = '#FEE2E2'; bdBorder = '#DC2626'; bdText = '#991B1B';
       } else {
-        badgeBg = '#FFF8E1'; badgeBorder = '#F9A825'; badgeColor = '#E65100';
+        bdBg = '#FEF3C7'; bdBorder = '#D97706'; bdText = '#92400E';
       }
-      doc.rect(415, 28, 130, 24).fill(badgeBg).stroke(badgeBorder);
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(badgeColor)
-         .text(statusLabel, 417, 36, { width: 126, align: 'center', lineBreak: false });
-      doc.fillColor('#000000');
+      doc.roundedRect(421, 30, 124, 22, 4).fillAndStroke(bdBg, bdBorder);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(bdText)
+         .text(statusLabel, 423, 38, { width: 120, align: 'center', lineBreak: false });
 
-      // Divider
-      let y = 92;
-      doc.moveTo(50, y).lineTo(545, y).lineWidth(1.5).strokeColor('#003399').stroke();
-      y += 8;
+      // Blue rule under header
+      let y = 90;
+      doc.moveTo(LX, y).lineTo(RX, y).lineWidth(2).strokeColor('#003399').stroke();
+      y += 6;
 
-      // GRN ID row
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-         .text('GRN ID:', 50, y, { width: 48, lineBreak: false });
-      doc.font('Helvetica-Bold').fillColor('#0000CC')
-         .text(grn.id || '', 102, y, { width: 340, lineBreak: false });
-      doc.font('Helvetica-Bold').fillColor('#333333')
-         .text('Date:', 400, y, { width: 30, lineBreak: false });
-      doc.font('Helvetica').fillColor('#000000')
-         .text(formatDate(grn.receipt_date || grn.created_at), 434, y, { width: 111, lineBreak: false });
-      y += 18;
+      // ─────────────────────────────────────────────────────────────
+      // DOCUMENT ID ROW
+      // ─────────────────────────────────────────────────────────────
+      doc.rect(LX, y, PW, 20).fill('#F0F4FF');
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#555555')
+         .text('GRN ID:', LX + 6, y + 5, { width: 44, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#003399')
+         .text(grn.id || '—', LX + 52, y + 5, { width: 270, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#555555')
+         .text('Receipt Date:', 370, y + 5, { width: 76, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#000000')
+         .text(formatDate(grn.receipt_date || grn.created_at), 450, y + 5, { width: 90, lineBreak: false });
+      y += 24;
 
-      doc.moveTo(50, y).lineTo(545, y).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
-      y += 10;
+      // ─────────────────────────────────────────────────────────────
+      // INFO GRID  (2 columns, 4 rows, bordered cells)
+      // ─────────────────────────────────────────────────────────────
+      // Column stops: label-left=50 | val-left=168 | col-mid=305 | label2-left=307 | val2-left=415
+      const C1L = LX, C1LW = 115, C1V = 168, C1VW = 133;
+      const C2L = 307, C2LW = 104, C2V = 415, C2VW = 130;
+      const ROWH = 20;
 
-      // ── INFO GRID (2 columns × 4 rows) ──────────────────────────
-      // L1=50  V1=162  |  L2=305  V2=405
-      // LW=108          |  L2W=90   V2W=140
-      const L1 = 50, V1 = 162, V1W = 135;
-      const L2 = 305, V2 = 403, V2W = 142;
-      const LW = 108, L2W = 94;
-      const ROW_H = 17;
+      // outer border
+      doc.rect(LX, y, PW, ROWH * 4).stroke('#CCCCCC');
+      // vertical divider between columns
+      doc.moveTo(305, y).lineTo(305, y + ROWH * 4).stroke('#CCCCCC');
+      // horizontal row dividers
+      [1, 2, 3].forEach(n => {
+        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE');
+      });
 
-      function infoRow(lbl, val, rLbl, rVal) {
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-           .text(lbl, L1, y, { width: LW, lineBreak: false });
-        doc.font('Helvetica').fillColor('#000000')
-           .text(String(val || 'N/A'), V1, y, { width: V1W, lineBreak: false });
-        if (rLbl) {
-          doc.font('Helvetica-Bold').fillColor('#333333')
-             .text(rLbl, L2, y, { width: L2W, lineBreak: false });
-          doc.font('Helvetica').fillColor('#000000')
-             .text(String(rVal || 'N/A'), V2, y, { width: V2W, lineBreak: false });
+      const gridRows = [
+        ['Receipt Date:',    formatDate(grn.receipt_date || grn.created_at), 'Received By:',     grn.received_by],
+        ['PR Reference:',    grn.pr_id,                                       'Department:',      grn.department],
+        ['Supplier:',        grn.supplier,                                    'Invoice #:',       grn.invoice_number],
+        ['Delivery Note #:', grn.delivery_note_number,                        'Created By:',      grn.initiator_name],
+      ];
+
+      gridRows.forEach(([l1, v1, l2, v2], row) => {
+        const ry = y + row * ROWH;
+        // shade alternating rows
+        if (row % 2 === 1) {
+          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#FAFBFF');
+          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#FAFBFF');
         }
-        y += ROW_H;
-      }
+        const ty = ry + 5;
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW, lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW, lineBreak: false });
+      });
+      y += ROWH * 4 + 10;
 
-      infoRow('Receipt Date:', formatDate(grn.receipt_date || grn.created_at), 'Received By:', grn.received_by);
-      infoRow('PR Reference:', grn.pr_id, 'Department:', grn.department);
-      infoRow('Supplier:', grn.supplier, 'Invoice #:', grn.invoice_number);
-      infoRow('Delivery Note #:', grn.delivery_note_number, 'Created By:', grn.initiator_name);
-      y += 8;
-
-      doc.moveTo(50, y).lineTo(545, y).lineWidth(0.5).strokeColor('#DDDDDD').stroke();
-      y += 10;
-
-      // ── RESERVATION ─────────────────────────────────────────────
+      // ─────────────────────────────────────────────────────────────
+      // RESERVATION BANNER  (only when present)
+      // ─────────────────────────────────────────────────────────────
       if (grn.customer) {
         const resType = (grn.reservation_type || '').toLowerCase();
-        const resPrefix = resType === 'internal' ? 'INTERNAL RESERVATION' :
-                          resType === 'external' ? 'EXTERNAL RESERVATION' :
-                          resType === 'stores'   ? 'BOOKED INTO STORES'   : 'RESERVED FOR';
-        doc.rect(50, y, PAGE_W, 22).fill('#FFF8E1').stroke('#F59E0B');
+        const resLabel = resType === 'internal' ? 'INTERNAL RESERVATION' :
+                         resType === 'external' ? 'EXTERNAL RESERVATION' :
+                         resType === 'stores'   ? 'BOOKED INTO STORES'   : 'RESERVED FOR';
+        doc.roundedRect(LX, y, PW, 24, 3).fillAndStroke('#FFFBEB', '#F59E0B');
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#92400E')
-           .text(`${resPrefix}: ${grn.customer}`, 58, y + 6, { width: PAGE_W - 16, lineBreak: false });
-        doc.fillColor('#000000');
-        y += 30;
+           .text(`${resLabel}:`, LX + 8, y + 7, { width: 148, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#78350F')
+           .text(grn.customer, LX + 160, y + 7, { width: PW - 168, lineBreak: false });
+        y += 32;
       }
 
-      // ── PR DESCRIPTION ──────────────────────────────────────────
+      // ─────────────────────────────────────────────────────────────
+      // PR DESCRIPTION  (optional, allow wrapping for long text)
+      // ─────────────────────────────────────────────────────────────
       if (grn.pr_description) {
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-           .text('PR Description:', 50, y, { width: 108, lineBreak: false });
-        doc.font('Helvetica').fillColor('#000000')
-           .text(grn.pr_description, 162, y, { width: PAGE_W - 112, lineBreak: false });
-        y += 17;
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text('PR Description:', LX, y, { width: 112, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(grn.pr_description, LX + 116, y, { width: PW - 116 });
+        const lines = Math.max(1, Math.ceil(grn.pr_description.length / 62));
+        y += lines * 13 + 4;
       }
 
-      // ── REMARKS ─────────────────────────────────────────────────
+      // ─────────────────────────────────────────────────────────────
+      // REMARKS  (optional, allow wrapping)
+      // ─────────────────────────────────────────────────────────────
       if (grn.remarks) {
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
-           .text('Remarks:', 50, y, { width: 72, lineBreak: false });
-        doc.font('Helvetica').fillColor('#000000')
-           .text(grn.remarks, 126, y, { width: PAGE_W - 76, lineBreak: false });
-        y += 17;
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text('Remarks:', LX, y, { width: 62, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(grn.remarks, LX + 66, y, { width: PW - 66 });
+        const lines = Math.max(1, Math.ceil(grn.remarks.length / 70));
+        y += lines * 13 + 6;
       }
 
-      y += 12;
+      y += 8;
 
-      // ── ITEMS TABLE ─────────────────────────────────────────────
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000')
-         .text('ITEMS RECEIVED', 50, y, { width: PAGE_W, lineBreak: false });
-      y += 16;
+      // ─────────────────────────────────────────────────────────────
+      // ITEMS TABLE
+      // ─────────────────────────────────────────────────────────────
+      // Section heading bar
+      doc.rect(LX, y, PW, 20).fill('#E8EDF5');
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0A1628')
+         .text('ITEMS RECEIVED', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+      y += 24;
 
-      const colDefs = [
-        { label: '#',             w: 24  },
-        { label: 'Code',          w: 58  },
-        { label: 'Description',   w: 153 },
-        { label: 'Qty Ordered',   w: 62  },
-        { label: 'Qty Received',  w: 62  },
-        { label: 'Unit',          w: 46  },
-        { label: 'Condition',     w: 90  },
-      ]; // sum = 495
+      // Column definitions (widths sum to PW = 495)
+      const cols = [
+        { label: '#',            w: 24  },
+        { label: 'Item Code',    w: 62  },
+        { label: 'Description',  w: 147 },
+        { label: 'Qty Ordered',  w: 64  },
+        { label: 'Qty Received', w: 64  },
+        { label: 'Unit',         w: 46  },
+        { label: 'Condition',    w: 88  },
+      ]; // 24+62+147+64+64+46+88 = 495
 
-      // Header row
-      doc.rect(50, y, PAGE_W, 18).fill('#003366').stroke('#003366');
-      let cx = 50;
+      // Table header row
+      doc.rect(LX, y, PW, 18).fill('#003366');
+      let cx = LX;
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
-      colDefs.forEach(col => {
+      cols.forEach(col => {
         doc.text(col.label, cx + 3, y + 5, { width: col.w - 6, lineBreak: false });
         cx += col.w;
       });
       y += 18;
 
-      // Item rows
-      doc.fillColor('#000000').font('Helvetica').fontSize(8);
+      // Data rows
+      doc.fontSize(8).fillColor('#000000');
       items.forEach((item, idx) => {
-        if (y > 710) { doc.addPage(); y = 50; }
-        const bg = idx % 2 === 0 ? '#FFFFFF' : '#F5F7FA';
-        doc.rect(50, y, PAGE_W, 18).fill(bg).stroke('#DDDDDD');
-        cx = 50;
-        const row = [
+        if (y > 700) { doc.addPage(); y = 50; }
+        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F3F6FB';
+        doc.rect(LX, y, PW, 18).fillAndStroke(rowBg, '#DDDDDD');
+        cx = LX;
+        const cells = [
           String(idx + 1),
           item.item_code || '—',
           item.description || item.item_name || '—',
@@ -571,81 +602,110 @@ async function generateGRNPDF(grn, items, outputPath) {
           item.unit || 'pcs',
           item.condition_notes || 'Good',
         ];
-        doc.fillColor('#000000');
-        row.forEach((val, i) => {
-          doc.text(val, cx + 3, y + 5, { width: colDefs[i].w - 6, lineBreak: false });
-          cx += colDefs[i].w;
+        doc.font('Helvetica').fontSize(8).fillColor('#111111');
+        cells.forEach((val, i) => {
+          doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6, lineBreak: false });
+          cx += cols[i].w;
         });
         y += 18;
       });
-      y += 18;
 
-      // ── APPROVAL ────────────────────────────────────────────────
-      if (y > 660) { doc.addPage(); y = 50; }
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000')
-         .text('APPROVAL', 50, y, { width: PAGE_W, lineBreak: false });
-      y += 14;
+      // Bottom border of table
+      doc.moveTo(LX, y).lineTo(RX, y).lineWidth(0.8).strokeColor('#AAAAAA').stroke();
+      y += 16;
+
+      // ─────────────────────────────────────────────────────────────
+      // APPROVAL
+      // ─────────────────────────────────────────────────────────────
+      if (y > 650) { doc.addPage(); y = 50; }
+
+      // Section heading bar
+      doc.rect(LX, y, PW, 20).fill('#E8EDF5');
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0A1628')
+         .text('APPROVAL', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+      y += 24;
 
       const approval = (grn.approvals && grn.approvals.length > 0) ? grn.approvals[0] : null;
-      let aBg, aBorder, aColor;
+      let aBg, aBorder, aText;
       if (approval && approval.action === 'approved') {
-        aBg = '#E8F5E9'; aBorder = '#4CAF50'; aColor = '#1B5E20';
+        aBg = '#D1FAE5'; aBorder = '#059669'; aText = '#065F46';
       } else if (approval && approval.action === 'rejected') {
-        aBg = '#FFEBEE'; aBorder = '#F44336'; aColor = '#B71C1C';
+        aBg = '#FEE2E2'; aBorder = '#DC2626'; aText = '#991B1B';
       } else {
-        aBg = '#FFF8E1'; aBorder = '#FFC107'; aColor = '#E65100';
+        aBg = '#FEF3C7'; aBorder = '#D97706'; aText = '#92400E';
       }
 
-      const hasComments = approval && approval.comments;
-      const aBoxH = hasComments ? 66 : 50;
-      doc.rect(50, y, PAGE_W, aBoxH).fill(aBg).stroke(aBorder);
+      const hasComments = !!(approval && approval.comments);
+      const aBoxH = hasComments ? 68 : 52;
+      doc.roundedRect(LX, y, PW, aBoxH, 4).fillAndStroke(aBg, aBorder);
 
       const aTitle = (approval && approval.action === 'approved') ? 'Finance Approval: APPROVED' :
                      (approval && approval.action === 'rejected') ? 'Finance Approval: REJECTED' :
                      'Finance Approval: PENDING';
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(aColor)
-         .text(aTitle, 60, y + 9, { width: PAGE_W - 20, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(11).fillColor(aText)
+         .text(aTitle, LX + 10, y + 10, { width: PW - 20, lineBreak: false });
 
       if (approval && approval.action && approval.action !== 'pending') {
         const byLabel = approval.action === 'approved' ? 'Approved By:' : 'Rejected By:';
-        doc.font('Helvetica-Bold').fontSize(9).fillColor(aColor)
-           .text(byLabel, 60, y + 26, { width: 82, lineBreak: false });
-        doc.font('Helvetica')
-           .text(approval.name || 'N/A', 146, y + 26, { width: 148, lineBreak: false });
-        doc.font('Helvetica-Bold')
-           .text('Date:', 304, y + 26, { width: 36, lineBreak: false });
-        doc.font('Helvetica')
-           .text(approval.date ? formatDate(approval.date) : 'N/A', 344, y + 26, { width: 150, lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(aText)
+           .text(byLabel, LX + 10, y + 28, { width: 80, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor(aText)
+           .text(approval.name || 'N/A', LX + 92, y + 28, { width: 160, lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(aText)
+           .text('Date:', 318, y + 28, { width: 34, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor(aText)
+           .text(approval.date ? formatDate(approval.date) : 'N/A', 355, y + 28, { width: 130, lineBreak: false });
         if (hasComments) {
-          doc.font('Helvetica-Bold').fillColor(aColor)
-             .text('Comments:', 60, y + 43, { width: 70, lineBreak: false });
-          doc.font('Helvetica')
-             .text(approval.comments, 134, y + 43, { width: PAGE_W - 90, lineBreak: false });
+          doc.font('Helvetica-Bold').fontSize(9).fillColor(aText)
+             .text('Comments:', LX + 10, y + 46, { width: 68, lineBreak: false });
+          doc.font('Helvetica').fontSize(9).fillColor(aText)
+             .text(approval.comments, LX + 80, y + 46, { width: PW - 90, lineBreak: false });
         }
-      } else if (grn.assigned_approver) {
-        doc.font('Helvetica').fontSize(9).fillColor(aColor)
-           .text(`Assigned Approver: ${grn.assigned_approver}`, 60, y + 26, { width: PAGE_W - 20, lineBreak: false });
+      } else {
+        const pending = grn.assigned_approver ? `Pending — Assigned to: ${grn.assigned_approver}` : 'Pending finance approval';
+        doc.font('Helvetica').fontSize(9).fillColor(aText)
+           .text(pending, LX + 10, y + 28, { width: PW - 20, lineBreak: false });
       }
-
       doc.fillColor('#000000');
-      y += aBoxH + 22;
+      y += aBoxH + 20;
 
-      // ── SIGNATURES ──────────────────────────────────────────────
-      if (y > 730) { doc.addPage(); y = 50; }
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000')
-         .text('Received By:', 50, y, { width: 90, lineBreak: false });
-      doc.font('Helvetica')
-         .text(grn.received_by || 'N/A', 144, y, { width: 146, lineBreak: false });
-      doc.font('Helvetica-Bold')
-         .text('Verified By:', 310, y, { width: 84, lineBreak: false });
+      // ─────────────────────────────────────────────────────────────
+      // SIGNATURES
+      // ─────────────────────────────────────────────────────────────
+      if (y > 720) { doc.addPage(); y = 50; }
+
+      // Two signature blocks side by side
+      const SIG_W = 220;
+      const SIG2X = 315;
+
+      // Labels + names
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+         .text('Received By:', LX, y, { width: 80, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#000000')
+         .text(grn.received_by || 'N/A', LX + 84, y, { width: 140, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+         .text('Verified By:', SIG2X, y, { width: 76, lineBreak: false });
+
       y += 28;
-
-      doc.moveTo(50, y).lineTo(232, y).lineWidth(0.8).strokeColor('#000000').stroke();
-      doc.moveTo(310, y).lineTo(490, y).stroke();
+      // Signature lines
+      doc.moveTo(LX, y).lineTo(LX + SIG_W, y).lineWidth(0.8).strokeColor('#555555').stroke();
+      doc.moveTo(SIG2X, y).lineTo(SIG2X + SIG_W, y).stroke();
       y += 5;
-      doc.font('Helvetica-Bold').fontSize(9)
-         .text('Signature', 50, y, { width: 100, lineBreak: false });
-      doc.text('Signature', 310, y, { width: 100, lineBreak: false });
+      doc.font('Helvetica').fontSize(8).fillColor('#555555')
+         .text('Signature & Date', LX, y, { width: SIG_W, align: 'center', lineBreak: false });
+      doc.text('Signature & Date', SIG2X, y, { width: SIG_W, align: 'center', lineBreak: false });
+
+      // ─────────────────────────────────────────────────────────────
+      // FOOTER
+      // ─────────────────────────────────────────────────────────────
+      const FOOTER_Y = 790;
+      doc.moveTo(LX, FOOTER_Y - 8).lineTo(RX, FOOTER_Y - 8).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      doc.font('Helvetica').fontSize(7).fillColor('#888888')
+         .text(
+           `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${grn.id || ''}`,
+           LX, FOOTER_Y,
+           { width: PW, align: 'center', lineBreak: false }
+         );
 
       doc.end();
       stream.on('finish', () => resolve(outputPath));
