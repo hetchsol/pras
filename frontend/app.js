@@ -1813,6 +1813,16 @@ function ToastItem({ toast, onDismiss }) {
   );
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('login');
@@ -2001,16 +2011,27 @@ function App() {
     });
   }
 
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Auto-close sidebar when the view changes on mobile
+  useEffect(() => { if (isMobile) setSidebarOpen(false); }, [view]);
+
   if (loading) return React.createElement(SkeletonApp);
 
   return React.createElement('div', {
     className: "min-h-screen flex transition-colors",
     style: { backgroundColor: 'var(--bg-secondary)' }
   },
-    React.createElement(Sidebar, { user: currentUser, logout, setView, view }),
-    React.createElement('div', { className: "flex-1" },
-      React.createElement(TopBar, { user: currentUser, logout, setView }),
-      React.createElement('div', { key: view, className: "container mx-auto px-8 py-10 view-enter" },
+    // Overlay backdrop — tapping outside closes the drawer on mobile
+    isMobile && sidebarOpen && React.createElement('div', {
+      onClick: () => setSidebarOpen(false),
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 40 }
+    }),
+    React.createElement(Sidebar, { user: currentUser, logout, setView, view, isMobile, sidebarOpen, setSidebarOpen }),
+    React.createElement('div', { className: "flex-1 min-w-0" },
+      React.createElement(TopBar, { user: currentUser, logout, setView, isMobile, setSidebarOpen }),
+      React.createElement('div', { key: view, className: "container mx-auto px-4 py-6 md:px-8 md:py-10 view-enter" },
         view === 'change-password' && React.createElement(ChangePasswordScreen, { user: currentUser, setCurrentUser, setView, logout, forced: false }),
         view === 'dashboard' && React.createElement(Dashboard, { user: currentUser, data, setView, setSelectedReq, loadData }),
         view === 'requisitions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'mine' }),
@@ -2714,7 +2735,7 @@ function ThemeToggle() {
 }
 
 // Sidebar Component - Left Navigation
-function Sidebar({ user, logout, setView, view, setSelectedReq }) {
+function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sidebarOpen, setSidebarOpen }) {
   const [expandedMenus, setExpandedMenus] = useState({});
   const eftAccess = useEFTAccess(user && user.role);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -2725,7 +2746,11 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
   const dragStartX = React.useRef(0);
   const dragStartWidth = React.useRef(0);
 
+  // Navigate and auto-close drawer on mobile
+  const nav = (v) => { setView(v); if (isMobile && setSidebarOpen) setSidebarOpen(false); };
+
   const onDragStart = (e) => {
+    if (isMobile) return; // disable drag on mobile
     isDragging.current = true;
     dragStartX.current = e.clientX;
     dragStartWidth.current = sidebarWidth;
@@ -2847,20 +2872,33 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     { id: 'admin', label: 'Administration', show: hasRole(user.role, 'admin') }
   ];
 
+  const mobileDrawerStyle = isMobile ? {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '280px',
+    zIndex: 50,
+    transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+    transition: 'transform 0.25s ease'
+  } : {
+    width: sidebarWidth + 'px',
+    minWidth: '180px',
+    maxWidth: '480px',
+    flexShrink: 0
+  };
+
   return React.createElement('aside', {
     className: "shadow-lg h-screen sticky top-0 flex flex-col relative transition-colors",
     style: {
-      width: sidebarWidth + 'px',
-      minWidth: '180px',
-      maxWidth: '480px',
-      flexShrink: 0,
+      ...mobileDrawerStyle,
       background: 'var(--sidebar-bg)',
       color: 'var(--sidebar-text)',
       borderRight: '1px solid var(--sidebar-border)',
       boxShadow: 'var(--shadow-lg)'
     }
   },
-    // Drag handle on right edge
+    // Drag handle on right edge (desktop only)
     React.createElement('div', {
       onMouseDown: onDragStart,
       style: {
@@ -2879,23 +2917,30 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     }),
     // Logo and Title
     React.createElement('div', {
-      className: "p-6 transition-colors",
+      className: "p-6 transition-colors flex items-start justify-between",
       style: { borderBottom: '1px solid var(--sidebar-border)' }
     },
-      React.createElement('h1', {
-        className: "text-xl font-bold",
-        style: { color: 'var(--sidebar-text)' }
-      }, "Internal Approvals"),
-      React.createElement('p', {
-        className: "text-xs mt-1 transition-colors",
-        style: { color: 'var(--sidebar-text-subtle)' }
-      }, "System")
+      React.createElement('div', null,
+        React.createElement('h1', {
+          className: "text-xl font-bold",
+          style: { color: 'var(--sidebar-text)' }
+        }, "Internal Approvals"),
+        React.createElement('p', {
+          className: "text-xs mt-1 transition-colors",
+          style: { color: 'var(--sidebar-text-subtle)' }
+        }, "System")
+      ),
+      isMobile && React.createElement('button', {
+        onClick: () => setSidebarOpen(false),
+        style: { color: 'var(--sidebar-text-subtle)', fontSize: '20px', lineHeight: 1, padding: '2px 6px', borderRadius: '4px' },
+        'aria-label': 'Close menu'
+      }, '×')
     ),
 
     // Home Button
     React.createElement('div', { className: "px-4 pt-4" },
       React.createElement('button', {
-        onClick: () => setView('dashboard'),
+        onClick: () => nav('dashboard'),
         className: "w-full px-4 py-3 rounded-lg font-semibold transition-all text-left",
         style: {
           color: view === 'dashboard' ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
@@ -2974,7 +3019,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
                   })() :
                   React.createElement('button', {
                     key: child.id,
-                    onClick: () => setView(child.id),
+                    onClick: () => nav(child.id),
                     className: "block w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     style: view === child.id ? {
                       backgroundColor: 'var(--sidebar-active-bg)',
@@ -3001,7 +3046,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
           // Regular menu item
           return React.createElement('button', {
             key: item.id,
-            onClick: () => !item.disabled && setView(item.id),
+            onClick: () => !item.disabled && nav(item.id),
             className: "block w-full text-left px-4 py-3 mb-2 rounded-lg font-medium transition-all",
             style: item.disabled ? {
               color: 'var(--sidebar-text-subtle)',
@@ -3095,38 +3140,53 @@ function UserAvatar({ name, size = 40, fontSize = 15 }) {
   }, getInitials(name));
 }
 
-function TopBar({ user, logout, setView }) {
+function TopBar({ user, logout, setView, isMobile, setSidebarOpen }) {
   const name = user.full_name || user.name || '';
   const firstName = name.split(' ')[0] || '';
   const roleLabel = user.role ? user.role.replace(/_/g, ' ').toUpperCase() : 'USER';
 
   return React.createElement('div', {
-    className: "px-8 py-4 transition-colors",
+    className: "px-4 md:px-8 py-3 md:py-4 transition-colors",
     style: {
       backgroundColor: 'var(--bg-primary)',
       borderBottom: '1px solid var(--border-color)'
     }
   },
-    React.createElement('div', { className: "flex items-center justify-between" },
-      // Left: personalised greeting + date
-      React.createElement('div', null,
-        React.createElement('h2', {
-          className: "text-2xl font-bold transition-colors",
-          style: { color: 'var(--text-primary)' }
-        }, `Welcome Back${firstName ? ', ' + firstName : ''}`),
-        React.createElement('p', {
-          className: "text-sm transition-colors",
-          style: { color: 'var(--text-tertiary)' }
-        }, new Date().toLocaleDateString('en-US', {
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        }))
+    React.createElement('div', { className: "flex items-center justify-between gap-3" },
+      // Left: hamburger (mobile) + greeting
+      React.createElement('div', { className: "flex items-center gap-3 min-w-0" },
+        // Hamburger — mobile only
+        isMobile && React.createElement('button', {
+          onClick: () => setSidebarOpen(prev => !prev),
+          className: "flex-shrink-0 p-2 rounded-lg transition-colors",
+          style: { border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-secondary)' },
+          'aria-label': 'Open menu'
+        },
+          React.createElement('svg', { width: 18, height: 18, viewBox: '0 0 18 18', fill: 'currentColor' },
+            React.createElement('rect', { x: 1, y: 3, width: 16, height: 2, rx: 1 }),
+            React.createElement('rect', { x: 1, y: 8, width: 16, height: 2, rx: 1 }),
+            React.createElement('rect', { x: 1, y: 13, width: 16, height: 2, rx: 1 })
+          )
+        ),
+        React.createElement('div', { className: "min-w-0" },
+          React.createElement('h2', {
+            className: "font-bold truncate transition-colors",
+            style: { fontSize: isMobile ? '16px' : '24px', color: 'var(--text-primary)' }
+          }, isMobile ? (firstName || 'Welcome') : `Welcome Back${firstName ? ', ' + firstName : ''}`),
+          !isMobile && React.createElement('p', {
+            className: "text-sm transition-colors",
+            style: { color: 'var(--text-tertiary)' }
+          }, new Date().toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          }))
+        )
       ),
-      // Right: avatar + identity + divider + action buttons
-      React.createElement('div', { className: "flex items-center gap-4" },
-        // Avatar + name/role block
-        React.createElement('div', { className: "flex items-center gap-3" },
+      // Right: avatar + action buttons
+      React.createElement('div', { className: "flex items-center gap-2 md:gap-4 flex-shrink-0" },
+        // Avatar + name/role (hide name text on mobile)
+        React.createElement('div', { className: "flex items-center gap-2 md:gap-3" },
           React.createElement(UserAvatar, { name }),
-          React.createElement('div', null,
+          !isMobile && React.createElement('div', null,
             React.createElement('p', {
               style: { fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', lineHeight: '1.2' }
             }, name),
@@ -3135,30 +3195,33 @@ function TopBar({ user, logout, setView }) {
             }, roleLabel)
           )
         ),
-        // Vertical divider
-        React.createElement('div', {
+        // Vertical divider — desktop only
+        !isMobile && React.createElement('div', {
           style: { width: '1px', height: '32px', background: 'var(--border-color)', flexShrink: 0 }
         }),
-        // Action buttons
         React.createElement(ThemeToggle),
+        // Change password — icon on mobile, text on desktop
         setView && React.createElement('button', {
           onClick: () => setView('change-password'),
-          className: "px-4 py-2 rounded-lg hover:opacity-90 transition-all text-sm font-medium",
+          className: "p-2 md:px-4 md:py-2 rounded-lg hover:opacity-90 transition-all text-sm font-medium",
           style: {
             backgroundColor: 'var(--bg-secondary)',
             color: 'var(--text-primary)',
             border: '1px solid var(--border-color)'
           },
           title: 'Change your password'
-        }, 'Change Password'),
+        }, isMobile
+          ? React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 },
+              React.createElement('rect', { x: 3, y: 11, width: 18, height: 11, rx: 2 }),
+              React.createElement('path', { d: 'M7 11V7a5 5 0 0 1 10 0v4' })
+            )
+          : 'Change Password'
+        ),
         React.createElement('button', {
           onClick: logout,
-          className: "px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all text-sm font-medium",
-          style: {
-            backgroundColor: 'var(--color-danger)',
-            boxShadow: 'var(--shadow-sm)'
-          }
-        }, 'Logout')
+          className: "px-3 py-2 md:px-4 text-white rounded-lg hover:opacity-90 transition-all text-sm font-medium",
+          style: { backgroundColor: 'var(--color-danger)', boxShadow: 'var(--shadow-sm)' }
+        }, isMobile ? '⏏' : 'Logout')
       )
     )
   );
