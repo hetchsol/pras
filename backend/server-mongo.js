@@ -3969,6 +3969,106 @@ app.get('/api/test-email', authenticate, async (req, res) => {
   }
 });
 
+// ============================================
+// BUDGET SUPPLEMENT ROUTES
+// ============================================
+
+// GET /api/budget-supplements
+// HOD: own department only. Finance/MD/Admin: all supplements (filtered by status they can act on)
+app.get('/api/budget-supplements', authenticate, async (req, res) => {
+  try {
+    const { role, department, is_hod } = req.user;
+    let filter = {};
+    if (is_hod && !['finance', 'finance_manager', 'md', 'admin'].includes(role)) {
+      filter = { department };
+    }
+    const supplements = await db.BudgetSupplement.find(filter).sort({ created_at: -1 }).lean();
+    res.json(supplements);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/budget-supplements  — HOD creates a supplement request
+app.post('/api/budget-supplements', authenticate, async (req, res) => {
+  try {
+    if (!req.user.is_hod) {
+      return res.status(403).json({ error: 'Only HODs can request budget supplements' });
+    }
+    const { requested_amount, justification } = req.body;
+    if (!requested_amount || Number(requested_amount) <= 0) {
+      return res.status(400).json({ error: 'A positive requested_amount is required' });
+    }
+    if (!justification || !justification.trim()) {
+      return res.status(400).json({ error: 'A justification is required' });
+    }
+    const supplement = await db.BudgetSupplement.create({
+      department: req.user.department,
+      requested_amount: parseFloat(requested_amount),
+      justification: justification.trim(),
+      requested_by: req.user.id,
+      requested_by_name: req.user.full_name || req.user.name
+    });
+    res.status(201).json(supplement);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /api/budget-supplements/:id/review  — Finance or MD approves/rejects
+app.put('/api/budget-supplements/:id/review', authenticate, async (req, res) => {
+  try {
+    const { role } = req.user;
+    const { action, comments } = req.body;           // action: 'approve' | 'reject'
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
+    }
+
+    const supp = await db.BudgetSupplement.findById(req.params.id);
+    if (!supp) return res.status(404).json({ error: 'Supplement request not found' });
+
+    const reviewerName = req.user.full_name || req.user.name;
+
+    // Finance / Finance Manager: can act on pending_finance
+    if (['finance', 'finance_manager'].includes(role)) {
+      if (supp.status !== 'pending_finance') {
+        return res.status(400).json({ error: 'This request is not awaiting Finance review' });
+      }
+      supp.finance_reviewed_by      = req.user.id;
+      supp.finance_reviewed_by_name = reviewerName;
+      supp.finance_reviewed_at      = new Date();
+      supp.finance_comments         = comments || '';
+      supp.status = action === 'approve' ? 'pending_md' : 'rejected';
+    }
+    // MD / Admin: can act on pending_md
+    else if (['md', 'admin'].includes(role)) {
+      if (supp.status !== 'pending_md') {
+        return res.status(400).json({ error: 'This request is not awaiting MD review' });
+      }
+      supp.md_reviewed_by      = req.user.id;
+      supp.md_reviewed_by_name = reviewerName;
+      supp.md_reviewed_at      = new Date();
+      supp.md_comments         = comments || '';
+      supp.status = action === 'approve' ? 'approved' : 'rejected';
+
+      // When MD approves: increment the department's budget allocation
+      if (action === 'approve') {
+        await db.Department.findOneAndUpdate(
+          { name: supp.department },
+          { $inc: { budget: supp.requested_amount } }
+        );
+      }
+    } else {
+      return res.status(403).json({ error: 'Not authorised to review supplement requests' });
+    }
+
+    await supp.save();
+    res.json(supp);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Catch-all for undefined API routes - return JSON error
 app.all('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: `Route not found: ${req.path}` });

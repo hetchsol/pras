@@ -448,6 +448,29 @@ const api = {
     return res.json();
   },
 
+  // Budget Supplements
+  getBudgetSupplements: async () => {
+    const res = await fetchWithAuth(`${API_URL}/budget-supplements`);
+    if (!res.ok) throw new Error('Failed to fetch supplement requests');
+    return res.json();
+  },
+  createBudgetSupplement: async (requested_amount, justification) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-supplements`, {
+      method: 'POST',
+      body: JSON.stringify({ requested_amount, justification })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to submit request'); }
+    return res.json();
+  },
+  reviewBudgetSupplement: async (id, action, comments) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-supplements/${id}/review`, {
+      method: 'PUT',
+      body: JSON.stringify({ action, comments })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to review request'); }
+    return res.json();
+  },
+
   budgetCheck: async (requisitionId, approved, comments) => {
     const res = await fetchWithAuth(`${API_URL}/requisitions/${requisitionId}/budget-check`, {
       method: 'POST',
@@ -1917,6 +1940,7 @@ function App() {
         view === 'purchase-orders-list' && React.createElement(PurchaseOrders, { user: currentUser }),
         view === 'incoming-prs' && React.createElement(IncomingPRsView, { user: currentUser, setView, setSelectedReq }),
         view === 'admin' && React.createElement(AdminPanel, { data, loadData }),
+        view === 'dept-budget' && React.createElement(HODBudgetView, { user: currentUser }),
         view === 'budget' && React.createElement(BudgetManagement, { user: currentUser }),
         view === 'fx-rates' && React.createElement(FXRatesManagement, { user: currentUser }),
         view === 'reports' && React.createElement(Reports, { data }),
@@ -2717,9 +2741,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
     {
       id: 'fin-planning-group',
       label: 'Financial Planning',
-      show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin'),
+      show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') || user.is_hod,
       isGroup: true,
       children: [
+        { id: 'dept-budget', label: 'Department Budget', show: !!user.is_hod },
         { id: 'budget', label: 'Budgets', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') },
         { id: 'fx-rates', label: 'FX Rates', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'procurement', 'admin') }
       ]
@@ -10909,6 +10934,207 @@ function PurchaseOrders({ user }) {
   );
 }
 
+// ============================================
+// HOD DEPARTMENT BUDGET VIEW
+// ============================================
+
+function HODBudgetView({ user }) {
+  const [budget, setBudget]           = useState(null);
+  const [supplements, setSupplements] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [showForm, setShowForm]       = useState(false);
+  const [amount, setAmount]           = useState('');
+  const [justification, setJustification] = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+
+  const dept = user.department;
+
+  useEffect(() => { loadAll(); }, []);
+
+  const loadAll = async () => {
+    setLoading(true);
+    try {
+      const [budgetData, suppData] = await Promise.all([
+        api.getDepartmentBudget(dept, new Date().getFullYear().toString()),
+        api.getBudgetSupplements()
+      ]);
+      setBudget(budgetData.budget || budgetData);
+      setSupplements(suppData);
+    } catch (e) {
+      showToast('Failed to load budget data: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!amount || Number(amount) <= 0) { showToast('Enter a valid amount'); return; }
+    if (!justification.trim()) { showToast('Justification is required'); return; }
+    setSubmitting(true);
+    try {
+      await api.createBudgetSupplement(parseFloat(amount), justification.trim());
+      showToast('Supplement request submitted');
+      setShowForm(false);
+      setAmount('');
+      setJustification('');
+      loadAll();
+    } catch (e) {
+      showToast(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return React.createElement(SkeletonCards, { cards: 4, rows: 4 });
+
+  const allocated  = budget?.allocated_amount  || budget?.budget  || 0;
+  const spent      = budget?.spent_amount      || budget?.spent   || 0;
+  const committed  = budget?.committed_amount  || budget?.committed || 0;
+  const available  = budget?.available_amount  ?? (allocated - spent - committed);
+  const utilPct    = allocated > 0 ? Math.min(100, ((spent + committed) / allocated) * 100) : 0;
+  const utilColor  = utilPct >= 90 ? '#EF4444' : utilPct >= 75 ? '#F59E0B' : '#10B981';
+
+  const suppStatusColor = s =>
+    s === 'approved' ? 'badge-success' :
+    s === 'rejected' ? 'badge-danger' :
+    s === 'pending_md' ? 'badge-info' : 'badge-pending';
+
+  return React.createElement('div', { className: 'space-y-6' },
+
+    // ── Budget Summary Card ──────────────────────────────────────────
+    React.createElement('div', { className: 'card card-lg' },
+      React.createElement('div', { className: 'card-header mb-6' },
+        React.createElement('div', null,
+          React.createElement('h2', { className: 'text-2xl font-bold text-gray-800' }, 'Department Budget'),
+          React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-tertiary)', marginTop: '2px' } }, dept)
+        ),
+        !showForm && React.createElement('button', {
+          onClick: () => setShowForm(true),
+          className: 'btn-primary'
+        }, '+ Request Supplement')
+      ),
+
+      // Metric tiles
+      React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-4 mb-6' },
+        [
+          { label: 'Allocated',  value: allocated,  color: '#0070AF' },
+          { label: 'Spent',      value: spent,      color: '#EF4444' },
+          { label: 'Committed',  value: committed,  color: '#F59E0B' },
+          { label: 'Available',  value: available,  color: '#10B981' }
+        ].map(({ label, value, color }) =>
+          React.createElement('div', {
+            key: label,
+            style: {
+              background: 'var(--bg-secondary)', borderRadius: '10px',
+              padding: '16px', borderLeft: `4px solid ${color}`
+            }
+          },
+            React.createElement('p', { style: { fontSize: '11px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' } }, label),
+            React.createElement('p', { style: { fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)' } },
+              `ZMW ${value.toLocaleString()}`
+            )
+          )
+        )
+      ),
+
+      // Utilisation bar
+      React.createElement('div', { style: { marginBottom: '24px' } },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '6px' } },
+          React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } }, 'Budget Utilisation'),
+          React.createElement('span', { style: { fontSize: '12px', fontWeight: '700', color: utilColor } }, `${utilPct.toFixed(1)}%`)
+        ),
+        React.createElement('div', { style: { height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' } },
+          React.createElement('div', {
+            style: { height: '100%', width: `${utilPct}%`, background: utilColor, borderRadius: '4px', transition: 'width 0.5s ease' }
+          })
+        )
+      ),
+
+      // Supplement request form (inline)
+      showForm && React.createElement('div', {
+        style: { background: 'var(--bg-secondary)', borderRadius: '10px', padding: '20px', marginBottom: '8px' }
+      },
+        React.createElement('h3', { style: { fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px' } }, 'Request Budget Supplement'),
+        React.createElement('div', { className: 'space-y-4' },
+          React.createElement('div', null,
+            React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' } }, 'Additional Amount Required (ZMW)'),
+            React.createElement('input', {
+              type: 'number', min: '1', value: amount,
+              onChange: e => setAmount(e.target.value),
+              placeholder: 'e.g. 50000',
+              className: 'form-input w-full'
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' } }, 'Justification'),
+            React.createElement('textarea', {
+              rows: 3, value: justification,
+              onChange: e => setJustification(e.target.value),
+              placeholder: 'Explain why additional budget is needed and how it will be used…',
+              className: 'form-input w-full',
+              style: { resize: 'vertical' }
+            })
+          ),
+          React.createElement('div', { className: 'flex gap-3' },
+            React.createElement('button', {
+              onClick: handleSubmit, disabled: submitting,
+              className: 'btn-primary'
+            }, submitting ? 'Submitting…' : 'Submit Request'),
+            React.createElement('button', {
+              onClick: () => { setShowForm(false); setAmount(''); setJustification(''); },
+              className: 'btn-secondary'
+            }, 'Cancel')
+          )
+        )
+      )
+    ),
+
+    // ── My Supplement Requests ────────────────────────────────────────
+    React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'card-header mb-4' },
+        React.createElement('h3', { className: 'text-lg font-bold text-gray-800' }, 'Supplement Request History')
+      ),
+      supplements.length === 0
+        ? React.createElement('p', { style: { color: 'var(--text-tertiary)', padding: '24px 0', textAlign: 'center' } }, 'No supplement requests yet.')
+        : React.createElement('div', { className: 'overflow-x-auto' },
+            React.createElement('table', { className: 'w-full' },
+              React.createElement('thead', null,
+                React.createElement('tr', { style: { borderBottom: '2px solid var(--border-color)' } },
+                  ['Date', 'Amount (ZMW)', 'Justification', 'Status', 'Finance', 'MD'].map(h =>
+                    React.createElement('th', { key: h, className: 'tbl-th' }, h)
+                  )
+                )
+              ),
+              React.createElement('tbody', null,
+                supplements.map(s =>
+                  React.createElement('tr', { key: s._id, className: 'hover:bg-gray-50', style: statusStripe(s.status) },
+                    React.createElement('td', { className: 'tbl-td text-gray-500' }, new Date(s.created_at).toLocaleDateString()),
+                    React.createElement('td', { className: 'tbl-td font-semibold' }, `ZMW ${s.requested_amount.toLocaleString()}`),
+                    React.createElement('td', { className: 'tbl-td', style: { maxWidth: '260px' } },
+                      React.createElement('span', { title: s.justification, style: { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.justification)
+                    ),
+                    React.createElement('td', { className: 'tbl-td' },
+                      React.createElement('span', { className: `badge ${suppStatusColor(s.status)}` }, s.status.replace(/_/g, ' ').toUpperCase())
+                    ),
+                    React.createElement('td', { className: 'tbl-td text-gray-500' },
+                      s.finance_reviewed_by_name
+                        ? React.createElement('span', null, `${s.finance_reviewed_by_name}${s.finance_comments ? ': ' + s.finance_comments : ''}`)
+                        : React.createElement('span', { style: { color: 'var(--text-tertiary)' } }, '—')
+                    ),
+                    React.createElement('td', { className: 'tbl-td text-gray-500' },
+                      s.md_reviewed_by_name
+                        ? React.createElement('span', null, `${s.md_reviewed_by_name}${s.md_comments ? ': ' + s.md_comments : ''}`)
+                        : React.createElement('span', { style: { color: 'var(--text-tertiary)' } }, '—')
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
 function BudgetManagement({ user }) {
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10918,10 +11144,32 @@ function BudgetManagement({ user }) {
   const [editingBudget, setEditingBudget] = useState(null);
   const [newAllocation, setNewAllocation] = useState('');
   const [creatingBudget, setCreatingBudget] = useState(null);
+  const [supplements, setSupplements] = useState([]);
+  const [suppComments, setSuppComments] = useState({});  // { id: commentText }
 
   useEffect(() => {
     loadBudgets();
+    loadSupplements();
   }, [fiscalYear]);
+
+  const loadSupplements = async () => {
+    try {
+      const data = await api.getBudgetSupplements();
+      setSupplements(data);
+    } catch (e) { /* non-fatal */ }
+  };
+
+  const handleReviewSupplement = async (id, action) => {
+    try {
+      await api.reviewBudgetSupplement(id, action, suppComments[id] || '');
+      showToast(action === 'approve' ? 'Supplement approved' : 'Supplement rejected');
+      setSuppComments(prev => { const n = { ...prev }; delete n[id]; return n; });
+      loadSupplements();
+      if (action === 'approve') loadBudgets();
+    } catch (e) {
+      showToast(e.message);
+    }
+  };
 
   const loadBudgets = async () => {
     setLoading(true);
@@ -11145,7 +11393,74 @@ function BudgetManagement({ user }) {
           )
         )
       ) : React.createElement('p', { className: "text-gray-600 text-center py-4" }, "No expenses recorded for this department")
-    )
+    ),
+
+    // ── Supplement Requests (Finance sees pending_finance, MD sees pending_md) ──
+    (() => {
+      const relevantStatus = ['finance', 'finance_manager'].includes(user.role)
+        ? 'pending_finance'
+        : user.role === 'md' ? 'pending_md' : null;
+      const pending = relevantStatus
+        ? supplements.filter(s => s.status === relevantStatus)
+        : supplements.filter(s => ['pending_finance', 'pending_md'].includes(s.status));
+      if (pending.length === 0) return null;
+
+      return React.createElement('div', { className: 'card' },
+        React.createElement('div', { className: 'card-header mb-4' },
+          React.createElement('h3', { className: 'text-lg font-bold text-gray-800' }, 'Budget Supplement Requests'),
+          React.createElement('span', { className: 'badge badge-pending' }, `${pending.length} Pending`)
+        ),
+        React.createElement('div', { className: 'space-y-4' },
+          pending.map(s =>
+            React.createElement('div', {
+              key: s._id,
+              style: {
+                background: 'var(--bg-secondary)', borderRadius: '10px',
+                padding: '16px 20px', borderLeft: '4px solid #F59E0B'
+              }
+            },
+              React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' } },
+                React.createElement('div', null,
+                  React.createElement('p', { style: { fontWeight: '700', color: 'var(--text-primary)', fontSize: '15px' } },
+                    `${s.department} — ZMW ${s.requested_amount.toLocaleString()}`
+                  ),
+                  React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' } },
+                    `Requested by ${s.requested_by_name} · ${new Date(s.created_at).toLocaleDateString()}`
+                  )
+                ),
+                React.createElement('span', { className: `badge ${s.status === 'pending_finance' ? 'badge-pending' : 'badge-info'}` },
+                  s.status.replace(/_/g, ' ').toUpperCase()
+                )
+              ),
+              React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px', fontStyle: 'italic' } },
+                `"${s.justification}"`
+              ),
+              s.finance_comments && React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '10px' } },
+                `Finance note: ${s.finance_comments}`
+              ),
+              React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+                React.createElement('input', {
+                  type: 'text',
+                  placeholder: 'Optional comment…',
+                  value: suppComments[s._id] || '',
+                  onChange: e => setSuppComments(prev => ({ ...prev, [s._id]: e.target.value })),
+                  className: 'form-input',
+                  style: { flex: 1, minWidth: '180px' }
+                }),
+                React.createElement('button', {
+                  onClick: () => handleReviewSupplement(s._id, 'approve'),
+                  className: 'btn-primary btn-sm'
+                }, 'Approve'),
+                React.createElement('button', {
+                  onClick: () => handleReviewSupplement(s._id, 'reject'),
+                  className: 'btn-danger btn-sm'
+                }, 'Reject')
+              )
+            )
+          )
+        )
+      );
+    })()
   );
 }
 

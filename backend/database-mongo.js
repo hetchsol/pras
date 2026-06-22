@@ -12,7 +12,8 @@ const {
   FormApproval,
   PettyCashRequisition,
   Client,
-  StockItem
+  StockItem,
+  BudgetSupplement
 } = require('./models');
 
 // Connect to MongoDB
@@ -335,5 +336,6 @@ module.exports = {
   FormApproval,
   PettyCashRequisition,
   Client,
-  StockItem
+  StockItem,
+  BudgetSupplement
 };

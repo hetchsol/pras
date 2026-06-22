@@ -12,6 +12,7 @@ const IssueSlip = require('./IssueSlip');
 const PickingSlip = require('./PickingSlip');
 const Client = require('./Client');
 const StockItem = require('./StockItem');
+const BudgetSupplement = require('./BudgetSupplement');
 
 module.exports = {
   User,
@@ -27,5 +28,6 @@ module.exports = {
   IssueSlip,
   PickingSlip,
   Client,
-  StockItem
+  StockItem,
+  BudgetSupplement
 };
