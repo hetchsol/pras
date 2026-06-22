@@ -2802,7 +2802,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq }) {
       React.createElement('h1', {
         className: "text-xl font-bold",
         style: { color: 'var(--sidebar-text)' }
-      }, "Purchase Requisition"),
+      }, "Internal Approvals"),
       React.createElement('p', {
         className: "text-xs mt-1 transition-colors",
         style: { color: 'var(--sidebar-text-subtle)' }
