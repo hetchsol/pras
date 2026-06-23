@@ -14,7 +14,10 @@ const {
   Client,
   StockItem,
   BudgetSupplement,
-  SystemSetting
+  SystemSetting,
+  BudgetPlan,
+  BudgetChangeLog,
+  BudgetAmendment
 } = require('./models');
 
 // Connect to MongoDB
@@ -339,5 +342,8 @@ module.exports = {
   Client,
   StockItem,
   BudgetSupplement,
-  SystemSetting
+  SystemSetting,
+  BudgetPlan,
+  BudgetChangeLog,
+  BudgetAmendment
 };

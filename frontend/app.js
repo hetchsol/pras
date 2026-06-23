@@ -525,6 +525,76 @@ const api = {
     return res.json();
   },
 
+  // Budget Plans
+  getBudgetPlans: async (fiscalYear) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans?fiscal_year=${fiscalYear}`);
+    if (!res.ok) throw new Error('Failed to fetch budget plans');
+    return res.json();
+  },
+  createBudgetPlan: async (fiscal_year, allocations, notes) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fiscal_year, allocations, notes })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to create plan'); }
+    return res.json();
+  },
+  updateBudgetPlan: async (id, allocations, notes) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allocations, notes })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update plan'); }
+    return res.json();
+  },
+  submitBudgetPlan: async (id) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans/${id}/submit`, { method: 'POST' });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to submit plan'); }
+    return res.json();
+  },
+  reviewBudgetPlan: async (id, action, comments) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans/${id}/review`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, comments })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to review plan'); }
+    return res.json();
+  },
+  deleteBudgetPlan: async (id) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete plan');
+    return res.json();
+  },
+  getBudgetAmendments: async (fiscalYear) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-amendments?fiscal_year=${fiscalYear}`);
+    if (!res.ok) throw new Error('Failed to fetch amendments');
+    return res.json();
+  },
+  createBudgetAmendment: async (department, fiscal_year, requested_amount, reason) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-amendments`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ department, fiscal_year, requested_amount, reason })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to create amendment'); }
+    return res.json();
+  },
+  reviewBudgetAmendment: async (id, action, comments) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-amendments/${id}/review`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, comments })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to review amendment'); }
+    return res.json();
+  },
+  getBudgetChangeLog: async (department, fiscalYear) => {
+    const params = new URLSearchParams();
+    if (department) params.set('department', department);
+    if (fiscalYear) params.set('fiscal_year', fiscalYear);
+    const res = await fetchWithAuth(`${API_URL}/budget-change-log?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch change log');
+    return res.json();
+  },
+
   // Budget Supplements
   getBudgetSupplements: async () => {
     const res = await fetchWithAuth(`${API_URL}/budget-supplements`);
@@ -11631,8 +11701,13 @@ function HODBudgetView({ user }) {
 
 function BudgetManagement({ user }) {
   const canManage = ['finance', 'finance_manager', 'md', 'admin'].includes(user.role);
+  const isFinanceManager = ['finance_manager', 'admin'].includes(user.role);
+  const isMD = user.role === 'md' || user.role === 'admin';
 
-  // ── State ──
+  // ── Tab state ──
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // ── Overview state ──
   const [budgets, setBudgets]             = useState([]);
   const [overview, setOverview]           = useState(null);
   const [loading, setLoading]             = useState(true);
@@ -11654,8 +11729,41 @@ function BudgetManagement({ user }) {
   // Notes
   const [editingNotes, setEditingNotes]   = useState(null);
   const [notesText, setNotesText]         = useState('');
+  // Amendment inline form on dept card
+  const [amendingDept, setAmendingDept]   = useState(null);
+  const [amendForm, setAmendForm]         = useState({ amount: '', reason: '' });
+
+  // ── Budget Plans state ──
+  const [plans, setPlans]                   = useState([]);
+  const [plansLoading, setPlansLoading]     = useState(false);
+  const [showNewPlan, setShowNewPlan]       = useState(false);
+  const [newPlanAllocs, setNewPlanAllocs]   = useState({});
+  const [newPlanNotes, setNewPlanNotes]     = useState('');
+  const [viewingPlan, setViewingPlan]       = useState(null);
+  const [planComments, setPlanComments]     = useState({});
+
+  // ── Amendments state ──
+  const [amendments, setAmendments]         = useState([]);
+  const [amendmentsLoading, setAmendmentsLoading] = useState(false);
+  const [amendDept, setAmendDept]           = useState('');
+  const [amendAmount, setAmendAmount]       = useState('');
+  const [amendReason, setAmendReason]       = useState('');
+  const [amendComments, setAmendComments]   = useState({});
+
+  // ── Change log state ──
+  const [changeLog, setChangeLog]           = useState([]);
+  const [logLoading, setLogLoading]         = useState(false);
+  const [logDeptFilter, setLogDeptFilter]   = useState('');
+
+  const fiscalYears = Array.from({ length: 3 }, (_, i) => String(new Date().getFullYear() - 1 + i));
 
   useEffect(() => { loadAll(); }, [fiscalYear]);
+
+  useEffect(() => {
+    if (activeTab === 'plans') loadPlans();
+    else if (activeTab === 'amendments') loadAmendments();
+    else if (activeTab === 'changelog') loadChangeLog();
+  }, [activeTab, fiscalYear]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -11670,6 +11778,33 @@ function BudgetManagement({ user }) {
       setSupplements(supps);
     } catch (e) { showToast('Failed to load budget data: ' + e.message); }
     finally { setLoading(false); }
+  };
+
+  const loadPlans = async () => {
+    setPlansLoading(true);
+    try {
+      const data = await api.getBudgetPlans(fiscalYear);
+      setPlans(data);
+    } catch (e) { showToast('Failed to load budget plans'); }
+    finally { setPlansLoading(false); }
+  };
+
+  const loadAmendments = async () => {
+    setAmendmentsLoading(true);
+    try {
+      const data = await api.getBudgetAmendments(fiscalYear);
+      setAmendments(data);
+    } catch (e) { showToast('Failed to load amendments'); }
+    finally { setAmendmentsLoading(false); }
+  };
+
+  const loadChangeLog = async () => {
+    setLogLoading(true);
+    try {
+      const data = await api.getBudgetChangeLog(logDeptFilter, fiscalYear);
+      setChangeLog(data);
+    } catch (e) { showToast('Failed to load change log'); }
+    finally { setLogLoading(false); }
   };
 
   const loadDeptDetails = async (department) => {
@@ -11740,6 +11875,81 @@ function BudgetManagement({ user }) {
     } catch (e) { showToast(e.message); }
   };
 
+  // ── Inline amendment from dept card ──
+  const handleInlineAmendment = async (department) => {
+    if (!amendForm.amount || parseFloat(amendForm.amount) <= 0) return showToast('Enter a valid amount');
+    if (!amendForm.reason.trim()) return showToast('A reason is required');
+    try {
+      await api.createBudgetAmendment(department, fiscalYear, parseFloat(amendForm.amount), amendForm.reason);
+      showToast('Amendment request submitted to MD');
+      setAmendingDept(null); setAmendForm({ amount: '', reason: '' });
+    } catch (e) { showToast(e.message); }
+  };
+
+  // ── Budget Plan handlers ──
+  const handleCreatePlan = async () => {
+    const allocations = budgets.map(d => ({
+      department: d.department,
+      amount: parseFloat(newPlanAllocs[d.department] || 0)
+    })).filter(a => a.amount > 0);
+    if (allocations.length === 0) return showToast('Enter at least one allocation amount');
+    try {
+      await api.createBudgetPlan(fiscalYear, allocations, newPlanNotes);
+      showToast('Budget plan saved as draft');
+      setShowNewPlan(false); setNewPlanAllocs({}); setNewPlanNotes('');
+      loadPlans();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleSubmitPlan = async (id) => {
+    try {
+      await api.submitBudgetPlan(id);
+      showToast('Budget plan submitted to MD for approval');
+      loadPlans();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleReviewPlan = async (id, action) => {
+    try {
+      await api.reviewBudgetPlan(id, action, planComments[id] || '');
+      showToast(action === 'approve' ? 'Budget plan approved — department budgets updated' : 'Budget plan rejected');
+      setPlanComments(prev => { const n = { ...prev }; delete n[id]; return n; });
+      loadPlans();
+      if (action === 'approve') loadAll();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleDeletePlan = async (id) => {
+    try {
+      await api.deleteBudgetPlan(id);
+      showToast('Budget plan deleted');
+      loadPlans();
+    } catch (e) { showToast(e.message); }
+  };
+
+  // ── Amendment handlers ──
+  const handleCreateAmendment = async () => {
+    if (!amendDept) return showToast('Select a department');
+    if (!amendAmount || parseFloat(amendAmount) <= 0) return showToast('Enter a valid amount');
+    if (!amendReason.trim()) return showToast('A reason is required');
+    try {
+      await api.createBudgetAmendment(amendDept, fiscalYear, parseFloat(amendAmount), amendReason);
+      showToast('Amendment request submitted to MD');
+      setAmendDept(''); setAmendAmount(''); setAmendReason('');
+      loadAmendments();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleReviewAmendment = async (id, action) => {
+    try {
+      await api.reviewBudgetAmendment(id, action, amendComments[id] || '');
+      showToast(action === 'approve' ? 'Amendment approved — budget updated' : 'Amendment rejected');
+      setAmendComments(prev => { const n = { ...prev }; delete n[id]; return n; });
+      loadAmendments();
+      if (action === 'approve') loadAll();
+    } catch (e) { showToast(e.message); }
+  };
+
   const utilBar = (pct) => {
     const clamp = Math.min(100, pct || 0);
     const colour = clamp >= 90 ? '#EF4444' : clamp >= 75 ? '#F59E0B' : '#10B981';
@@ -11762,10 +11972,30 @@ function BudgetManagement({ user }) {
 
   const deptNames = budgets.map(d => d.department);
 
+  // ── Change type badge ──
+  const changeTypeBadge = (ct) => {
+    const map = {
+      initial_allocation: ['badge-info', 'Initial'],
+      plan_approved:      ['badge-success', 'Plan'],
+      amendment_approved: ['badge-success', 'Amendment'],
+      supplement_approved:['badge-success', 'Supplement'],
+      direct_edit:        ['badge-pending', 'Direct Edit']
+    };
+    const [cls, lbl] = map[ct] || ['badge-info', ct];
+    return React.createElement('span', { className: `badge ${cls}` }, lbl);
+  };
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    ...(canManage ? [{ id: 'plans', label: 'Budget Plans' }] : []),
+    ...(canManage ? [{ id: 'amendments', label: 'Amendments' }] : []),
+    ...(canManage ? [{ id: 'changelog', label: 'Change Log' }] : [])
+  ];
+
   return React.createElement('div', { className: "space-y-6" },
 
-    // ── Organisation Overview Tiles ──
-    overview && React.createElement('div', { className: "card" },
+    // ── Header with FY selector and tabs ──
+    React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-4" },
         React.createElement('h2', { style: { fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Budget Management'),
         React.createElement('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
@@ -11774,16 +12004,38 @@ function BudgetManagement({ user }) {
             onChange: e => setFiscalYear(e.target.value),
             className: 'form-input'
           },
-            ['2024','2025','2026'].map(y => React.createElement('option', { key: y, value: y }, `FY ${y}`))
+            fiscalYears.map(y => React.createElement('option', { key: y, value: y }, `FY ${y}`))
           ),
-          canManage && React.createElement('button', {
+          activeTab === 'overview' && canManage && React.createElement('button', {
             onClick: () => setShowReallocate(v => !v),
             className: 'btn-secondary btn-sm'
           }, showReallocate ? 'Cancel Reallocation' : 'Reallocate Budget'),
-          React.createElement('button', { onClick: () => api.downloadBudgetExcel(fiscalYear), className: 'btn-primary btn-sm' }, 'Export Excel'),
-          React.createElement('button', { onClick: () => api.downloadBudgetPDF(fiscalYear), className: 'btn-danger btn-sm' }, 'Export PDF')
+          activeTab === 'overview' && React.createElement('button', { onClick: () => api.downloadBudgetExcel(fiscalYear), className: 'btn-primary btn-sm' }, 'Export Excel'),
+          activeTab === 'overview' && React.createElement('button', { onClick: () => api.downloadBudgetPDF(fiscalYear), className: 'btn-danger btn-sm' }, 'Export PDF')
         )
       ),
+      // Tab bar
+      React.createElement('div', { style: { display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-color)', marginBottom: '0' } },
+        tabs.map(t => React.createElement('button', {
+          key: t.id,
+          onClick: () => setActiveTab(t.id),
+          style: {
+            padding: '8px 16px', fontSize: '13px', fontWeight: activeTab === t.id ? '700' : '500',
+            color: activeTab === t.id ? 'var(--primary)' : 'var(--text-secondary)',
+            background: 'none', border: 'none', borderBottom: activeTab === t.id ? '2px solid var(--primary)' : '2px solid transparent',
+            cursor: 'pointer', marginBottom: '-1px'
+          }
+        }, t.label))
+      )
+    ),
+
+    // ════════════════════════════
+    // OVERVIEW TAB
+    // ════════════════════════════
+    activeTab === 'overview' && React.createElement('div', { className: 'space-y-6' },
+
+    // ── Organisation Overview Tiles ──
+    overview && React.createElement('div', { className: "card" },
       // Summary tiles
       React.createElement('div', { className: 'grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4' },
         [
@@ -11983,8 +12235,38 @@ function BudgetManagement({ user }) {
                 )
               ),
 
+              // Inline amendment form
+              isFinanceManager && amendingDept === dept.department && React.createElement('div', { style: { marginTop: '10px' } },
+                React.createElement('label', { className: 'form-label' }, 'New Allocation (ZMW)'),
+                React.createElement('input', {
+                  type: 'number', min: '1',
+                  value: amendForm.amount,
+                  onChange: e => setAmendForm(f => ({ ...f, amount: e.target.value })),
+                  className: 'form-input', style: { marginBottom: '6px', width: '100%' },
+                  placeholder: 'Requested amount'
+                }),
+                React.createElement('label', { className: 'form-label' }, 'Reason'),
+                React.createElement('input', {
+                  type: 'text',
+                  value: amendForm.reason,
+                  onChange: e => setAmendForm(f => ({ ...f, reason: e.target.value })),
+                  className: 'form-input', style: { marginBottom: '6px', width: '100%' },
+                  placeholder: 'Reason for amendment'
+                }),
+                React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+                  React.createElement('button', {
+                    onClick: () => handleInlineAmendment(dept.department),
+                    className: 'btn-primary btn-sm flex-1'
+                  }, 'Submit to MD'),
+                  React.createElement('button', {
+                    onClick: () => { setAmendingDept(null); setAmendForm({ amount: '', reason: '' }); },
+                    className: 'btn-secondary btn-sm flex-1'
+                  }, 'Cancel')
+                )
+              ),
+
               // Action buttons
-              canManage && !editingBudget && !isLockingThis && !isEditingNotes && React.createElement('div', {
+              canManage && !editingBudget && !isLockingThis && !isEditingNotes && amendingDept !== dept.department && React.createElement('div', {
                 style: { display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }
               },
                 React.createElement('button', {
@@ -12003,7 +12285,11 @@ function BudgetManagement({ user }) {
                   : React.createElement('button', {
                       onClick: () => handleLockToggle(dept, false),
                       className: 'btn-primary btn-sm'
-                    }, 'Unlock')
+                    }, 'Unlock'),
+                isFinanceManager && dept.budget_id && React.createElement('button', {
+                  onClick: () => { setAmendingDept(dept.department); setAmendForm({ amount: '', reason: '' }); },
+                  className: 'btn-secondary btn-sm'
+                }, 'Request Amendment')
               )
             )
           );
@@ -12164,6 +12450,406 @@ function BudgetManagement({ user }) {
             )
           )
     )
+    ), // end overview tab div wrapper
+
+    // ════════════════════════════
+    // BUDGET PLANS TAB
+    // ════════════════════════════
+    activeTab === 'plans' && canManage && React.createElement('div', { className: 'space-y-6' },
+
+      // Finance Manager: New plan button + existing plans list
+      isFinanceManager && React.createElement('div', { className: 'card' },
+        React.createElement('div', { className: 'card-header mb-4' },
+          React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Budget Plans'),
+          !showNewPlan && React.createElement('button', {
+            onClick: () => setShowNewPlan(true),
+            className: 'btn-primary btn-sm'
+          }, 'New Budget Plan')
+        ),
+
+        // New Plan form
+        showNewPlan && React.createElement('div', { style: { marginBottom: '20px' } },
+          React.createElement('h4', { style: { fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' } },
+            `Draft Plan — FY ${fiscalYear}`
+          ),
+          React.createElement('div', { className: 'overflow-x-auto', style: { marginBottom: '12px' } },
+            React.createElement('table', { className: 'w-full text-sm' },
+              React.createElement('thead', null,
+                React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                  ['Department', 'Proposed Amount (ZMW)'].map(h => React.createElement('th', { key: h, className: 'tbl-th' }, h))
+                )
+              ),
+              React.createElement('tbody', null,
+                budgets.map(dept => React.createElement('tr', { key: dept.department, style: { borderBottom: '1px solid var(--border-color)' } },
+                  React.createElement('td', { className: 'tbl-td font-semibold' }, dept.department),
+                  React.createElement('td', { className: 'tbl-td' },
+                    React.createElement('input', {
+                      type: 'number', min: '0',
+                      value: newPlanAllocs[dept.department] || '',
+                      onChange: e => setNewPlanAllocs(prev => ({ ...prev, [dept.department]: e.target.value })),
+                      className: 'form-input', placeholder: '0.00',
+                      style: { width: '160px' }
+                    })
+                  )
+                ))
+              )
+            )
+          ),
+          React.createElement('label', { className: 'form-label' }, 'Notes'),
+          React.createElement('textarea', {
+            value: newPlanNotes,
+            onChange: e => setNewPlanNotes(e.target.value),
+            className: 'form-input', rows: 2, placeholder: 'Optional notes…',
+            style: { width: '100%', resize: 'vertical', marginBottom: '12px' }
+          }),
+          React.createElement('div', { style: { display: 'flex', gap: '8px' } },
+            React.createElement('button', { onClick: handleCreatePlan, className: 'btn-primary' }, 'Save Draft'),
+            React.createElement('button', { onClick: () => { setShowNewPlan(false); setNewPlanAllocs({}); setNewPlanNotes(''); }, className: 'btn-secondary' }, 'Cancel')
+          )
+        ),
+
+        // Existing plans
+        plansLoading
+          ? React.createElement('p', { style: { color: 'var(--text-tertiary)' } }, 'Loading…')
+          : plans.length === 0
+            ? React.createElement(EmptyState, { heading: 'No budget plans', sub: 'Create a new draft plan above.' })
+            : React.createElement('div', { className: 'space-y-3' },
+                plans.map(plan => React.createElement('div', {
+                  key: plan._id,
+                  style: { background: 'var(--bg-tertiary)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }
+                },
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' } },
+                      `FY ${plan.fiscal_year} — ${plan.allocations.length} departments`
+                    ),
+                    React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
+                      `Prepared by ${plan.prepared_by_name}${plan.submitted_at ? ' · Submitted ' + new Date(plan.submitted_at).toLocaleDateString() : ''}`
+                    )
+                  ),
+                  React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+                    React.createElement('span', {
+                      className: `badge ${plan.status === 'approved' ? 'badge-success' : plan.status === 'rejected' ? 'badge-danger' : plan.status === 'pending_md' ? 'badge-pending' : 'badge-info'}`
+                    }, plan.status.replace(/_/g, ' ')),
+                    React.createElement('button', {
+                      onClick: () => setViewingPlan(viewingPlan && viewingPlan._id === plan._id ? null : plan),
+                      className: 'btn-secondary btn-sm'
+                    }, viewingPlan && viewingPlan._id === plan._id ? 'Hide' : 'View'),
+                    plan.status === 'draft' && React.createElement('button', {
+                      onClick: () => handleSubmitPlan(plan._id),
+                      className: 'btn-primary btn-sm'
+                    }, 'Submit to MD'),
+                    plan.status === 'draft' && React.createElement('button', {
+                      onClick: () => handleDeletePlan(plan._id),
+                      className: 'btn-danger btn-sm'
+                    }, 'Delete')
+                  )
+                ))
+              )
+      ),
+
+      // Inline plan detail viewer
+      viewingPlan && React.createElement('div', { className: 'card' },
+        React.createElement('div', { className: 'card-header mb-4' },
+          React.createElement('h4', { style: { fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' } },
+            `Plan Detail — FY ${viewingPlan.fiscal_year}`
+          ),
+          React.createElement('button', { onClick: () => setViewingPlan(null), className: 'btn-secondary btn-sm' }, 'Close')
+        ),
+        viewingPlan.notes && React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px', fontStyle: 'italic' } },
+          viewingPlan.notes
+        ),
+        viewingPlan.md_comments && React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' } },
+          `MD comments: ${viewingPlan.md_comments}`
+        ),
+        React.createElement('div', { className: 'overflow-x-auto' },
+          React.createElement('table', { className: 'w-full text-sm' },
+            React.createElement('thead', null,
+              React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                ['Department', 'Proposed Amount (ZMW)'].map(h => React.createElement('th', { key: h, className: 'tbl-th' }, h))
+              )
+            ),
+            React.createElement('tbody', null,
+              viewingPlan.allocations.map(a => React.createElement('tr', { key: a.department, style: { borderBottom: '1px solid var(--border-color)' } },
+                React.createElement('td', { className: 'tbl-td font-semibold' }, a.department),
+                React.createElement('td', { className: 'tbl-td' }, `ZMW ${a.amount.toLocaleString()}`)
+              ))
+            )
+          )
+        )
+      ),
+
+      // MD: pending plans for review
+      isMD && React.createElement('div', { className: 'card' },
+        React.createElement('div', { className: 'card-header mb-4' },
+          React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Budget Plans — MD Review'),
+          React.createElement('span', { className: 'badge badge-pending' },
+            `${plans.filter(p => p.status === 'pending_md').length} Pending`
+          )
+        ),
+        plansLoading
+          ? React.createElement('p', { style: { color: 'var(--text-tertiary)' } }, 'Loading…')
+          : React.createElement('div', { className: 'space-y-4' },
+              // Pending first
+              plans.filter(p => p.status === 'pending_md').map(plan => React.createElement('div', {
+                key: plan._id,
+                style: { background: 'var(--bg-secondary)', borderRadius: '10px', padding: '16px 20px', borderLeft: '4px solid #F59E0B' }
+              },
+                React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' } },
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' } },
+                      `FY ${plan.fiscal_year} Budget Plan`
+                    ),
+                    React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' } },
+                      `Prepared by ${plan.prepared_by_name} · Submitted ${new Date(plan.submitted_at).toLocaleDateString()}`
+                    )
+                  ),
+                  React.createElement('span', { className: 'badge badge-pending' }, 'Pending MD')
+                ),
+                plan.notes && React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '10px' } },
+                  `"${plan.notes}"`
+                ),
+                React.createElement('div', { className: 'overflow-x-auto', style: { marginBottom: '12px' } },
+                  React.createElement('table', { className: 'w-full text-sm' },
+                    React.createElement('thead', null,
+                      React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                        ['Department', 'Proposed Amount (ZMW)'].map(h => React.createElement('th', { key: h, className: 'tbl-th' }, h))
+                      )
+                    ),
+                    React.createElement('tbody', null,
+                      plan.allocations.map(a => React.createElement('tr', { key: a.department, style: { borderBottom: '1px solid var(--border-color)' } },
+                        React.createElement('td', { className: 'tbl-td font-semibold' }, a.department),
+                        React.createElement('td', { className: 'tbl-td' }, `ZMW ${a.amount.toLocaleString()}`)
+                      ))
+                    )
+                  )
+                ),
+                React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+                  React.createElement('input', {
+                    type: 'text', placeholder: 'Optional comments…',
+                    value: planComments[plan._id] || '',
+                    onChange: e => setPlanComments(prev => ({ ...prev, [plan._id]: e.target.value })),
+                    className: 'form-input', style: { flex: 1, minWidth: '180px' }
+                  }),
+                  React.createElement('button', { onClick: () => handleReviewPlan(plan._id, 'approve'), className: 'btn-primary btn-sm' }, 'Approve'),
+                  React.createElement('button', { onClick: () => handleReviewPlan(plan._id, 'reject'), className: 'btn-danger btn-sm' }, 'Reject')
+                )
+              )),
+              // Past decisions
+              plans.filter(p => ['approved','rejected'].includes(p.status)).length > 0 && React.createElement('div', null,
+                React.createElement('h4', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-tertiary)', marginTop: '12px', marginBottom: '8px', textTransform: 'uppercase' } }, 'Past Decisions'),
+                plans.filter(p => ['approved','rejected'].includes(p.status)).map(plan => React.createElement('div', {
+                  key: plan._id,
+                  style: { background: 'var(--bg-secondary)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }
+                },
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' } },
+                      `FY ${plan.fiscal_year} — ${plan.allocations.length} depts`
+                    ),
+                    React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
+                      `Reviewed by ${plan.md_reviewed_by_name} on ${new Date(plan.md_reviewed_at).toLocaleDateString()}${plan.md_comments ? ' — ' + plan.md_comments : ''}`
+                    )
+                  ),
+                  React.createElement('span', {
+                    className: `badge ${plan.status === 'approved' ? 'badge-success' : 'badge-danger'}`
+                  }, plan.status)
+                ))
+              )
+            )
+      )
+    ),
+
+    // ════════════════════════════
+    // AMENDMENTS TAB
+    // ════════════════════════════
+    activeTab === 'amendments' && canManage && React.createElement('div', { className: 'space-y-6' },
+
+      // Finance Manager: create amendment
+      isFinanceManager && React.createElement('div', { className: 'card' },
+        React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px' } }, 'Request Budget Amendment'),
+        React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' } },
+          'Submit a formal mid-year change request for a department\'s allocation. Goes to MD for approval.'
+        ),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' } },
+          React.createElement('div', null,
+            React.createElement('label', { className: 'form-label' }, 'Department'),
+            React.createElement('select', {
+              value: amendDept,
+              onChange: e => setAmendDept(e.target.value),
+              className: 'form-input'
+            },
+              React.createElement('option', { value: '' }, '— select —'),
+              deptNames.map(n => React.createElement('option', { key: n, value: n }, n))
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: 'form-label' }, 'Requested Amount (ZMW)'),
+            React.createElement('input', {
+              type: 'number', min: '1',
+              value: amendAmount,
+              onChange: e => setAmendAmount(e.target.value),
+              className: 'form-input', placeholder: '0.00'
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: 'form-label' }, 'Reason'),
+            React.createElement('input', {
+              type: 'text',
+              value: amendReason,
+              onChange: e => setAmendReason(e.target.value),
+              className: 'form-input', placeholder: 'Reason for amendment'
+            })
+          )
+        ),
+        React.createElement('button', { onClick: handleCreateAmendment, className: 'btn-primary' }, 'Submit Amendment Request'),
+
+        // FM's amendment history
+        amendmentsLoading
+          ? React.createElement('p', { style: { color: 'var(--text-tertiary)', marginTop: '16px' } }, 'Loading…')
+          : amendments.length > 0 && React.createElement('div', { style: { marginTop: '20px' } },
+              React.createElement('h4', { style: { fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' } }, 'Amendment Requests'),
+              React.createElement('div', { className: 'overflow-x-auto' },
+                React.createElement('table', { className: 'w-full text-sm' },
+                  React.createElement('thead', null,
+                    React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                      ['Department', 'Current', 'Requested', 'Reason', 'Status', 'Date'].map(h =>
+                        React.createElement('th', { key: h, className: 'tbl-th' }, h)
+                      )
+                    )
+                  ),
+                  React.createElement('tbody', null,
+                    amendments.map(a => React.createElement('tr', { key: a._id, style: { borderBottom: '1px solid var(--border-color)' } },
+                      React.createElement('td', { className: 'tbl-td font-semibold' }, a.department),
+                      React.createElement('td', { className: 'tbl-td' }, `ZMW ${a.current_amount.toLocaleString()}`),
+                      React.createElement('td', { className: 'tbl-td' }, `ZMW ${a.requested_amount.toLocaleString()}`),
+                      React.createElement('td', { className: 'tbl-td', style: { maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, a.reason),
+                      React.createElement('td', { className: 'tbl-td' },
+                        React.createElement('span', {
+                          className: `badge ${a.status === 'approved' ? 'badge-success' : a.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`
+                        }, a.status.replace(/_/g, ' '))
+                      ),
+                      React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)' } },
+                        new Date(a.createdAt).toLocaleDateString()
+                      )
+                    ))
+                  )
+                )
+              )
+            )
+      ),
+
+      // MD: pending amendments
+      isMD && React.createElement('div', { className: 'card' },
+        React.createElement('div', { className: 'card-header mb-4' },
+          React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Amendment Requests — MD Review'),
+          React.createElement('span', { className: 'badge badge-pending' },
+            `${amendments.filter(a => a.status === 'pending_md').length} Pending`
+          )
+        ),
+        amendmentsLoading
+          ? React.createElement('p', { style: { color: 'var(--text-tertiary)' } }, 'Loading…')
+          : React.createElement('div', { className: 'space-y-4' },
+              amendments.filter(a => a.status === 'pending_md').map(a => React.createElement('div', {
+                key: a._id,
+                style: { background: 'var(--bg-secondary)', borderRadius: '10px', padding: '16px 20px', borderLeft: '4px solid #F59E0B' }
+              },
+                React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' } },
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' } },
+                      `${a.department} — ZMW ${a.current_amount.toLocaleString()} → ZMW ${a.requested_amount.toLocaleString()}`
+                    ),
+                    React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' } },
+                      `Requested by ${a.requested_by_name} · ${new Date(a.createdAt).toLocaleDateString()} · FY ${a.fiscal_year}`
+                    )
+                  ),
+                  React.createElement('span', { className: 'badge badge-pending' }, 'Pending MD')
+                ),
+                React.createElement('p', { style: { fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '10px' } },
+                  `"${a.reason}"`
+                ),
+                React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+                  React.createElement('input', {
+                    type: 'text', placeholder: 'Optional comments…',
+                    value: amendComments[a._id] || '',
+                    onChange: e => setAmendComments(prev => ({ ...prev, [a._id]: e.target.value })),
+                    className: 'form-input', style: { flex: 1, minWidth: '180px' }
+                  }),
+                  React.createElement('button', { onClick: () => handleReviewAmendment(a._id, 'approve'), className: 'btn-primary btn-sm' }, 'Approve'),
+                  React.createElement('button', { onClick: () => handleReviewAmendment(a._id, 'reject'), className: 'btn-danger btn-sm' }, 'Reject')
+                )
+              )),
+              amendments.filter(a => ['approved','rejected'].includes(a.status)).length > 0 && React.createElement('div', null,
+                React.createElement('h4', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--text-tertiary)', marginTop: '12px', marginBottom: '8px', textTransform: 'uppercase' } }, 'Past Decisions'),
+                amendments.filter(a => ['approved','rejected'].includes(a.status)).map(a => React.createElement('div', {
+                  key: a._id,
+                  style: { background: 'var(--bg-secondary)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }
+                },
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' } },
+                      `${a.department}: ZMW ${a.current_amount.toLocaleString()} → ZMW ${a.requested_amount.toLocaleString()}`
+                    ),
+                    React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
+                      `Reviewed by ${a.md_reviewed_by_name} on ${new Date(a.md_reviewed_at).toLocaleDateString()}${a.md_comments ? ' — ' + a.md_comments : ''}`
+                    )
+                  ),
+                  React.createElement('span', {
+                    className: `badge ${a.status === 'approved' ? 'badge-success' : 'badge-danger'}`
+                  }, a.status)
+                ))
+              )
+            )
+      )
+    ),
+
+    // ════════════════════════════
+    // CHANGE LOG TAB
+    // ════════════════════════════
+    activeTab === 'changelog' && canManage && React.createElement('div', { className: 'card' },
+      React.createElement('div', { className: 'card-header mb-4' },
+        React.createElement('h3', { style: { fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' } }, 'Budget Change Log'),
+        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+          React.createElement('select', {
+            value: logDeptFilter,
+            onChange: e => { setLogDeptFilter(e.target.value); },
+            className: 'form-input', style: { minWidth: '160px' }
+          },
+            React.createElement('option', { value: '' }, 'All Departments'),
+            deptNames.map(n => React.createElement('option', { key: n, value: n }, n))
+          ),
+          React.createElement('button', { onClick: loadChangeLog, className: 'btn-secondary btn-sm' }, 'Filter')
+        )
+      ),
+      logLoading
+        ? React.createElement('p', { style: { color: 'var(--text-tertiary)' } }, 'Loading…')
+        : changeLog.length === 0
+          ? React.createElement(EmptyState, { heading: 'No changes recorded', sub: 'Budget changes will appear here as they are made.' })
+          : React.createElement('div', { className: 'overflow-x-auto' },
+              React.createElement('table', { className: 'w-full text-sm' },
+                React.createElement('thead', null,
+                  React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                    ['Date', 'Department', 'Change Type', 'Old Amount', 'New Amount', 'Changed By', 'Reason'].map(h =>
+                      React.createElement('th', { key: h, className: 'tbl-th' }, h)
+                    )
+                  )
+                ),
+                React.createElement('tbody', null,
+                  changeLog.map(entry => React.createElement('tr', { key: entry._id, style: { borderBottom: '1px solid var(--border-color)' } },
+                    React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)', whiteSpace: 'nowrap' } },
+                      new Date(entry.createdAt).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: 'tbl-td font-semibold' }, entry.department),
+                    React.createElement('td', { className: 'tbl-td' }, changeTypeBadge(entry.change_type)),
+                    React.createElement('td', { className: 'tbl-td' },
+                      entry.old_amount ? `ZMW ${entry.old_amount.toLocaleString()}` : '—'
+                    ),
+                    React.createElement('td', { className: 'tbl-td font-semibold' }, `ZMW ${entry.new_amount.toLocaleString()}`),
+                    React.createElement('td', { className: 'tbl-td', style: { color: 'var(--text-tertiary)' } }, entry.changed_by_name || entry.changed_by),
+                    React.createElement('td', { className: 'tbl-td', style: { maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, entry.reason || '—')
+                  ))
+                )
+              )
+            )
+    )
+
   );
 }
 

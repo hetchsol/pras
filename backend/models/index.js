@@ -14,6 +14,9 @@ const Client = require('./Client');
 const StockItem = require('./StockItem');
 const BudgetSupplement = require('./BudgetSupplement');
 const SystemSetting = require('./SystemSetting');
+const BudgetPlan = require('./BudgetPlan');
+const BudgetChangeLog = require('./BudgetChangeLog');
+const BudgetAmendment = require('./BudgetAmendment');
 
 module.exports = {
   User,
@@ -31,5 +34,8 @@ module.exports = {
   Client,
   StockItem,
   BudgetSupplement,
-  SystemSetting
+  SystemSetting,
+  BudgetPlan,
+  BudgetChangeLog,
+  BudgetAmendment
 };
