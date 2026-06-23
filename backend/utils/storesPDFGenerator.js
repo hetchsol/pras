@@ -27,12 +27,12 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
 
       // ── HEADER ────────────────────────────────────────────────
       const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 30, { height: 50 });
+      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 33, { height: 28 });
 
       doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
-         .text('KSB ZAMBIA LIMITED', 148, 33, { align: 'center', width: 349, lineBreak: false });
+         .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
       doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
-         .text('ISSUE SLIP', 148, 58, { align: 'center', width: 349, lineBreak: false });
+         .text('ISSUE SLIP', 145, 58, { align: 'center', width: 265, lineBreak: false });
 
       // Status badge
       const rawStatus = (slip.status || 'pending').toLowerCase();
@@ -275,12 +275,12 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
 
       // ── HEADER ────────────────────────────────────────────────
       const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 30, { height: 50 });
+      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 33, { height: 28 });
 
       doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
-         .text('KSB ZAMBIA LIMITED', 148, 33, { align: 'center', width: 349, lineBreak: false });
+         .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
       doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
-         .text('PICKING SLIP', 148, 58, { align: 'center', width: 349, lineBreak: false });
+         .text('PICKING SLIP', 145, 58, { align: 'center', width: 265, lineBreak: false });
 
       // Picking slips are always completed
       doc.roundedRect(421, 30, 124, 22, 4).fillAndStroke('#D1FAE5', '#059669');
@@ -448,12 +448,12 @@ async function generateGRNPDF(grn, items, outputPath) {
 
       // ── HEADER ────────────────────────────────────────────────
       const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 30, { height: 50 });
+      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 33, { height: 28 });
 
       doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
-         .text('KSB ZAMBIA LIMITED', 148, 33, { align: 'center', width: 349, lineBreak: false });
+         .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
       doc.font('Helvetica-Bold').fontSize(12).fillColor('#065F46')
-         .text('GOODS RECEIPT NOTE', 148, 58, { align: 'center', width: 349, lineBreak: false });
+         .text('GOODS RECEIPT NOTE', 145, 58, { align: 'center', width: 265, lineBreak: false });
 
       // Status badge
       const rawStatus = (grn.status || 'pending').toLowerCase();
@@ -537,20 +537,21 @@ async function generateGRNPDF(grn, items, outputPath) {
       }
 
       // ── PR DESCRIPTION ────────────────────────────────────────
+      const FIELD_VAL_X = LX + 104;
       if (grn.pr_description) {
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
-           .text('PR Description:', LX, y, { width: 112, lineBreak: false });
+           .text('PR Description:', LX, y, { width: 100, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(grn.pr_description, LX + 116, y, { width: PW - 116 });
+           .text(grn.pr_description, FIELD_VAL_X, y, { width: PW - 104 });
         y += Math.max(1, Math.ceil(grn.pr_description.length / 62)) * 13 + 4;
       }
 
       // ── REMARKS ───────────────────────────────────────────────
       if (grn.remarks) {
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
-           .text('Remarks:', LX, y, { width: 62, lineBreak: false });
+           .text('Remarks:', LX, y, { width: 100, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(grn.remarks, LX + 66, y, { width: PW - 66 });
+           .text(grn.remarks, FIELD_VAL_X, y, { width: PW - 104 });
         y += Math.max(1, Math.ceil(grn.remarks.length / 70)) * 13 + 6;
       }
       y += 8;
