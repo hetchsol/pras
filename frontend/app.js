@@ -12150,8 +12150,8 @@ function BudgetManagement({ user }) {
               style: { fontSize: '11px', color: '#EF4444', marginBottom: '8px', fontStyle: 'italic' }
             }, `Lock reason: ${dept.budget_locked_reason}`),
 
-            // No budget yet
-            !dept.budget_id ? React.createElement('div', null,
+            // No budget yet (budget_id always exists in MongoDB — gate on zero allocation instead)
+            !dept.allocated_amount ? React.createElement('div', null,
               React.createElement('p', { style: { fontSize: '13px', color: '#F59E0B', fontWeight: '600', marginBottom: '10px' } }, 'No budget allocated yet'),
               canManage && (creatingBudget === dept.department
                 ? React.createElement('div', { className: 'space-y-2' },
