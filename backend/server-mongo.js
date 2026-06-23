@@ -1098,10 +1098,59 @@ app.get('/api/clients', authenticate, async (req, res) => {
 
 app.get('/api/admin/departments', authenticate, async (req, res) => {
   try {
-    const departments = await db.Department.find().lean();
+    const departments = await db.Department.find().sort({ name: 1 }).lean();
     res.json(departments.map(d => ({ ...d, id: d._id })));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/departments', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, code, description, is_active } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Department name is required' });
+    const existing = await db.Department.findOne({ name: name.trim() }).lean();
+    if (existing) return res.status(409).json({ error: `Department "${name.trim()}" already exists` });
+    const dept = await db.Department.create({
+      name: name.trim(),
+      code: (code || '').trim(),
+      description: (description || '').trim(),
+      is_active: is_active !== undefined ? Number(is_active) : 1,
+      budget: 0, spent: 0, committed: 0
+    });
+    res.status(201).json({ ...dept.toObject(), id: dept._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/admin/departments/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, code, description, is_active } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Department name is required' });
+    const dept = await db.Department.findByIdAndUpdate(
+      req.params.id,
+      { $set: { name: name.trim(), code: (code || '').trim(), description: (description || '').trim(), is_active: Number(is_active !== undefined ? is_active : 1) } },
+      { new: true }
+    ).lean();
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+    res.json({ ...dept, id: dept._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/admin/departments/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const dept = await db.Department.findById(req.params.id).lean();
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+    if ((dept.committed || 0) > 0 || (dept.spent || 0) > 0) {
+      return res.status(409).json({ error: 'Cannot delete a department with committed or spent budget — remove all requisitions first' });
+    }
+    await db.Department.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

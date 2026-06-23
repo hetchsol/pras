@@ -2031,12 +2031,13 @@ function App() {
     setLoading(true);
     try {
       // Load all requisition types (purchase requisitions and forms)
-      const [requisitions, vendors, expenseClaims, eftRequisitions, pettyCashRequisitions] = await Promise.all([
+      const [requisitions, vendors, expenseClaims, eftRequisitions, pettyCashRequisitions, departments] = await Promise.all([
         api.getRequisitions(currentUser?.id, currentUser?.role),
         api.getVendors(),
         api.getExpenseClaims(),
         api.getEFTRequisitions(),
-        api.getPettyCashRequisitions()
+        api.getPettyCashRequisitions(),
+        api.getDepartments()
       ]);
       setData({
         requisitions,
@@ -2044,8 +2045,8 @@ function App() {
         expenseClaims,
         eftRequisitions,
         pettyCashRequisitions,
-        users: [], // Not implemented yet
-        departments: [] // Not implemented yet
+        users: [],
+        departments
       });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -2151,7 +2152,7 @@ function App() {
         view === 'incoming-prs' && React.createElement(IncomingPRsView, { user: currentUser, setView, setSelectedReq }),
         view === 'admin' && React.createElement(AdminPanel, { data, loadData }),
         view === 'dept-budget' && React.createElement(HODBudgetView, { user: currentUser }),
-        view === 'budget' && React.createElement(BudgetManagement, { user: currentUser }),
+        view === 'budget' && React.createElement(BudgetManagement, { user: currentUser, allDepartments: data.departments }),
         view === 'fx-rates' && React.createElement(FXRatesManagement, { user: currentUser }),
         view === 'reports' && React.createElement(Reports, { data }),
         view === 'analytics' && React.createElement(AnalyticsDashboard, { user: currentUser }),
@@ -11699,7 +11700,7 @@ function HODBudgetView({ user }) {
   );
 }
 
-function BudgetManagement({ user }) {
+function BudgetManagement({ user, allDepartments = [] }) {
   const canManage = ['finance', 'finance_manager', 'md', 'admin'].includes(user.role);
   const isFinanceManager = ['finance_manager', 'admin'].includes(user.role);
   const isMD = user.role === 'md' || user.role === 'admin';
@@ -11970,7 +11971,11 @@ function BudgetManagement({ user }) {
     : suppFilter === 'pending' ? pendingSupps
     : historySupps.filter(s => s.status === suppFilter);
 
-  const deptNames = budgets.map(d => d.department);
+  // Union of departments that have budget records AND departments defined in admin — single source of truth
+  const deptNames = Array.from(new Set([
+    ...allDepartments.filter(d => d.is_active !== 0).map(d => d.name),
+    ...budgets.map(d => d.department)
+  ])).sort();
 
   // ── Change type badge ──
   const changeTypeBadge = (ct) => {
@@ -12480,13 +12485,13 @@ function BudgetManagement({ user }) {
                 )
               ),
               React.createElement('tbody', null,
-                budgets.map(dept => React.createElement('tr', { key: dept.department, style: { borderBottom: '1px solid var(--border-color)' } },
-                  React.createElement('td', { className: 'tbl-td font-semibold' }, dept.department),
+                deptNames.map(name => React.createElement('tr', { key: name, style: { borderBottom: '1px solid var(--border-color)' } },
+                  React.createElement('td', { className: 'tbl-td font-semibold' }, name),
                   React.createElement('td', { className: 'tbl-td' },
                     React.createElement('input', {
                       type: 'number', min: '0',
-                      value: newPlanAllocs[dept.department] || '',
-                      onChange: e => setNewPlanAllocs(prev => ({ ...prev, [dept.department]: e.target.value })),
+                      value: newPlanAllocs[name] || '',
+                      onChange: e => setNewPlanAllocs(prev => ({ ...prev, [name]: e.target.value })),
                       className: 'form-input', placeholder: '0.00',
                       style: { width: '160px' }
                     })
