@@ -2770,6 +2770,33 @@ function ThemeToggle() {
 function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sidebarOpen, setSidebarOpen }) {
   const [expandedMenus, setExpandedMenus] = useState({});
   const eftAccess = useEFTAccess(user && user.role);
+  const canControlBypass = ['admin', 'finance_manager', 'md'].includes(user && user.role) || (user && user.username === 'hetch.mbunda');
+  const [bypassEnabled, setBypassEnabled] = useState(false);
+  const [bypassLoading, setBypassLoading] = useState(false);
+
+  useEffect(() => {
+    if (canControlBypass) {
+      api.getEFTBypass().then(d => setBypassEnabled(d.enabled)).catch(() => {});
+    }
+  }, [canControlBypass]);
+
+  // Keep bypass display in sync when useEFTAccess detects a server-side change
+  useEffect(() => {
+    if (eftAccess.bypassActive !== undefined) setBypassEnabled(!!eftAccess.bypassActive);
+  }, [eftAccess.bypassActive]);
+
+  const handleBypassToggle = async () => {
+    if (!canControlBypass || bypassLoading) return;
+    const next = !bypassEnabled;
+    if (next && !confirm('Enable EFT time-window bypass? This allows EFT creation and approval outside normal business hours. Only use for urgent out-of-hours processing.')) return;
+    setBypassLoading(true);
+    try {
+      const result = await api.setEFTBypass(next);
+      setBypassEnabled(result.enabled);
+      showToast(result.enabled ? 'EFT time restriction bypassed' : 'EFT time restriction restored');
+    } catch (e) { showToast('Failed to update EFT bypass: ' + e.message); }
+    finally { setBypassLoading(false); }
+  };
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = parseInt(localStorage.getItem('sidebarWidth'), 10);
     return saved && saved >= 180 && saved <= 480 ? saved : 256;
@@ -2856,6 +2883,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
       children: [
         { id: 'expense-claims', label: 'Expense Claim', isLink: true, href: 'expense-claim.html', show: true },
         { id: 'eft-requisitions', label: 'EFT / Cheque Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
+        { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass, toggled: bypassEnabled, loading: bypassLoading, onToggle: handleBypassToggle },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
       ]
@@ -3018,6 +3046,36 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
             // Children - shown when expanded
             isExpanded && React.createElement('div', { className: "ml-4 mt-1 space-y-1" },
               item.children.filter(child => child.show).map(child =>
+                child.isToggle ?
+                  React.createElement('div', {
+                    key: child.id,
+                    className: "flex items-center justify-between px-4 py-2 rounded-lg",
+                    style: { backgroundColor: child.toggled ? 'rgba(217,119,6,0.12)' : 'transparent' }
+                  },
+                    React.createElement('span', {
+                      style: { fontSize: '13px', fontWeight: '600', color: child.toggled ? '#D97706' : 'var(--sidebar-text-muted)' }
+                    }, child.label),
+                    React.createElement('div', {
+                      onClick: child.loading ? undefined : child.onToggle,
+                      title: child.toggled ? 'Bypass active — click to disable' : 'Click to bypass EFT time restriction',
+                      style: {
+                        width: '36px', height: '20px', borderRadius: '10px', position: 'relative',
+                        cursor: child.loading ? 'not-allowed' : 'pointer', flexShrink: 0,
+                        background: child.toggled ? '#D97706' : 'var(--border-color)',
+                        transition: 'background 0.2s', opacity: child.loading ? 0.6 : 1
+                      }
+                    },
+                      React.createElement('div', {
+                        style: {
+                          position: 'absolute', top: '2px',
+                          left: child.toggled ? '18px' : '2px',
+                          width: '16px', height: '16px', borderRadius: '50%',
+                          background: '#fff', transition: 'left 0.2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                        }
+                      })
+                    )
+                  ) :
                 child.isLink ?
                   (function renderLink() {
                     const locked = isItemLocked(child);
@@ -10162,15 +10220,9 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
 function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   const [requisitions, setRequisitions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [bypassEnabled, setBypassEnabled] = useState(false);
-  const [bypassLoading, setBypassLoading] = useState(false);
-  const canControlBypass = ['admin', 'finance_manager', 'md'].includes(user.role) || user.username === 'hetch.mbunda';
 
   useEffect(() => {
     fetchEFTRequisitions();
-    if (canControlBypass) {
-      api.getEFTBypass().then(d => setBypassEnabled(d.enabled)).catch(() => {});
-    }
   }, []);
 
   const fetchEFTRequisitions = async () => {
@@ -10273,19 +10325,6 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
     }
   };
 
-  const handleBypassToggle = async () => {
-    if (!canControlBypass) return;
-    const next = !bypassEnabled;
-    if (next && !confirm('Enable EFT time-window bypass? This allows EFT creation and approval at any time outside normal business hours. Only use for urgent out-of-hours processing.')) return;
-    setBypassLoading(true);
-    try {
-      const result = await api.setEFTBypass(next);
-      setBypassEnabled(result.enabled);
-      showToast(result.enabled ? 'EFT time restriction bypassed' : 'EFT time restriction restored');
-    } catch (e) { showToast('Failed to update EFT bypass: ' + e.message); }
-    finally { setBypassLoading(false); }
-  };
-
   const isApproved = (status) => {
     return status === 'approved' || status === 'hod_approved' || status === 'finance_approved' || status === 'md_approved';
   };
@@ -10293,44 +10332,10 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
-
-    // Bypass active warning banner
-    bypassEnabled && canControlBypass && React.createElement('div', {
-      className: "flex items-center gap-3 px-4 py-3 rounded-lg border-l-4",
-      style: { backgroundColor: '#FEF3C7', borderColor: '#D97706', color: '#92400E' }
-    },
-      React.createElement('span', { style: { fontSize: '18px' } }, '⚠️'),
-      React.createElement('div', null,
-        React.createElement('p', { className: "font-semibold text-sm" }, 'EFT Time Window Bypass is ACTIVE'),
-        React.createElement('p', { style: { fontSize: '12px' } }, 'EFT requisitions can be created and approved outside normal business hours. Disable when no longer needed.')
-      )
-    ),
-
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "EFT Requisitions"),
-        React.createElement('div', { className: "flex gap-3 flex-wrap items-center" },
-          canControlBypass && React.createElement('label', {
-            className: "flex items-center gap-2 cursor-pointer select-none",
-            title: "Override EFT time window restriction"
-          },
-            React.createElement('span', { style: { fontSize: '13px', fontWeight: '600', color: bypassEnabled ? '#D97706' : 'var(--text-secondary)' } }, 'Bypass Time Window'),
-            React.createElement('div', {
-              onClick: bypassLoading ? undefined : handleBypassToggle,
-              style: {
-                width: '44px', height: '24px', borderRadius: '12px', position: 'relative', cursor: bypassLoading ? 'not-allowed' : 'pointer',
-                background: bypassEnabled ? '#D97706' : '#D1D5DB', transition: 'background 0.2s'
-              }
-            },
-              React.createElement('div', {
-                style: {
-                  position: 'absolute', top: '3px', left: bypassEnabled ? '23px' : '3px',
-                  width: '18px', height: '18px', borderRadius: '50%', background: '#fff',
-                  transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                }
-              })
-            )
-          ),
+        React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'eft-requisition.html',
             className: "btn-primary"
