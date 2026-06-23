@@ -2978,6 +2978,16 @@ app.post('/api/budgets/create', authenticate, async (req, res) => {
       { $set: { budget: parseFloat(allocated_amount) } },
       { new: true, upsert: true }
     ).lean();
+    await db.BudgetChangeLog.create({
+      department,
+      fiscal_year: req.body.fiscal_year || String(new Date().getFullYear()),
+      change_type: 'initial_allocation',
+      old_amount: 0,
+      new_amount: parseFloat(allocated_amount),
+      reason: 'Initial allocation',
+      changed_by: req.user.username,
+      changed_by_name: req.user.full_name
+    });
     res.json(withAvailable(dept));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -2994,12 +3004,23 @@ app.put('/api/budgets/:budgetId/allocate', authenticate, async (req, res) => {
     if (!allocated_amount || Number(allocated_amount) <= 0) {
       return res.status(400).json({ error: 'A positive allocated_amount is required' });
     }
+    const oldDept = await db.Department.findById(req.params.budgetId).lean();
     const dept = await db.Department.findByIdAndUpdate(
       req.params.budgetId,
       { $set: { budget: parseFloat(allocated_amount) } },
       { new: true }
     ).lean();
     if (!dept) return res.status(404).json({ error: 'Department not found' });
+    await db.BudgetChangeLog.create({
+      department: dept.name,
+      fiscal_year: req.body.fiscal_year || String(new Date().getFullYear()),
+      change_type: 'direct_edit',
+      old_amount: oldDept ? (oldDept.budget || 0) : 0,
+      new_amount: parseFloat(allocated_amount),
+      reason: req.body.reason || 'Direct allocation update',
+      changed_by: req.user.username,
+      changed_by_name: req.user.full_name
+    });
     res.json(withAvailable(dept));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -4332,10 +4353,22 @@ app.put('/api/budget-supplements/:id/review', authenticate, async (req, res) => 
 
       // When MD approves: increment the department's budget allocation
       if (action === 'approve') {
+        const deptBefore = await db.Department.findOne({ name: supp.department }).lean();
         await db.Department.findOneAndUpdate(
           { name: supp.department },
           { $inc: { budget: supp.requested_amount } }
         );
+        await db.BudgetChangeLog.create({
+          department: supp.department,
+          fiscal_year: String(new Date().getFullYear()),
+          change_type: 'supplement_approved',
+          old_amount: deptBefore ? (deptBefore.budget || 0) : 0,
+          new_amount: (deptBefore ? (deptBefore.budget || 0) : 0) + supp.requested_amount,
+          reason: `Budget supplement approved: ${supp.justification || ''}`,
+          reference_id: String(supp._id),
+          changed_by: req.user.username,
+          changed_by_name: req.user.full_name
+        });
       }
     } else {
       return res.status(403).json({ error: 'Not authorised to review supplement requests' });
@@ -4343,6 +4376,288 @@ app.put('/api/budget-supplements/:id/review', authenticate, async (req, res) => 
 
     await supp.save();
     res.json(supp);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================
+// BUDGET PLAN ROUTES
+// ============================================
+
+// GET /api/budget-plans
+app.get('/api/budget-plans', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const filter = {};
+    if (req.query.fiscal_year) filter.fiscal_year = req.query.fiscal_year;
+    const plans = await db.BudgetPlan.find(filter).sort({ createdAt: -1 }).lean();
+    res.json(plans);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/budget-plans — Finance Manager/Admin creates a draft
+app.post('/api/budget-plans', authenticate, async (req, res) => {
+  try {
+    if (!['finance_manager', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only Finance Manager or Admin can create budget plans' });
+    }
+    const { fiscal_year, allocations, notes } = req.body;
+    if (!fiscal_year || !Array.isArray(allocations) || allocations.length === 0) {
+      return res.status(400).json({ error: 'fiscal_year and allocations are required' });
+    }
+    const plan = await db.BudgetPlan.create({
+      fiscal_year,
+      allocations,
+      notes: notes || '',
+      prepared_by: req.user.username,
+      prepared_by_name: req.user.full_name,
+      status: 'draft'
+    });
+    res.status(201).json(plan);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/budget-plans/:id
+app.get('/api/budget-plans/:id', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const plan = await db.BudgetPlan.findById(req.params.id).lean();
+    if (!plan) return res.status(404).json({ error: 'Budget plan not found' });
+    res.json(plan);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /api/budget-plans/:id — update draft allocations
+app.put('/api/budget-plans/:id', authenticate, async (req, res) => {
+  try {
+    if (!['finance_manager', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const plan = await db.BudgetPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Budget plan not found' });
+    if (plan.status !== 'draft') {
+      return res.status(400).json({ error: 'Only draft plans can be edited' });
+    }
+    const { allocations, notes } = req.body;
+    if (Array.isArray(allocations)) plan.allocations = allocations;
+    if (notes !== undefined) plan.notes = notes;
+    await plan.save();
+    res.json(plan);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/budget-plans/:id/submit — Finance Manager submits draft to MD
+app.post('/api/budget-plans/:id/submit', authenticate, async (req, res) => {
+  try {
+    if (!['finance_manager', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const plan = await db.BudgetPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Budget plan not found' });
+    if (plan.status !== 'draft') {
+      return res.status(400).json({ error: 'Only draft plans can be submitted' });
+    }
+    plan.status = 'pending_md';
+    plan.submitted_at = new Date();
+    await plan.save();
+    res.json(plan);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /api/budget-plans/:id/review — MD approves/rejects
+app.put('/api/budget-plans/:id/review', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'md' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only MD or Admin can review budget plans' });
+    }
+    const { action, comments } = req.body;
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
+    }
+    const plan = await db.BudgetPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Budget plan not found' });
+    if (plan.status !== 'pending_md') {
+      return res.status(400).json({ error: 'This plan is not awaiting MD review' });
+    }
+    plan.md_reviewed_by = req.user.username;
+    plan.md_reviewed_by_name = req.user.full_name;
+    plan.md_reviewed_at = new Date();
+    plan.md_comments = comments || '';
+    plan.status = action === 'approve' ? 'approved' : 'rejected';
+
+    if (action === 'approve') {
+      for (const alloc of plan.allocations) {
+        const deptBefore = await db.Department.findOne({ name: alloc.department }).lean();
+        await db.Department.findOneAndUpdate(
+          { name: alloc.department },
+          { $set: { budget: alloc.amount } },
+          { upsert: true }
+        );
+        await db.BudgetChangeLog.create({
+          department: alloc.department,
+          fiscal_year: plan.fiscal_year,
+          change_type: 'plan_approved',
+          old_amount: deptBefore ? (deptBefore.budget || 0) : 0,
+          new_amount: alloc.amount,
+          reason: `Budget plan approved for FY ${plan.fiscal_year}${comments ? ': ' + comments : ''}`,
+          reference_id: String(plan._id),
+          changed_by: req.user.username,
+          changed_by_name: req.user.full_name
+        });
+      }
+    }
+
+    await plan.save();
+    res.json(plan);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE /api/budget-plans/:id — delete draft
+app.delete('/api/budget-plans/:id', authenticate, async (req, res) => {
+  try {
+    if (!['finance_manager', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const plan = await db.BudgetPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ error: 'Budget plan not found' });
+    if (plan.status !== 'draft') {
+      return res.status(400).json({ error: 'Only draft plans can be deleted' });
+    }
+    await plan.deleteOne();
+    res.json({ message: 'Budget plan deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================
+// BUDGET AMENDMENT ROUTES
+// ============================================
+
+// GET /api/budget-amendments
+app.get('/api/budget-amendments', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const filter = {};
+    if (req.query.fiscal_year) filter.fiscal_year = req.query.fiscal_year;
+    const amendments = await db.BudgetAmendment.find(filter).sort({ createdAt: -1 }).lean();
+    res.json(amendments);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/budget-amendments — Finance Manager creates amendment request
+app.post('/api/budget-amendments', authenticate, async (req, res) => {
+  try {
+    if (!['finance_manager', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only Finance Manager or Admin can request amendments' });
+    }
+    const { department, fiscal_year, requested_amount, reason } = req.body;
+    if (!department || !fiscal_year || !requested_amount || !reason) {
+      return res.status(400).json({ error: 'department, fiscal_year, requested_amount and reason are required' });
+    }
+    if (Number(requested_amount) <= 0) {
+      return res.status(400).json({ error: 'requested_amount must be positive' });
+    }
+    const dept = await db.Department.findOne({ name: department }).lean();
+    const current_amount = dept ? (dept.budget || 0) : 0;
+    const amendment = await db.BudgetAmendment.create({
+      department,
+      fiscal_year,
+      current_amount,
+      requested_amount: parseFloat(requested_amount),
+      reason: reason.trim(),
+      status: 'pending_md',
+      requested_by: req.user.username,
+      requested_by_name: req.user.full_name
+    });
+    res.status(201).json(amendment);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /api/budget-amendments/:id/review — MD approves/rejects
+app.put('/api/budget-amendments/:id/review', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'md' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only MD or Admin can review amendments' });
+    }
+    const { action, comments } = req.body;
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
+    }
+    const amendment = await db.BudgetAmendment.findById(req.params.id);
+    if (!amendment) return res.status(404).json({ error: 'Amendment not found' });
+    if (amendment.status !== 'pending_md') {
+      return res.status(400).json({ error: 'This amendment is not awaiting MD review' });
+    }
+    amendment.md_reviewed_by = req.user.username;
+    amendment.md_reviewed_by_name = req.user.full_name;
+    amendment.md_reviewed_at = new Date();
+    amendment.md_comments = comments || '';
+    amendment.status = action === 'approve' ? 'approved' : 'rejected';
+
+    if (action === 'approve') {
+      await db.Department.findOneAndUpdate(
+        { name: amendment.department },
+        { $set: { budget: amendment.requested_amount } }
+      );
+      await db.BudgetChangeLog.create({
+        department: amendment.department,
+        fiscal_year: amendment.fiscal_year,
+        change_type: 'amendment_approved',
+        old_amount: amendment.current_amount,
+        new_amount: amendment.requested_amount,
+        reason: `Amendment approved: ${amendment.reason}${comments ? ' — ' + comments : ''}`,
+        reference_id: String(amendment._id),
+        changed_by: req.user.username,
+        changed_by_name: req.user.full_name
+      });
+    }
+
+    await amendment.save();
+    res.json(amendment);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================
+// BUDGET CHANGE LOG ROUTE
+// ============================================
+
+// GET /api/budget-change-log
+app.get('/api/budget-change-log', authenticate, async (req, res) => {
+  try {
+    if (!BUDGET_MGMT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Not authorised' });
+    }
+    const filter = {};
+    if (req.query.department) filter.department = req.query.department;
+    if (req.query.fiscal_year) filter.fiscal_year = req.query.fiscal_year;
+    const logs = await db.BudgetChangeLog.find(filter).sort({ createdAt: -1 }).lean();
+    res.json(logs);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
