@@ -6962,6 +6962,7 @@ function AdminPanel({ data, loadData }) {
             React.createElement('option', { value: "hod" }, "HOD"),
             React.createElement('option', { value: "procurement" }, "Procurement"),
             React.createElement('option', { value: "finance" }, "Finance"),
+            React.createElement('option', { value: "finance_manager" }, "Finance Manager"),
             React.createElement('option', { value: "md" }, "MD"),
             React.createElement('option', { value: "admin" }, "Admin")
           ),
@@ -6970,12 +6971,11 @@ function AdminPanel({ data, loadData }) {
             onChange: (e) => setUserForm({ ...userForm, department: e.target.value }),
             className: "form-input"
           },
-            React.createElement('option', { value: "IT" }, "IT"),
-            React.createElement('option', { value: "HR" }, "HR"),
-            React.createElement('option', { value: "Finance" }, "Finance"),
-            React.createElement('option', { value: "Operations" }, "Operations"),
-            React.createElement('option', { value: "Procurement" }, "Procurement"),
-            React.createElement('option', { value: "Executive" }, "Executive")
+            React.createElement('option', { value: "" }, "— Select Department —"),
+            (data.departments && data.departments.length > 0
+              ? data.departments.filter(d => d.is_active !== 0).sort((a, b) => a.name.localeCompare(b.name))
+              : []
+            ).map(d => React.createElement('option', { key: d._id || d.id || d.name, value: d.name }, d.name))
           ),
           React.createElement('label', { className: "flex items-center gap-2" },
             React.createElement('input', {
