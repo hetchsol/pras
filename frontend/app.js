@@ -10164,7 +10164,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   const [loading, setLoading] = useState(true);
   const [bypassEnabled, setBypassEnabled] = useState(false);
   const [bypassLoading, setBypassLoading] = useState(false);
-  const canControlBypass = ['admin', 'finance', 'finance_manager', 'md'].includes(user.role);
+  const canControlBypass = ['admin', 'finance_manager', 'md'].includes(user.role) || user.username === 'hetch.mbunda';
 
   useEffect(() => {
     fetchEFTRequisitions();
