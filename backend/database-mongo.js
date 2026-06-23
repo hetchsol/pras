@@ -13,7 +13,8 @@ const {
   PettyCashRequisition,
   Client,
   StockItem,
-  BudgetSupplement
+  BudgetSupplement,
+  SystemSetting
 } = require('./models');
 
 // Connect to MongoDB
@@ -337,5 +338,6 @@ module.exports = {
   PettyCashRequisition,
   Client,
   StockItem,
-  BudgetSupplement
+  BudgetSupplement,
+  SystemSetting
 };

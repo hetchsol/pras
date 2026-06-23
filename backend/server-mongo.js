@@ -70,14 +70,29 @@ const { getEFTAccess, lockoutMessage } = require('./utils/eftSchedule');
 // EFT module is time-gated (Africa/Lusaka, weekdays only). Returns
 // 423 Locked outside the window. Admin bypasses approve checks but
 // still follows the create window — see backend/utils/eftSchedule.js.
-const requireEFTAccess = (action) => (req, res, next) => {
-  const access = getEFTAccess(req.user && req.user.role);
-  const allowed = action === 'create' ? access.canCreate : access.canApprove;
-  if (allowed) return next();
-  return res.status(423).json({
-    error: lockoutMessage(action, access),
-    eft_schedule: access
-  });
+const EFT_BYPASS_ROLES = ['admin', 'finance', 'finance_manager', 'md'];
+
+async function isEFTBypassEnabled() {
+  try {
+    const doc = await db.SystemSetting.findOne({ key: 'eft_bypass' }).lean();
+    return doc?.value === true;
+  } catch { return false; }
+}
+
+const requireEFTAccess = (action) => async (req, res, next) => {
+  try {
+    const bypassEnabled = await isEFTBypassEnabled();
+    if (bypassEnabled && EFT_BYPASS_ROLES.includes(req.user && req.user.role)) return next();
+    const access = getEFTAccess(req.user && req.user.role);
+    const allowed = action === 'create' ? access.canCreate : access.canApprove;
+    if (allowed) return next();
+    return res.status(423).json({
+      error: lockoutMessage(action, access),
+      eft_schedule: access
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error checking EFT access' });
+  }
 };
 const {
   getRequisitionAmountZMW,
@@ -2081,9 +2096,34 @@ app.get('/api/eft-requisitions', authenticate, async (req, res) => {
 
 // Authoritative time-window state for the EFT module. Frontend reads
 // this to grey out controls; backend re-checks on every mutation.
-app.get('/api/eft-requisitions/schedule', authenticate, (req, res) => {
+app.get('/api/eft-requisitions/schedule', authenticate, async (req, res) => {
   const access = getEFTAccess(req.user && req.user.role);
-  res.json(access);
+  const bypassEnabled = await isEFTBypassEnabled();
+  const canBypass = bypassEnabled && EFT_BYPASS_ROLES.includes(req.user && req.user.role);
+  res.json({ ...access, bypass_active: canBypass });
+});
+
+// EFT bypass toggle — readable and writable by admin/finance/finance_manager/md
+app.get('/api/system-settings/eft-bypass', authenticate, async (req, res) => {
+  if (!EFT_BYPASS_ROLES.includes(req.user && req.user.role)) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  const doc = await db.SystemSetting.findOne({ key: 'eft_bypass' }).lean();
+  res.json({ enabled: doc?.value === true });
+});
+
+app.put('/api/system-settings/eft-bypass', authenticate, async (req, res) => {
+  if (!EFT_BYPASS_ROLES.includes(req.user && req.user.role)) {
+    return res.status(403).json({ error: 'Not authorised' });
+  }
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be boolean' });
+  await db.SystemSetting.findOneAndUpdate(
+    { key: 'eft_bypass' },
+    { $set: { value: enabled } },
+    { upsert: true }
+  );
+  res.json({ enabled });
 });
 
 app.post('/api/eft-requisitions', authenticate, requireEFTAccess('create'), async (req, res) => {

@@ -13,6 +13,7 @@ const PickingSlip = require('./PickingSlip');
 const Client = require('./Client');
 const StockItem = require('./StockItem');
 const BudgetSupplement = require('./BudgetSupplement');
+const SystemSetting = require('./SystemSetting');
 
 module.exports = {
   User,
@@ -29,5 +30,6 @@ module.exports = {
   PickingSlip,
   Client,
   StockItem,
-  BudgetSupplement
+  BudgetSupplement,
+  SystemSetting
 };
