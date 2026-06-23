@@ -1879,6 +1879,9 @@ app.put('/api/requisitions/:id/hod-approve', authenticate, async (req, res) => {
 
 // Finance approve/reject requisition
 app.put('/api/requisitions/:id/finance-approve', authenticate, async (req, res) => {
+  if (!['finance', 'finance_manager', 'admin'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Only Finance can perform this action' });
+  }
   try {
     const reqId = req.params.id;
     const { comments, override } = req.body;
@@ -2603,7 +2606,7 @@ app.put('/api/forms/expense-claims/:id/approve', authenticate, async (req, res) 
       newStatus = 'rejected';
     } else if (approver_role === 'hod') {
       newStatus = 'pending_finance';
-    } else if (approver_role === 'finance') {
+    } else if (approver_role === 'finance' || approver_role === 'finance_manager') {
       newStatus = 'pending_md';
     } else if (approver_role === 'md' || approver_role === 'admin') {
       newStatus = 'approved';
@@ -2674,7 +2677,7 @@ app.put('/api/forms/eft-requisitions/:id/approve', authenticate, requireEFTAcces
       newStatus = 'rejected';
     } else if (approver_role === 'hod') {
       newStatus = 'pending_finance';
-    } else if (approver_role === 'finance') {
+    } else if (approver_role === 'finance' || approver_role === 'finance_manager') {
       newStatus = 'pending_md';
     } else if (approver_role === 'md' || approver_role === 'admin') {
       newStatus = 'approved';
@@ -2746,7 +2749,7 @@ app.put('/api/forms/petty-cash-requisitions/:id/approve', authenticate, async (r
       newStatus = 'rejected';
     } else if (approver_role === 'hod') {
       newStatus = 'pending_finance';
-    } else if (approver_role === 'finance') {
+    } else if (approver_role === 'finance' || approver_role === 'finance_manager') {
       newStatus = 'pending_md';
     } else if (approver_role === 'md' || approver_role === 'admin') {
       newStatus = 'approved';

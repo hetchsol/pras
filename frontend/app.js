@@ -565,6 +565,15 @@ const api = {
     if (!res.ok) throw new Error('Failed to delete plan');
     return res.json();
   },
+  updateBudgetPlan: async (id, allocations, notes) => {
+    const res = await fetchWithAuth(`${API_URL}/budget-plans/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allocations, notes })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed to update plan'); }
+    return res.json();
+  },
   getBudgetAmendments: async (fiscalYear) => {
     const res = await fetchWithAuth(`${API_URL}/budget-amendments?fiscal_year=${fiscalYear}`);
     if (!res.ok) throw new Error('Failed to fetch amendments');
@@ -2980,11 +2989,11 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'requisitions', label: 'My Submissions', show: true },
         { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
         { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(user.role, 'procurement', 'admin') },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) },
-        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
-        { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'md', 'admin']) },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'admin']) },
+        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
+        { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
-        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'md', 'admin') }
+        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
       ]
     },
     // Financial Forms Group — mirrors the Dashboard's Quick Actions.
@@ -3008,20 +3017,20 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
           onPickerCancel: () => setBypassPickerOpen(false),
           untilLabel: bypassEnabled ? fmtBypassTime(bypassUntil) : '' },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'admin']) }
       ]
     },
     // Stores Management Group - Issue Slips & Picking Slips
     {
       id: 'stores-group',
       label: 'Stores',
-      show: user.can_access_stores || hasAnyRole(user.role, ['admin', 'hod', 'finance']),
+      show: user.can_access_stores || hasAnyRole(user.role, ['admin', 'hod', 'finance', 'finance_manager']),
       isGroup: true,
       children: [
         { id: 'grns', label: 'Goods Receipt Notes', show: true },
         { id: 'create-grn', label: 'Create GRN', show: user.can_access_stores, isLink: true, href: 'grn.html' },
         { id: 'stock-register', label: 'Real-Time Stock Register', show: true },
-        { id: 'stock-items', label: 'Stock Items', show: user.can_access_stores || user.role === 'admin' || user.role === 'hod' || user.role === 'finance' },
+        { id: 'stock-items', label: 'Stock Items', show: user.can_access_stores || user.role === 'admin' || user.role === 'hod' || user.role === 'finance' || user.role === 'finance_manager' },
         { id: 'issue-slips', label: 'Issue Slips', show: true },
         { id: 'create-issue-slip', label: 'Create Issue Slip', show: user.can_access_stores, isLink: true, href: 'issue-slip.html' },
         { id: 'picking-slips', label: 'Picking Slips', show: true },
@@ -3048,7 +3057,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
       isGroup: true,
       children: [
         { id: 'reports', label: 'Reports', show: true },
-        { id: 'analytics', label: 'Analytics', show: hasRole(user.role, 'finance', 'md', 'admin') }
+        { id: 'analytics', label: 'Analytics', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') }
       ]
     },
     // Admin Panel
@@ -3743,11 +3752,11 @@ function Header({ user, logout, setView, view }) {
             onClick: () => setView('admin'),
             className: `px-4 py-2 rounded-lg font-medium transition-colors ${view === 'admin' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`
           }, "Admin Panel"),
-          (user.role === 'finance' || user.role === 'md' || user.role === 'admin') && React.createElement('button', {
+          (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) && React.createElement('button', {
             onClick: () => setView('budget'),
             className: `px-4 py-2 rounded-lg font-medium transition-colors ${view === 'budget' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`
           }, "Budget"),
-          (user.role === 'finance' || user.role === 'procurement' || user.role === 'admin') && React.createElement('button', {
+          (['finance', 'finance_manager', 'procurement', 'admin'].includes(user.role)) && React.createElement('button', {
             onClick: () => setView('fx-rates'),
             className: `px-4 py-2 rounded-lg font-medium transition-colors ${view === 'fx-rates' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`
           }, "FX Rates"),
@@ -3856,7 +3865,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
     const role = user.role;
     if (role === 'hod') {
       return status === 'pending_hod';
-    } else if (role === 'finance') {
+    } else if (role === 'finance' || role === 'finance_manager') {
       return status === 'pending_finance' || status === 'hod_approved';
     } else if (role === 'md') {
       return status === 'pending_md' || status === 'finance_approved';
@@ -3958,7 +3967,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         // Purchase Requisitions use role-specific approve endpoints
         if (user.role === 'hod') {
           endpoint = `${API_URL}/requisitions/${form.id}/hod-approve`;
-        } else if (user.role === 'finance') {
+        } else if (user.role === 'finance' || user.role === 'finance_manager') {
           endpoint = `${API_URL}/requisitions/${form.id}/finance-approve`;
         } else if (user.role === 'md') {
           endpoint = `${API_URL}/requisitions/${form.id}/md-approve`;
@@ -4612,7 +4621,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               // Quick Approval Buttons for HOD, Finance, and MD (NOT Procurement)
               showBreakdown === 'pending' && (
                 (user.role === 'hod' && req.status === 'pending_hod') ||
-                (user.role === 'finance' && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
+                (['finance', 'finance_manager'].includes(user.role) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
                 (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved'))
               ) &&
               React.createElement('div', { className: "flex items-center gap-2 mt-3" },
@@ -5513,7 +5522,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   // Load FX rates when component mounts
   useEffect(() => {
     // Load FX rates for all roles that review requisitions
-    if (['procurement', 'finance', 'hod', 'md', 'admin'].includes(user.role)) {
+    if (['procurement', 'finance', 'finance_manager', 'hod', 'md', 'admin'].includes(user.role)) {
       fetch(`${API_URL}/fx-rates`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
       })
@@ -5538,7 +5547,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
 
   // Load quotes and adjudication for Finance and MD
   useEffect(() => {
-    if (req && req.has_quotes && ['finance', 'md', 'admin'].includes(user.role)) {
+    if (req && req.has_quotes && ['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) {
       // Load quotes
       api.getQuotes(req.id)
         .then(quotesData => setQuotes(quotesData))
@@ -5642,7 +5651,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       if (user.role === 'hod') {
         endpoint = `${API_URL}/requisitions/${req.id}/hod-approve`;
         successMessage = 'Requisition approved and sent to Procurement';
-      } else if (user.role === 'finance') {
+      } else if (user.role === 'finance' || user.role === 'finance_manager') {
         // Finance can approve as HOD for pre-adjudication requisitions
         if (req.status === 'pending_hod' && !req.has_adjudication) {
           endpoint = `${API_URL}/requisitions/${req.id}/hod-approve`;
@@ -5732,7 +5741,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         let endpoint = '';
         if (user.role === 'hod') {
           endpoint = `${API_URL}/requisitions/${req.id}/hod-approve`;
-        } else if (user.role === 'finance') {
+        } else if (user.role === 'finance' || user.role === 'finance_manager') {
           // Finance can reject as HOD for pre-adjudication requisitions
           if (req.status === 'pending_hod' && !req.has_adjudication) {
             endpoint = `${API_URL}/requisitions/${req.id}/hod-approve`;
@@ -5944,7 +5953,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         ),
 
         // Procurement Details Display (for Finance and MD)
-        (user.role === 'finance' || user.role === 'md') && (req.selected_vendor || req.unit_price || selectedVendor || unitPrice) && React.createElement('div', { className: "p-6 bg-purple-50 rounded-lg border border-purple-200" },
+        (['finance', 'finance_manager', 'md'].includes(user.role)) && (req.selected_vendor || req.unit_price || selectedVendor || unitPrice) && React.createElement('div', { className: "p-6 bg-purple-50 rounded-lg border border-purple-200" },
           React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "Procurement Details"),
           React.createElement('div', { className: "grid grid-cols-2 gap-4" },
             React.createElement('div', null,
@@ -6121,7 +6130,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         ),
 
         // Display Quotes and Adjudication for Finance and MD
-        ['finance', 'md', 'admin'].includes(user.role) && quotes.length > 0 && React.createElement('div', { className: "space-y-4 p-6 bg-purple-50 rounded-lg border border-purple-200" },
+        ['finance', 'finance_manager', 'md', 'admin'].includes(user.role) && quotes.length > 0 && React.createElement('div', { className: "space-y-4 p-6 bg-purple-50 rounded-lg border border-purple-200" },
           React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "Vendor Quotes & Adjudication"),
 
           // Display quotes
@@ -8653,7 +8662,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       let filtered = [];
       if (user.role === 'hod') {
         filtered = combinedItems.filter(item => item.status === 'pending_hod');
-      } else if (user.role === 'finance') {
+      } else if (user.role === 'finance' || user.role === 'finance_manager') {
         filtered = combinedItems.filter(item =>
           item.status === 'pending_finance' ||
           item.status === 'hod_approved' ||
@@ -10000,7 +10009,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
 
   const canApprove = (req) => {
     if (user.role === 'hod' && req.status === 'pending_hod') return true;
-    if (user.role === 'finance' && (req.status === 'pending_finance' || req.status === 'hod_approved')) return true;
+    if (['finance', 'finance_manager'].includes(user.role) && (req.status === 'pending_finance' || req.status === 'hod_approved')) return true;
     if (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) return true;
     if (user.role === 'admin') return true;
     return false;
@@ -10212,7 +10221,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
 
   const canApprove = (claim) => {
     if (user.role === 'hod' && claim.status === 'pending_hod') return true;
-    if (user.role === 'finance' && (claim.status === 'pending_finance' || claim.status === 'hod_approved')) return true;
+    if (['finance', 'finance_manager'].includes(user.role) && (claim.status === 'pending_finance' || claim.status === 'hod_approved')) return true;
     if (user.role === 'md' && (claim.status === 'pending_md' || claim.status === 'finance_approved')) return true;
     if (user.role === 'admin') return true;
     return false;
@@ -10412,7 +10421,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
 
   const canApprove = (req) => {
     if (user.role === 'hod' && req.status === 'pending_hod') return true;
-    if (user.role === 'finance' && (req.status === 'pending_finance' || req.status === 'hod_approved')) return true;
+    if (['finance', 'finance_manager'].includes(user.role) && (req.status === 'pending_finance' || req.status === 'hod_approved')) return true;
     if (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) return true;
     if (user.role === 'admin') return true;
     return false;
@@ -11741,6 +11750,9 @@ function BudgetManagement({ user, allDepartments = [] }) {
   const [newPlanAllocs, setNewPlanAllocs]   = useState({});
   const [newPlanNotes, setNewPlanNotes]     = useState('');
   const [viewingPlan, setViewingPlan]       = useState(null);
+  const [editingPlan, setEditingPlan]       = useState(null);
+  const [editPlanAllocs, setEditPlanAllocs] = useState({});
+  const [editPlanNotes, setEditPlanNotes]   = useState('');
   const [planComments, setPlanComments]     = useState({});
 
   // ── Amendments state ──
@@ -11921,9 +11933,23 @@ function BudgetManagement({ user, allDepartments = [] }) {
   };
 
   const handleDeletePlan = async (id) => {
+    if (!confirm('Delete this draft budget plan?')) return;
     try {
       await api.deleteBudgetPlan(id);
       showToast('Budget plan deleted');
+      loadPlans();
+    } catch (e) { showToast(e.message); }
+  };
+
+  const handleUpdatePlan = async (id) => {
+    const allocations = deptNames.map(n => ({
+      department: n, amount: parseFloat(editPlanAllocs[n] || 0)
+    })).filter(a => a.amount > 0);
+    if (allocations.length === 0) return showToast('Enter at least one allocation amount');
+    try {
+      await api.updateBudgetPlan(id, allocations, editPlanNotes);
+      showToast('Budget plan updated');
+      setEditingPlan(null); setEditPlanAllocs({}); setEditPlanNotes('');
       loadPlans();
     } catch (e) { showToast(e.message); }
   };
@@ -12496,7 +12522,13 @@ function BudgetManagement({ user, allDepartments = [] }) {
                       style: { width: '160px' }
                     })
                   )
-                ))
+                )),
+                React.createElement('tr', { style: { borderTop: '2px solid var(--border-color)', background: 'var(--bg-tertiary)' } },
+                  React.createElement('td', { className: 'tbl-td font-semibold' }, 'Total'),
+                  React.createElement('td', { className: 'tbl-td font-semibold', style: { color: 'var(--primary)' } },
+                    `ZMW ${deptNames.reduce((s, n) => s + (parseFloat(newPlanAllocs[n] || 0)), 0).toLocaleString()}`
+                  )
+                )
               )
             )
           ),
@@ -12519,36 +12551,98 @@ function BudgetManagement({ user, allDepartments = [] }) {
           : plans.length === 0
             ? React.createElement(EmptyState, { heading: 'No budget plans', sub: 'Create a new draft plan above.' })
             : React.createElement('div', { className: 'space-y-3' },
-                plans.map(plan => React.createElement('div', {
-                  key: plan._id,
-                  style: { background: 'var(--bg-tertiary)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }
-                },
-                  React.createElement('div', null,
-                    React.createElement('p', { style: { fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' } },
-                      `FY ${plan.fiscal_year} — ${plan.allocations.length} departments`
+                plans.map(plan => {
+                  const planTotal = plan.allocations.reduce((s, a) => s + a.amount, 0);
+                  const isEditingThis = editingPlan && editingPlan._id === plan._id;
+                  return React.createElement('div', { key: plan._id },
+                    React.createElement('div', {
+                      style: { background: 'var(--bg-tertiary)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }
+                    },
+                      React.createElement('div', null,
+                        React.createElement('p', { style: { fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' } },
+                          `FY ${plan.fiscal_year} — ${plan.allocations.length} departments`
+                        ),
+                        React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
+                          `Total: ZMW ${planTotal.toLocaleString()} · Prepared by ${plan.prepared_by_name}${plan.submitted_at ? ' · Submitted ' + new Date(plan.submitted_at).toLocaleDateString() : ''}`
+                        )
+                      ),
+                      React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+                        React.createElement('span', {
+                          className: `badge ${plan.status === 'approved' ? 'badge-success' : plan.status === 'rejected' ? 'badge-danger' : plan.status === 'pending_md' ? 'badge-pending' : 'badge-info'}`
+                        }, plan.status.replace(/_/g, ' ')),
+                        React.createElement('button', {
+                          onClick: () => setViewingPlan(viewingPlan && viewingPlan._id === plan._id ? null : plan),
+                          className: 'btn-secondary btn-sm'
+                        }, viewingPlan && viewingPlan._id === plan._id ? 'Hide Details' : 'View'),
+                        plan.status === 'draft' && React.createElement('button', {
+                          onClick: () => {
+                            const allocMap = {};
+                            plan.allocations.forEach(a => { allocMap[a.department] = String(a.amount); });
+                            setEditingPlan(plan); setEditPlanAllocs(allocMap); setEditPlanNotes(plan.notes || '');
+                            setShowNewPlan(false); setViewingPlan(null);
+                          },
+                          className: 'btn-secondary btn-sm'
+                        }, 'Edit'),
+                        plan.status === 'draft' && React.createElement('button', {
+                          onClick: () => handleSubmitPlan(plan._id),
+                          className: 'btn-primary btn-sm'
+                        }, 'Submit to MD'),
+                        plan.status === 'pending_md' && React.createElement('button', {
+                          onClick: async () => { if (!confirm('Recall this plan from MD review?')) return; try { await api.deleteBudgetPlan(plan._id); showToast('Plan recalled'); loadPlans(); } catch(e) { showToast(e.message); } },
+                          className: 'btn-secondary btn-sm'
+                        }, 'Recall'),
+                        plan.status === 'draft' && React.createElement('button', {
+                          onClick: () => handleDeletePlan(plan._id),
+                          className: 'btn-danger btn-sm'
+                        }, 'Delete')
+                      )
                     ),
-                    React.createElement('p', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
-                      `Prepared by ${plan.prepared_by_name}${plan.submitted_at ? ' · Submitted ' + new Date(plan.submitted_at).toLocaleDateString() : ''}`
+                    // Inline edit form
+                    isEditingThis && React.createElement('div', { style: { background: 'var(--bg-secondary)', borderRadius: '8px', padding: '16px', marginTop: '4px', border: '1px solid var(--border-color)' } },
+                      React.createElement('h4', { style: { fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' } },
+                        `Editing Draft — FY ${plan.fiscal_year}`
+                      ),
+                      React.createElement('div', { className: 'overflow-x-auto', style: { marginBottom: '12px' } },
+                        React.createElement('table', { className: 'w-full text-sm' },
+                          React.createElement('thead', null,
+                            React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+                              ['Department', 'Proposed Amount (ZMW)'].map(h => React.createElement('th', { key: h, className: 'tbl-th' }, h))
+                            )
+                          ),
+                          React.createElement('tbody', null,
+                            deptNames.map(name => React.createElement('tr', { key: name, style: { borderBottom: '1px solid var(--border-color)' } },
+                              React.createElement('td', { className: 'tbl-td font-semibold' }, name),
+                              React.createElement('td', { className: 'tbl-td' },
+                                React.createElement('input', {
+                                  type: 'number', min: '0',
+                                  value: editPlanAllocs[name] || '',
+                                  onChange: e => setEditPlanAllocs(prev => ({ ...prev, [name]: e.target.value })),
+                                  className: 'form-input', placeholder: '0.00', style: { width: '160px' }
+                                })
+                              )
+                            )),
+                            React.createElement('tr', { style: { borderTop: '2px solid var(--border-color)', background: 'var(--bg-tertiary)' } },
+                              React.createElement('td', { className: 'tbl-td font-semibold' }, 'Total'),
+                              React.createElement('td', { className: 'tbl-td font-semibold', style: { color: 'var(--primary)' } },
+                                `ZMW ${deptNames.reduce((s, n) => s + (parseFloat(editPlanAllocs[n] || 0)), 0).toLocaleString()}`
+                              )
+                            )
+                          )
+                        )
+                      ),
+                      React.createElement('label', { className: 'form-label' }, 'Notes'),
+                      React.createElement('textarea', {
+                        value: editPlanNotes, onChange: e => setEditPlanNotes(e.target.value),
+                        className: 'form-input', rows: 2, placeholder: 'Optional notes…',
+                        style: { width: '100%', resize: 'vertical', marginBottom: '12px' }
+                      }),
+                      React.createElement('div', { style: { display: 'flex', gap: '8px' } },
+                        React.createElement('button', { onClick: () => handleUpdatePlan(plan._id), className: 'btn-primary' }, 'Save Changes'),
+                        React.createElement('button', { onClick: () => { setEditingPlan(null); setEditPlanAllocs({}); setEditPlanNotes(''); }, className: 'btn-secondary' }, 'Cancel')
+                      )
                     )
-                  ),
-                  React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
-                    React.createElement('span', {
-                      className: `badge ${plan.status === 'approved' ? 'badge-success' : plan.status === 'rejected' ? 'badge-danger' : plan.status === 'pending_md' ? 'badge-pending' : 'badge-info'}`
-                    }, plan.status.replace(/_/g, ' ')),
-                    React.createElement('button', {
-                      onClick: () => setViewingPlan(viewingPlan && viewingPlan._id === plan._id ? null : plan),
-                      className: 'btn-secondary btn-sm'
-                    }, viewingPlan && viewingPlan._id === plan._id ? 'Hide' : 'View'),
-                    plan.status === 'draft' && React.createElement('button', {
-                      onClick: () => handleSubmitPlan(plan._id),
-                      className: 'btn-primary btn-sm'
-                    }, 'Submit to MD'),
-                    plan.status === 'draft' && React.createElement('button', {
-                      onClick: () => handleDeletePlan(plan._id),
-                      className: 'btn-danger btn-sm'
-                    }, 'Delete')
-                  )
-                ))
+                  );
+                })
               )
       ),
 
@@ -12577,7 +12671,13 @@ function BudgetManagement({ user, allDepartments = [] }) {
               viewingPlan.allocations.map(a => React.createElement('tr', { key: a.department, style: { borderBottom: '1px solid var(--border-color)' } },
                 React.createElement('td', { className: 'tbl-td font-semibold' }, a.department),
                 React.createElement('td', { className: 'tbl-td' }, `ZMW ${a.amount.toLocaleString()}`)
-              ))
+              )),
+              React.createElement('tr', { style: { borderTop: '2px solid var(--border-color)', background: 'var(--bg-tertiary)' } },
+                React.createElement('td', { className: 'tbl-td font-semibold' }, 'Total'),
+                React.createElement('td', { className: 'tbl-td font-semibold', style: { color: 'var(--primary)' } },
+                  `ZMW ${viewingPlan.allocations.reduce((s, a) => s + a.amount, 0).toLocaleString()}`
+                )
+              )
             )
           )
         )
@@ -12624,7 +12724,13 @@ function BudgetManagement({ user, allDepartments = [] }) {
                       plan.allocations.map(a => React.createElement('tr', { key: a.department, style: { borderBottom: '1px solid var(--border-color)' } },
                         React.createElement('td', { className: 'tbl-td font-semibold' }, a.department),
                         React.createElement('td', { className: 'tbl-td' }, `ZMW ${a.amount.toLocaleString()}`)
-                      ))
+                      )),
+                      React.createElement('tr', { style: { borderTop: '2px solid var(--border-color)', background: 'var(--bg-tertiary)' } },
+                        React.createElement('td', { className: 'tbl-td font-semibold' }, 'Total'),
+                        React.createElement('td', { className: 'tbl-td font-semibold', style: { color: 'var(--primary)' } },
+                          `ZMW ${plan.allocations.reduce((s, a) => s + a.amount, 0).toLocaleString()}`
+                        )
+                      )
                     )
                   )
                 ),
@@ -12875,7 +12981,7 @@ function FXRatesManagement({ user }) {
 
   useEffect(() => {
     loadRates();
-    if (user.role === 'finance' || user.role === 'md' || user.role === 'admin') {
+    if (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) {
       loadAllRates();
     }
   }, []);
@@ -12918,7 +13024,7 @@ function FXRatesManagement({ user }) {
       await api.updateFXRate(formData);
       showToast('FX rate updated successfully');
       loadRates();
-      if (user.role === 'finance' || user.role === 'md' || user.role === 'admin') {
+      if (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) {
         loadAllRates();
       }
       setFormData({
@@ -12974,7 +13080,7 @@ function FXRatesManagement({ user }) {
               `By: ${rate.updated_by_name}`
             ),
             React.createElement('div', { className: "flex gap-2 mt-3" },
-              (user.role === 'finance' || user.role === 'md' || user.role === 'admin') && React.createElement('button', {
+              (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) && React.createElement('button', {
                 onClick: () => loadHistory(rate.currency_code),
                 className: "flex-1 px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded hover:bg-blue-200"
               }, "View History"),
@@ -13022,7 +13128,7 @@ function FXRatesManagement({ user }) {
         )
       ) : React.createElement('p', { className: "text-gray-600 text-center py-4" }, "No history available")
     ),
-    (user.role === 'finance' || user.role === 'md' || user.role === 'admin') && allRates.length > 0 && React.createElement('div', { className: "card" },
+    (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) && allRates.length > 0 && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "All FX Rates (Including Inactive)"),
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
@@ -13059,7 +13165,7 @@ function FXRatesManagement({ user }) {
         )
       )
     ),
-    (user.role === 'finance' || user.role === 'md' || user.role === 'procurement' || user.role === 'admin') &&
+    (['finance', 'finance_manager', 'md', 'procurement', 'admin'].includes(user.role)) &&
     React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "Update FX Rate"),
       React.createElement('form', { onSubmit: handleSubmit, className: "space-y-4" },
@@ -13406,7 +13512,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
   };
 
   const canUploadQuotes = user.role === 'procurement' || user.role === 'admin';
-  const canViewQuotes = user.role === 'procurement' || user.role === 'finance' || user.role === 'md' || user.role === 'admin';
+  const canViewQuotes = ['procurement', 'finance', 'finance_manager', 'md', 'admin'].includes(user.role);
 
   if (loading) return React.createElement(SkeletonList);
 
