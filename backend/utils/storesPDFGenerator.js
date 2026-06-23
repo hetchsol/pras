@@ -242,11 +242,11 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       });
 
       // ── FOOTER ────────────────────────────────────────────────
-      doc.moveTo(LX, 782).lineTo(RX, 782).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
       doc.font('Helvetica').fontSize(7).fillColor('#888888')
          .text(
            `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${slip.id || ''}`,
-           LX, 790, { width: PW, align: 'center', lineBreak: false }
+           LX, 780, { width: PW, align: 'center', lineBreak: false }
          );
 
       doc.end();
@@ -421,11 +421,11 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       doc.text('Signature & Date', LX + 265, y, { width: SIG_W, align: 'center', lineBreak: false });
 
       // ── FOOTER ────────────────────────────────────────────────
-      doc.moveTo(LX, 782).lineTo(RX, 782).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
       doc.font('Helvetica').fontSize(7).fillColor('#888888')
          .text(
            `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${slip.id || ''}`,
-           LX, 790, { width: PW, align: 'center', lineBreak: false }
+           LX, 780, { width: PW, align: 'center', lineBreak: false }
          );
 
       doc.end();
@@ -675,11 +675,11 @@ async function generateGRNPDF(grn, items, outputPath) {
       doc.text('Signature & Date', LX + 265, y, { width: SIG_W, align: 'center', lineBreak: false });
 
       // ── FOOTER ────────────────────────────────────────────────
-      doc.moveTo(LX, 782).lineTo(RX, 782).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
       doc.font('Helvetica').fontSize(7).fillColor('#888888')
          .text(
            `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${grn.id || ''}`,
-           LX, 790, { width: PW, align: 'center', lineBreak: false }
+           LX, 780, { width: PW, align: 'center', lineBreak: false }
          );
 
       doc.end();
