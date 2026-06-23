@@ -2805,6 +2805,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
 
   const handleBypassToggleClick = () => {
     if (!canControlBypass || bypassLoading) return;
+    if (!bypassEnabled && (eftAccess.canCreate || eftAccess.canApprove)) return; // within window, bypass not needed
     if (bypassEnabled) {
       // Turn off immediately
       setBypassLoading(true);
@@ -2927,7 +2928,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'expense-claims', label: 'Expense Claim', isLink: true, href: 'expense-claim.html', show: true },
         { id: 'eft-requisitions', label: 'EFT / Cheque Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
         { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass,
-          toggled: bypassEnabled, loading: bypassLoading, onToggle: handleBypassToggleClick,
+          toggled: bypassEnabled, loading: bypassLoading,
+          // Only interactive when locked out (time window not active) OR bypass is already on to allow turning it off
+          disabled: !bypassEnabled && (eftAccess.canCreate || eftAccess.canApprove),
+          onToggle: handleBypassToggleClick,
           pickerOpen: bypassPickerOpen, pickerValue: bypassUntilInput,
           onPickerChange: setBypassUntilInput, onPickerConfirm: handleBypassConfirm,
           onPickerCancel: () => setBypassPickerOpen(false),
@@ -3099,22 +3103,23 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
                     // Toggle row
                     React.createElement('div', {
                       className: "flex items-center justify-between px-4 py-2 rounded-lg",
-                      style: { backgroundColor: child.toggled ? 'rgba(217,119,6,0.12)' : 'transparent' }
+                      style: { backgroundColor: child.toggled ? 'rgba(217,119,6,0.12)' : 'transparent',
+                               opacity: child.disabled ? 0.4 : 1 }
                     },
                       React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
                         React.createElement('span', {
                           style: { fontSize: '13px', fontWeight: '600', color: child.toggled ? '#D97706' : 'var(--sidebar-text-muted)', lineHeight: '1.2' }
                         }, child.label),
-                        child.untilLabel && React.createElement('span', {
-                          style: { fontSize: '10px', color: '#D97706', fontWeight: '500' }
-                        }, `until ${child.untilLabel}`)
+                        child.untilLabel
+                          ? React.createElement('span', { style: { fontSize: '10px', color: '#D97706', fontWeight: '500' } }, `until ${child.untilLabel}`)
+                          : child.disabled && React.createElement('span', { style: { fontSize: '10px', color: 'var(--sidebar-text-subtle)' } }, 'within time window')
                       ),
                       React.createElement('div', {
-                        onClick: child.loading ? undefined : child.onToggle,
-                        title: child.toggled ? 'Active — click to disable' : 'Click to enable bypass',
+                        onClick: (child.loading || child.disabled) ? undefined : child.onToggle,
+                        title: child.disabled ? 'EFT window is currently open — bypass not needed' : child.toggled ? 'Active — click to disable' : 'Click to bypass EFT time restriction',
                         style: {
                           width: '36px', height: '20px', borderRadius: '10px', position: 'relative',
-                          cursor: child.loading ? 'not-allowed' : 'pointer', flexShrink: 0,
+                          cursor: (child.loading || child.disabled) ? 'not-allowed' : 'pointer', flexShrink: 0,
                           background: child.toggled ? '#D97706' : 'var(--border-color)',
                           transition: 'background 0.2s', opacity: child.loading ? 0.6 : 1
                         }
