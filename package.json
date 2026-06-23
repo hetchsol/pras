@@ -2,9 +2,9 @@
   "name": "purchase-requisition-system",
   "version": "1.0.0",
   "description": "Purchase Requisition System",
-  "main": "backend/server.js",
+  "main": "backend/server-mongo.js",
   "scripts": {
-    "start": "cd backend && node server.js",
+    "start": "cd backend && node server-mongo.js",
     "build": "cd backend && npm install",
     "install:backend": "cd backend && npm install"
   },
@@ -16,7 +16,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "^12.4.1",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "express": "^5.1.0"

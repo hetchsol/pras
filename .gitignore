@@ -63,7 +63,10 @@ tmp/
 temp/
 *.tmp
 
-# Package manager lock files (keep package-lock.json, ignore others)
+# Root-level package-lock.json (root package.json is minimal; backend has its own lock)
+package-lock.json
+
+# Package manager lock files (keep backend/package-lock.json, ignore others)
 # yarn.lock
 # pnpm-lock.yaml
 
