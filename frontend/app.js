@@ -13791,17 +13791,17 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
       grns.length === 0
         ? React.createElement(EmptyState, { heading: 'No goods receipt notes yet', sub: 'GRNs are created when goods are received against an approved purchase requisition.' })
         : React.createElement('div', { className: "overflow-x-auto" },
-            React.createElement('table', { className: "w-full" },
+            React.createElement('table', { className: "w-full table-fixed" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "tbl-th" }, "GRN ID"),
-                  React.createElement('th', { className: "tbl-th" }, "PR Ref"),
-                  React.createElement('th', { className: "tbl-th" }, "Supplier"),
-                  React.createElement('th', { className: "tbl-th" }, "Received By"),
-                  React.createElement('th', { className: "tbl-th" }, "Status"),
-                  React.createElement('th', { className: "tbl-th" }, "Customer"),
-                  React.createElement('th', { className: "tbl-th" }, "Date"),
-                  React.createElement('th', { className: "tbl-th" }, "Actions")
+                  React.createElement('th', { className: "tbl-th", style: { width: '175px' } }, "GRN ID"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '165px' } }, "PR Ref"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '90px'  } }, "Supplier"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '110px' } }, "Received By"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '100px' } }, "Status"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '145px' } }, "Customer"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '80px'  } }, "Date"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '95px'  } }, "Actions")
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
@@ -13840,31 +13840,31 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "tbl-td" },
                       grn.customer
                         ? React.createElement('span', {
-                            className: "px-2 py-1 text-xs rounded",
-                            style: { backgroundColor: 'transparent', color: '#B45309', border: '1px solid #F59E0B' }
+                            className: "text-xs",
+                            style: { color: '#B45309' }
                           }, grn.customer)
-                        : 'N/A'
+                        : React.createElement('span', { className: "text-gray-400" }, 'N/A')
                     ),
                     React.createElement('td', { className: "tbl-td text-gray-500" },
                       new Date(grn.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
-                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                      React.createElement('div', { className: "flex flex-col gap-1" },
                         React.createElement('button', {
                           onClick: () => handleView(grn),
-                          className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
+                          className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700 text-center"
                         }, 'View'),
                         React.createElement('button', {
                           onClick: () => handlePreviewPDF(grn),
-                          className: "btn-primary btn-sm"
+                          className: "btn-primary btn-sm text-center"
                         }, 'Preview'),
                         canApprove && React.createElement('button', {
                           onClick: () => handleView(grn),
-                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 text-center"
                         }, 'Approve'),
                         React.createElement('button', {
                           onClick: () => handleDownloadPDF(grn),
-                          className: "btn-primary btn-sm"
+                          className: "btn-primary btn-sm text-center"
                         }, 'Download')
                       )
                     )
