@@ -81,7 +81,12 @@ function canBypassEFT(user) {
 async function isEFTBypassEnabled() {
   try {
     const doc = await db.SystemSetting.findOne({ key: 'eft_bypass' }).lean();
-    return doc?.value === true;
+    if (!doc || doc.value !== true) return false;
+    if (doc.bypass_until && new Date(doc.bypass_until) <= new Date()) {
+      db.SystemSetting.updateOne({ key: 'eft_bypass' }, { $set: { value: false, bypass_until: null } }).catch(() => {});
+      return false;
+    }
+    return true;
   } catch { return false; }
 }
 
@@ -2106,30 +2111,46 @@ app.get('/api/eft-requisitions/schedule', authenticate, async (req, res) => {
   const access = getEFTAccess(req.user && req.user.role);
   const bypassEnabled = await isEFTBypassEnabled();
   const canBypass = bypassEnabled && canBypassEFT(req.user);
-  res.json({ ...access, bypass_active: canBypass });
+  let bypass_until = null;
+  if (canBypass) {
+    try {
+      const doc = await db.SystemSetting.findOne({ key: 'eft_bypass' }).lean();
+      bypass_until = doc?.bypass_until || null;
+    } catch {}
+  }
+  res.json({ ...access, bypass_active: canBypass, bypass_until });
 });
 
 // EFT bypass toggle — readable and writable by admin / finance_manager / md / hetch.mbunda
 app.get('/api/system-settings/eft-bypass', authenticate, async (req, res) => {
-  if (!canBypassEFT(req.user)) {
-    return res.status(403).json({ error: 'Not authorised' });
+  if (!canBypassEFT(req.user)) return res.status(403).json({ error: 'Not authorised' });
+  try {
+    const doc = await db.SystemSetting.findOne({ key: 'eft_bypass' }).lean();
+    const enabled = doc?.value === true && (!doc.bypass_until || new Date(doc.bypass_until) > new Date());
+    res.json({ enabled, bypass_until: doc?.bypass_until || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read EFT bypass setting', detail: err.message });
   }
-  const doc = await db.SystemSetting.findOne({ key: 'eft_bypass' }).lean();
-  res.json({ enabled: doc?.value === true });
 });
 
 app.put('/api/system-settings/eft-bypass', authenticate, async (req, res) => {
-  if (!canBypassEFT(req.user)) {
-    return res.status(403).json({ error: 'Not authorised' });
+  if (!canBypassEFT(req.user)) return res.status(403).json({ error: 'Not authorised' });
+  try {
+    const { enabled, bypass_until } = req.body;
+    if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be boolean' });
+    if (enabled && !bypass_until) return res.status(400).json({ error: 'bypass_until is required when enabling' });
+    const until = enabled ? new Date(bypass_until) : null;
+    if (enabled && (!until || isNaN(until.getTime()))) return res.status(400).json({ error: 'bypass_until must be a valid ISO date string' });
+    if (enabled && until <= new Date()) return res.status(400).json({ error: 'bypass_until must be in the future' });
+    await db.SystemSetting.findOneAndUpdate(
+      { key: 'eft_bypass' },
+      { $set: { value: enabled, bypass_until: until } },
+      { upsert: true }
+    );
+    res.json({ enabled, bypass_until: until });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update EFT bypass setting', detail: err.message });
   }
-  const { enabled } = req.body;
-  if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be boolean' });
-  await db.SystemSetting.findOneAndUpdate(
-    { key: 'eft_bypass' },
-    { $set: { value: enabled } },
-    { upsert: true }
-  );
-  res.json({ enabled });
 });
 
 app.post('/api/eft-requisitions', authenticate, requireEFTAccess('create'), async (req, res) => {

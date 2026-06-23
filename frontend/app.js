@@ -333,13 +333,17 @@ const api = {
     return res.json();
   },
 
-  setEFTBypass: async (enabled) => {
+  setEFTBypass: async (enabled, bypass_until) => {
     const res = await fetchWithAuth(`${API_URL}/system-settings/eft-bypass`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled })
+      body: JSON.stringify({ enabled, bypass_until })
     });
-    if (!res.ok) throw new Error('Failed to update EFT bypass setting');
+    if (!res.ok) {
+      let msg = 'Failed to update EFT bypass setting';
+      try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+      throw new Error(msg);
+    }
     return res.json();
   },
 
@@ -2772,29 +2776,68 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
   const eftAccess = useEFTAccess(user && user.role);
   const canControlBypass = ['admin', 'finance_manager', 'md'].includes(user && user.role) || (user && user.username === 'hetch.mbunda');
   const [bypassEnabled, setBypassEnabled] = useState(false);
+  const [bypassUntil, setBypassUntil] = useState(null);
   const [bypassLoading, setBypassLoading] = useState(false);
+  const [bypassPickerOpen, setBypassPickerOpen] = useState(false);
+  const [bypassUntilInput, setBypassUntilInput] = useState('');
 
   useEffect(() => {
     if (canControlBypass) {
-      api.getEFTBypass().then(d => setBypassEnabled(d.enabled)).catch(() => {});
+      api.getEFTBypass().then(d => {
+        setBypassEnabled(d.enabled);
+        setBypassUntil(d.bypass_until || null);
+      }).catch(() => {});
     }
   }, [canControlBypass]);
 
-  // Keep bypass display in sync when useEFTAccess detects a server-side change
   useEffect(() => {
-    if (eftAccess.bypassActive !== undefined) setBypassEnabled(!!eftAccess.bypassActive);
-  }, [eftAccess.bypassActive]);
+    if (eftAccess.bypassActive !== undefined) {
+      setBypassEnabled(!!eftAccess.bypassActive);
+      if (eftAccess.bypass_until) setBypassUntil(eftAccess.bypass_until);
+    }
+  }, [eftAccess.bypassActive, eftAccess.bypass_until]);
 
-  const handleBypassToggle = async () => {
+  const fmtBypassTime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lusaka' });
+  };
+
+  const handleBypassToggleClick = () => {
     if (!canControlBypass || bypassLoading) return;
-    const next = !bypassEnabled;
-    if (next && !confirm('Enable EFT time-window bypass? This allows EFT creation and approval outside normal business hours. Only use for urgent out-of-hours processing.')) return;
+    if (bypassEnabled) {
+      // Turn off immediately
+      setBypassLoading(true);
+      api.setEFTBypass(false, null).then(() => {
+        setBypassEnabled(false);
+        setBypassUntil(null);
+        showToast('EFT time restriction restored');
+      }).catch(e => showToast('Failed to disable bypass: ' + e.message))
+        .finally(() => setBypassLoading(false));
+    } else {
+      // Open time picker — default to current time + 2h
+      const def = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      const hh = String(def.getHours()).padStart(2, '0');
+      const mm = String(def.getMinutes()).padStart(2, '0');
+      setBypassUntilInput(`${hh}:${mm}`);
+      setBypassPickerOpen(true);
+    }
+  };
+
+  const handleBypassConfirm = async () => {
+    if (!bypassUntilInput) return;
+    const [hh, mm] = bypassUntilInput.split(':').map(Number);
+    const until = new Date();
+    until.setHours(hh, mm, 0, 0);
+    if (until <= new Date()) until.setDate(until.getDate() + 1); // wrap to tomorrow if past
+    setBypassPickerOpen(false);
     setBypassLoading(true);
     try {
-      const result = await api.setEFTBypass(next);
+      const result = await api.setEFTBypass(true, until.toISOString());
       setBypassEnabled(result.enabled);
-      showToast(result.enabled ? 'EFT time restriction bypassed' : 'EFT time restriction restored');
-    } catch (e) { showToast('Failed to update EFT bypass: ' + e.message); }
+      setBypassUntil(result.bypass_until);
+      showToast(`EFT bypass active until ${fmtBypassTime(result.bypass_until)}`);
+    } catch (e) { showToast('Failed to enable bypass: ' + e.message); }
     finally { setBypassLoading(false); }
   };
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -2883,7 +2926,12 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
       children: [
         { id: 'expense-claims', label: 'Expense Claim', isLink: true, href: 'expense-claim.html', show: true },
         { id: 'eft-requisitions', label: 'EFT / Cheque Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
-        { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass, toggled: bypassEnabled, loading: bypassLoading, onToggle: handleBypassToggle },
+        { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass,
+          toggled: bypassEnabled, loading: bypassLoading, onToggle: handleBypassToggleClick,
+          pickerOpen: bypassPickerOpen, pickerValue: bypassUntilInput,
+          onPickerChange: setBypassUntilInput, onPickerConfirm: handleBypassConfirm,
+          onPickerCancel: () => setBypassPickerOpen(false),
+          untilLabel: bypassEnabled ? fmtBypassTime(bypassUntil) : '' },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'md', 'admin']) }
       ]
@@ -3047,33 +3095,75 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
             isExpanded && React.createElement('div', { className: "ml-4 mt-1 space-y-1" },
               item.children.filter(child => child.show).map(child =>
                 child.isToggle ?
-                  React.createElement('div', {
-                    key: child.id,
-                    className: "flex items-center justify-between px-4 py-2 rounded-lg",
-                    style: { backgroundColor: child.toggled ? 'rgba(217,119,6,0.12)' : 'transparent' }
-                  },
-                    React.createElement('span', {
-                      style: { fontSize: '13px', fontWeight: '600', color: child.toggled ? '#D97706' : 'var(--sidebar-text-muted)' }
-                    }, child.label),
+                  React.createElement('div', { key: child.id },
+                    // Toggle row
                     React.createElement('div', {
-                      onClick: child.loading ? undefined : child.onToggle,
-                      title: child.toggled ? 'Bypass active — click to disable' : 'Click to bypass EFT time restriction',
-                      style: {
-                        width: '36px', height: '20px', borderRadius: '10px', position: 'relative',
-                        cursor: child.loading ? 'not-allowed' : 'pointer', flexShrink: 0,
-                        background: child.toggled ? '#D97706' : 'var(--border-color)',
-                        transition: 'background 0.2s', opacity: child.loading ? 0.6 : 1
-                      }
+                      className: "flex items-center justify-between px-4 py-2 rounded-lg",
+                      style: { backgroundColor: child.toggled ? 'rgba(217,119,6,0.12)' : 'transparent' }
                     },
+                      React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
+                        React.createElement('span', {
+                          style: { fontSize: '13px', fontWeight: '600', color: child.toggled ? '#D97706' : 'var(--sidebar-text-muted)', lineHeight: '1.2' }
+                        }, child.label),
+                        child.untilLabel && React.createElement('span', {
+                          style: { fontSize: '10px', color: '#D97706', fontWeight: '500' }
+                        }, `until ${child.untilLabel}`)
+                      ),
                       React.createElement('div', {
+                        onClick: child.loading ? undefined : child.onToggle,
+                        title: child.toggled ? 'Active — click to disable' : 'Click to enable bypass',
                         style: {
-                          position: 'absolute', top: '2px',
-                          left: child.toggled ? '18px' : '2px',
-                          width: '16px', height: '16px', borderRadius: '50%',
-                          background: '#fff', transition: 'left 0.2s',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                          width: '36px', height: '20px', borderRadius: '10px', position: 'relative',
+                          cursor: child.loading ? 'not-allowed' : 'pointer', flexShrink: 0,
+                          background: child.toggled ? '#D97706' : 'var(--border-color)',
+                          transition: 'background 0.2s', opacity: child.loading ? 0.6 : 1
                         }
-                      })
+                      },
+                        React.createElement('div', {
+                          style: {
+                            position: 'absolute', top: '2px',
+                            left: child.toggled ? '18px' : '2px',
+                            width: '16px', height: '16px', borderRadius: '50%',
+                            background: '#fff', transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                          }
+                        })
+                      )
+                    ),
+                    // Inline time picker (shown when enabling)
+                    child.pickerOpen && React.createElement('div', {
+                      className: "mx-4 mb-2 px-3 py-2 rounded-lg",
+                      style: { background: 'var(--sidebar-hover)', border: '1px solid var(--border-color)' }
+                    },
+                      React.createElement('p', {
+                        style: { fontSize: '11px', color: 'var(--sidebar-text-muted)', marginBottom: '6px', fontWeight: '600' }
+                      }, 'Bypass active until:'),
+                      React.createElement('input', {
+                        type: 'time',
+                        value: child.pickerValue,
+                        onChange: (e) => child.onPickerChange(e.target.value),
+                        style: {
+                          width: '100%', padding: '4px 6px', borderRadius: '4px', fontSize: '13px',
+                          border: '1px solid var(--border-color)', background: 'var(--bg-primary)',
+                          color: 'var(--text-primary)', marginBottom: '6px'
+                        }
+                      }),
+                      React.createElement('div', { style: { display: 'flex', gap: '6px' } },
+                        React.createElement('button', {
+                          onClick: child.onPickerConfirm,
+                          style: {
+                            flex: 1, padding: '4px', borderRadius: '4px', fontSize: '11px', fontWeight: '600',
+                            background: '#D97706', color: '#fff', border: 'none', cursor: 'pointer'
+                          }
+                        }, 'Enable'),
+                        React.createElement('button', {
+                          onClick: child.onPickerCancel,
+                          style: {
+                            flex: 1, padding: '4px', borderRadius: '4px', fontSize: '11px', fontWeight: '600',
+                            background: 'var(--border-color)', color: 'var(--text-primary)', border: 'none', cursor: 'pointer'
+                          }
+                        }, 'Cancel')
+                      )
                     )
                   ) :
                 child.isLink ?
