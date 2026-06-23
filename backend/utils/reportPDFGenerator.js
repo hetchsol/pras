@@ -19,16 +19,13 @@ const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
 function generateRequisitionSummaryPDF(requisitions, filters = {}) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-    // Logo
-    if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 30, { width: 100 });
-    }
-
-    // Header
-    doc.fontSize(18)
-        .fillColor('#0066CC')
-        .text('PURCHASE REQUISITION SUMMARY REPORT', 160, 35, { align: 'center' })
-        .moveDown();
+    if (fs.existsSync(logoPath)) doc.image(logoPath, 50, 33, { height: 28 });
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+       .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D4ED8')
+       .text('PURCHASE REQUISITION SUMMARY REPORT', 145, 58, { align: 'center', width: 265, lineBreak: false });
+    doc.moveTo(50, 90).lineTo(545, 90).lineWidth(2).strokeColor('#2563EB').stroke();
+    doc.moveDown(3);
 
     doc.fontSize(10)
         .fillColor('#333333')
@@ -173,16 +170,13 @@ function generateRequisitionSummaryPDF(requisitions, filters = {}) {
 function generateBudgetReportPDF(budgets, fiscalYear) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-    // Logo
-    if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 30, { width: 100 });
-    }
-
-    // Header
-    doc.fontSize(18)
-        .fillColor('#FF6600')
-        .text(`BUDGET REPORT - FISCAL YEAR ${fiscalYear}`, 160, 35, { align: 'center' })
-        .moveDown();
+    if (fs.existsSync(logoPath)) doc.image(logoPath, 50, 33, { height: 28 });
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+       .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D4ED8')
+       .text(`BUDGET REPORT — FISCAL YEAR ${fiscalYear}`, 145, 58, { align: 'center', width: 265, lineBreak: false });
+    doc.moveTo(50, 90).lineTo(545, 90).lineWidth(2).strokeColor('#2563EB').stroke();
+    doc.moveDown(3);
 
     doc.fontSize(10)
         .fillColor('#333333')
@@ -309,18 +303,13 @@ function generateBudgetReportPDF(budgets, fiscalYear) {
 function generateDepartmentalSpendingPDF(department, requisitions, budgetInfo) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-    // Logo
-    if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 30, { width: 100 });
-    }
-
-    // Header
-    doc.fontSize(18)
-        .fillColor('#0066CC')
-        .text(`DEPARTMENTAL SPENDING REPORT`, 160, 35, { align: 'center' })
-        .fontSize(14)
-        .text(department, { align: 'center' })
-        .moveDown();
+    if (fs.existsSync(logoPath)) doc.image(logoPath, 50, 33, { height: 28 });
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+       .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D4ED8')
+       .text(`DEPARTMENTAL SPENDING — ${department}`, 145, 58, { align: 'center', width: 265, lineBreak: false });
+    doc.moveTo(50, 90).lineTo(545, 90).lineWidth(2).strokeColor('#2563EB').stroke();
+    doc.moveDown(3);
 
     doc.fontSize(10)
         .fillColor('#333333')

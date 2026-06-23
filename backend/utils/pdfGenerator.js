@@ -33,12 +33,12 @@ const generateRequisitionPDF = (requisition, items, callback) => {
 
     // ── HEADER ──────────────────────────────────────────────────
     const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-    if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 30, { height: 50 });
+    if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 33, { height: 28 });
 
     doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
-       .text('KSB ZAMBIA LIMITED', 148, 33, { align: 'center', width: 349, lineBreak: false });
+       .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
     doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
-       .text('PURCHASE REQUISITION', 148, 58, { align: 'center', width: 349, lineBreak: false });
+       .text('PURCHASE REQUISITION', 145, 58, { align: 'center', width: 265, lineBreak: false });
 
     // Status badge
     const rawStatus = (requisition.status || 'pending').toLowerCase().replace(/_/g, ' ');
@@ -126,12 +126,12 @@ const generateRequisitionPDF = (requisition, items, callback) => {
     const cols = [
       { label: '#',           w: 24  },
       { label: 'Code',        w: 55  },
-      { label: 'Description', w: 163 },
+      { label: 'Description', w: 110 },
       { label: 'Qty',         w: 40  },
       { label: 'Unit Price',  w: 72  },
       { label: 'Total',       w: 72  },
-      { label: 'Vendor',      w: 69  },
-    ]; // 24+55+163+40+72+72+69 = 495
+      { label: 'Vendor',      w: 122 },
+    ]; // 24+55+110+40+72+72+122 = 495
 
     doc.rect(LX, y, PW, 18).fill(ACC);
     let cx = LX;
@@ -258,11 +258,11 @@ const generateRequisitionPDF = (requisition, items, callback) => {
     }
 
     // ── FOOTER ───────────────────────────────────────────────────
-    doc.moveTo(LX, 782).lineTo(RX, 782).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+    doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
     doc.font('Helvetica').fontSize(7).fillColor('#888888')
        .text(
          `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${requisition.req_number || requisition.id || ''}`,
-         LX, 790, { width: PW, align: 'center', lineBreak: false }
+         LX, 780, { width: PW, align: 'center', lineBreak: false }
        );
 
     doc.end();

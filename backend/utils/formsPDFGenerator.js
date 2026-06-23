@@ -19,21 +19,32 @@ function formatDate(dateString) {
 }
 
 // Helper function to add header with logo
-function addHeader(doc, title) {
+function addHeader(doc, title, status) {
   const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-
-  // Add logo if it exists
   if (fs.existsSync(logoPath)) {
-    doc.image(logoPath, 50, 30, { width: 100 });
+    doc.image(logoPath, 50, 33, { height: 28 });
+  }
+  doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+     .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
+  doc.font('Helvetica-Bold').fontSize(12).fillColor('#1D4ED8')
+     .text(title, 145, 58, { align: 'center', width: 265, lineBreak: false });
+
+  if (status) {
+    const s = (status || '').toLowerCase().replace(/_/g, ' ');
+    let bdBg, bdBdr, bdTxt;
+    if (s.includes('approved') || s === 'completed') {
+      bdBg = '#D1FAE5'; bdBdr = '#059669'; bdTxt = '#065F46';
+    } else if (s.includes('rejected') || s.includes('declined')) {
+      bdBg = '#FEE2E2'; bdBdr = '#DC2626'; bdTxt = '#991B1B';
+    } else {
+      bdBg = '#EEF2F8'; bdBdr = '#2563EB'; bdTxt = '#1E3A5F';
+    }
+    doc.roundedRect(421, 30, 124, 22, 4).fillAndStroke(bdBg, bdBdr);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(bdTxt)
+       .text(s.toUpperCase(), 423, 38, { width: 120, align: 'center', lineBreak: false });
   }
 
-  // Add company name and title
-  doc.fontSize(20)
-     .font('Helvetica-Bold')
-     .text('KSB ZAMBIA LIMITED', 160, 40, { align: 'center' })
-     .fontSize(16)
-     .text(title, 160, 65, { align: 'center' })
-     .moveDown(2);
+  doc.moveTo(50, 90).lineTo(545, 90).lineWidth(2).strokeColor('#2563EB').stroke();
 }
 
 // Helper function to format datetime with time
@@ -48,29 +59,6 @@ function formatDateTime(dateString) {
     minute: '2-digit',
     second: '2-digit'
   });
-}
-
-// Helper function to add APPROVED/DECLINED stamp (no border, bold text)
-function addStatusStamp(doc, status, stampY) {
-  const s = (status || '').toLowerCase().replace(/_/g, ' ');
-  let stampText, stampColor;
-
-  if (s.includes('approved') || s === 'completed') {
-    stampText = 'APPROVED';
-    stampColor = '#008000';
-  } else if (s.includes('rejected') || s.includes('declined')) {
-    stampText = 'DECLINED';
-    stampColor = '#CC0000';
-  } else {
-    return;
-  }
-
-  doc.save();
-  doc.fontSize(20).font('Helvetica-Bold')
-     .fillColor(stampColor).fillOpacity(0.8)
-     .text(stampText, 50, 138, { width: 500, align: 'center' });
-  doc.restore();
-  doc.fillOpacity(1).fillColor('#000000');
 }
 
 // Helper function to add approval workflow section
@@ -194,18 +182,13 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       doc.pipe(stream);
 
       // Header
-      addHeader(doc, 'EXPENSE CLAIM FORM');
+      addHeader(doc, 'EXPENSE CLAIM FORM', claim.status);
 
-      // Claim ID and Status
+      // Claim ID
       doc.fontSize(10).font('Helvetica-Bold');
-      doc.fillColor('#000000').text('Claim ID:', 50, 120);
-      doc.fillColor('#0000CC').text(claim.id, 110, 120);
-      doc.fillColor('#000000').text('Status:', 420, 120);
-      doc.fillColor('#0000CC').text(claim.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
-      doc.fillColor('#000000').moveDown();
-
-      // Add status stamp below ID/Status line
-      addStatusStamp(doc, claim.status);
+      doc.fillColor('#000000').text('Claim ID:', 50, 100);
+      doc.font('Helvetica').fillColor('#1D4ED8').text(claim.id, 110, 100);
+      doc.fillColor('#000000');
 
       // Employee Information
       let yPos = 150;
@@ -339,18 +322,13 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       doc.pipe(stream);
 
       // Header
-      addHeader(doc, 'EFT / CHEQUE REQUISITION FORM');
+      addHeader(doc, 'EFT / CHEQUE REQUISITION FORM', eft.status);
 
-      // EFT ID and Status
+      // EFT ID
       doc.fontSize(10).font('Helvetica-Bold');
-      doc.fillColor('#000000').text('EFT ID:', 50, 120);
-      doc.fillColor('#0000CC').text(eft.id, 95, 120);
-      doc.fillColor('#000000').text('Status:', 420, 120);
-      doc.fillColor('#0000CC').text(eft.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
-      doc.fillColor('#000000').moveDown();
-
-      // Add status stamp below ID/Status line
-      addStatusStamp(doc, eft.status);
+      doc.fillColor('#000000').text('EFT ID:', 50, 100);
+      doc.font('Helvetica').fillColor('#1D4ED8').text(eft.id, 95, 100);
+      doc.fillColor('#000000');
 
       // Form Details
       let yPos = 150;
@@ -439,18 +417,13 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       doc.pipe(stream);
 
       // Header
-      addHeader(doc, 'PETTY CASH REQUISITION FORM');
+      addHeader(doc, 'PETTY CASH REQUISITION FORM', pc.status);
 
-      // PC ID and Status
+      // PC ID
       doc.fontSize(10).font('Helvetica-Bold');
-      doc.fillColor('#000000').text('Requisition ID:', 50, 120);
-      doc.fillColor('#0000CC').text(pc.id, 140, 120);
-      doc.fillColor('#000000').text('Status:', 420, 120);
-      doc.fillColor('#0000CC').text(pc.status.replace(/_/g, ' ').toUpperCase(), 460, 120);
-      doc.fillColor('#000000').moveDown();
-
-      // Add status stamp below ID/Status line
-      addStatusStamp(doc, pc.status);
+      doc.fillColor('#000000').text('Requisition ID:', 50, 100);
+      doc.font('Helvetica').fillColor('#1D4ED8').text(pc.id, 140, 100);
+      doc.fillColor('#000000');
 
       // Form Details
       let yPos = 150;
