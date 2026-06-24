@@ -11772,10 +11772,13 @@ function BudgetManagement({ user, allDepartments = [] }) {
 
   useEffect(() => { loadAll(); }, [fiscalYear]);
 
+  // Always load plans + amendments on mount (and FY change) so badge counts are visible
   useEffect(() => {
-    if (activeTab === 'plans') loadPlans();
-    else if (activeTab === 'amendments') loadAmendments();
-    else if (activeTab === 'changelog') loadChangeLog();
+    if (canManage) { loadPlans(); loadAmendments(); }
+  }, [fiscalYear]);
+
+  useEffect(() => {
+    if (activeTab === 'changelog') loadChangeLog();
   }, [activeTab, fiscalYear]);
 
   const loadAll = async () => {
@@ -12016,10 +12019,13 @@ function BudgetManagement({ user, allDepartments = [] }) {
     return React.createElement('span', { className: `badge ${cls}` }, lbl);
   };
 
+  const pendingPlanCount = plans.filter(p => p.status === 'pending_md').length;
+  const pendingAmendCount = amendments.filter(a => a.status === 'pending_md').length;
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    ...(canManage ? [{ id: 'plans', label: 'Budget Plans' }] : []),
-    ...(canManage ? [{ id: 'amendments', label: 'Amendments' }] : []),
+    ...(canManage ? [{ id: 'plans', label: 'Budget Plans', badge: isMD && pendingPlanCount > 0 ? pendingPlanCount : 0 }] : []),
+    ...(canManage ? [{ id: 'amendments', label: 'Amendments', badge: isMD && pendingAmendCount > 0 ? pendingAmendCount : 0 }] : []),
     ...(canManage ? [{ id: 'changelog', label: 'Change Log' }] : [])
   ];
 
@@ -12054,9 +12060,17 @@ function BudgetManagement({ user, allDepartments = [] }) {
             padding: '8px 16px', fontSize: '13px', fontWeight: activeTab === t.id ? '700' : '500',
             color: activeTab === t.id ? 'var(--primary)' : 'var(--text-secondary)',
             background: 'none', border: 'none', borderBottom: activeTab === t.id ? '2px solid var(--primary)' : '2px solid transparent',
-            cursor: 'pointer', marginBottom: '-1px'
+            cursor: 'pointer', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '6px'
           }
-        }, t.label))
+        },
+          t.label,
+          t.badge > 0 && React.createElement('span', {
+            style: {
+              background: '#EF4444', color: '#fff', borderRadius: '10px',
+              fontSize: '11px', fontWeight: '700', padding: '1px 6px', lineHeight: '16px'
+            }
+          }, t.badge)
+        ))
       )
     ),
 
