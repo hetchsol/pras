@@ -11,11 +11,16 @@ function formatCurrency(amount) {
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// Helper function to format date + time
+function formatDateTime(dateString) {
+  if (!dateString) return 'N/A';
+  const d = new Date(dateString);
+  if (isNaN(d)) return 'N/A';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}  ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // Helper function to add header with logo
@@ -371,7 +376,7 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
           doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('By:', bx + 8, by + 24, { width: 18, lineBreak: false });
           doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.user_name || ap.name || 'N/A', bx + 28, by + 24, { width: w - 36, lineBreak: false });
           doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
-          doc.font('Helvetica').fontSize(8).fillColor(tc).text(formatDate(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text(formatDateTime(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
           if (hasComment) {
             doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
             doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.comment || ap.comments, bx + 36, by + 54, { width: w - 44, lineBreak: false });
@@ -585,7 +590,7 @@ async function generateEFTPDF(eft, approvals, outputPath) {
           doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
              .text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
           doc.font('Helvetica').fontSize(8).fillColor(tc)
-             .text(formatDate(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
+             .text(formatDateTime(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
           if (hasComment) {
             doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
                .text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
@@ -819,7 +824,7 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
           doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('By:', bx + 8, by + 24, { width: 18, lineBreak: false });
           doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.user_name || ap.name || 'N/A', bx + 28, by + 24, { width: w - 36, lineBreak: false });
           doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
-          doc.font('Helvetica').fontSize(8).fillColor(tc).text(formatDate(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text(formatDateTime(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
           if (hasComment) {
             doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
             doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.comment || ap.comments, bx + 36, by + 54, { width: w - 44, lineBreak: false });

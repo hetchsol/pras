@@ -8,6 +8,14 @@ function fmtDate(d) {
   return isNaN(dt) ? 'N/A' : dt.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function fmtDateTime(d) {
+  if (!d) return 'N/A';
+  const dt = new Date(d);
+  if (isNaN(dt)) return 'N/A';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()}  ${p(dt.getHours())}:${p(dt.getMinutes())}`;
+}
+
 function fmtMoney(n) {
   return `K ${Number(n || 0).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -15,7 +23,14 @@ function fmtMoney(n) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PURCHASE REQUISITION PDF  — accent: navy blue
 // ─────────────────────────────────────────────────────────────────────────────
-const generateRequisitionPDF = (requisition, items, callback) => {
+const generateRequisitionPDF = (requisition, items, approvalsOrCallback, maybeCallback) => {
+  // Support both old 3-arg signature (requisition, items, callback)
+  // and new 4-arg signature (requisition, items, approvals, callback)
+  const approvals = typeof approvalsOrCallback === 'function' ? [] : (approvalsOrCallback || []);
+  const callback  = typeof approvalsOrCallback === 'function' ? approvalsOrCallback : maybeCallback;
+  return _generateRequisitionPDF(requisition, items, approvals, callback);
+};
+const _generateRequisitionPDF = (requisition, items, approvals, callback) => {
   try {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const PW = 495, LX = 50, RX = 545;
@@ -189,52 +204,72 @@ const generateRequisitionPDF = (requisition, items, callback) => {
     y += 30;
 
     // ── APPROVAL TRAIL ───────────────────────────────────────────
-    const approvalSteps = [
-      {
-        label: 'HOD Approval',
-        done:  !!requisition.hod_approved_by,
-        by:    requisition.hod_approved_by_name || requisition.hod_approved_by,
-        at:    requisition.hod_approved_at,
-        comments: requisition.hod_comments,
-      },
-      {
-        label: 'MD / Executive Approval',
-        done:  !!requisition.md_approved_at,
-        by:    requisition.md_approved_by_name || requisition.md_approved_by,
-        at:    requisition.md_approved_at,
-        comments: requisition.md_comments,
-      },
-    ].filter(s => s.done);
+    // Resolve from both the approvals array (live data) and legacy
+    // fields written directly on the requisition (test/seed data).
+    const apArr = approvals || [];
+    const hodAp  = apArr.find(a => a.role === 'hod')
+      || (requisition.hod_approved_by ? {
+            role: 'hod', action: 'approved',
+            user_name: requisition.hod_approved_by_name || requisition.hod_approved_by,
+            timestamp: requisition.hod_approved_at, comment: requisition.hod_comments
+          } : null);
+    const finAp  = apArr.find(a => a.role === 'finance' || a.role === 'finance_manager')
+      || null;
+    const mdAp   = apArr.find(a => a.role === 'md')
+      || (requisition.md_approved_at ? {
+            role: 'md', action: 'approved',
+            user_name: requisition.md_approved_by_name || requisition.md_approved_by,
+            timestamp: requisition.md_approved_at, comment: requisition.md_comments
+          } : null);
 
-    if (approvalSteps.length > 0) {
-      if (y > 640) { doc.addPage(); y = 50; }
+    if (hodAp || finAp || mdAp) {
+      if (y > 620) { doc.addPage({ size: 'A4' }); y = 50; }
       doc.rect(LX, y, PW, 20).fill(ACC_LT);
       doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
          .text('APPROVAL TRAIL', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
       y += 24;
 
-      approvalSteps.forEach(step => {
-        if (y > 680) { doc.addPage(); y = 50; }
-        const boxH = step.comments ? 56 : 42;
-        doc.roundedRect(LX, y, PW, boxH, 4).fillAndStroke('#D1FAE5', '#059669');
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#065F46')
-           .text(`${step.label}: APPROVED`, LX + 10, y + 8, { width: PW - 20, lineBreak: false });
-        doc.font('Helvetica-Bold').fontSize(8).fillColor('#065F46')
-           .text('Approved by:', LX + 10, y + 24, { width: 80, lineBreak: false });
-        doc.font('Helvetica').fontSize(8).fillColor('#065F46')
-           .text(step.by || 'N/A', LX + 92, y + 24, { width: 160, lineBreak: false });
-        doc.font('Helvetica-Bold').fontSize(8).fillColor('#065F46')
-           .text('Date:', 330, y + 24, { width: 32, lineBreak: false });
-        doc.font('Helvetica').fontSize(8).fillColor('#065F46')
-           .text(fmtDate(step.at), 365, y + 24, { width: 120, lineBreak: false });
-        if (step.comments) {
-          doc.font('Helvetica-Bold').fontSize(8).fillColor('#065F46')
-             .text('Comments:', LX + 10, y + 40, { width: 66, lineBreak: false });
-          doc.font('Helvetica').fontSize(8).fillColor('#065F46')
-             .text(step.comments, LX + 78, y + 40, { width: PW - 88, lineBreak: false });
+      const BOX_W  = 242;
+      const BOX2_X = LX + BOX_W + 11;
+
+      function drawApBox(ap, title, bx, by, fullWidth) {
+        const w = fullWidth ? PW : BOX_W;
+        const action = ap ? (ap.action || 'pending').toLowerCase() : 'pending';
+        let bg, bdr, tc;
+        if (action === 'approved')      { bg = '#D1FAE5'; bdr = '#059669'; tc = '#065F46'; }
+        else if (action === 'rejected') { bg = '#FEE2E2'; bdr = '#DC2626'; tc = '#991B1B'; }
+        else                            { bg = ACC_LT;    bdr = ACC_MID;   tc = ACC;       }
+        const hasComment = ap && ap.comment;
+        const bh = hasComment ? 78 : 62;
+        doc.roundedRect(bx, by, w, bh, 4).fillAndStroke(bg, bdr);
+        const lbl = action === 'approved' ? 'APPROVED' : action === 'rejected' ? 'REJECTED' : 'PENDING';
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(tc)
+           .text(`${title}: ${lbl}`, bx + 8, by + 8, { width: w - 16, lineBreak: false });
+        if (ap && action !== 'pending') {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('By:', bx + 8, by + 24, { width: 18, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.user_name || 'N/A', bx + 28, by + 24, { width: w - 36, lineBreak: false });
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text(fmtDateTime(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
+          if (hasComment) {
+            doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
+            doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.comment, bx + 36, by + 54, { width: w - 44, lineBreak: false });
+          }
+        } else {
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text('Awaiting approval', bx + 8, by + 24, { width: w - 16, lineBreak: false });
+          doc.moveTo(bx + 8, by + bh - 14).lineTo(bx + 140, by + bh - 14).lineWidth(0.5).strokeColor(bdr).stroke();
+          doc.font('Helvetica').fontSize(7).fillColor(tc).text('Signature & Date', bx + 8, by + bh - 10, { width: 140, lineBreak: false });
         }
-        y += boxH + 8;
-      });
+        return bh;
+      }
+
+      // Row 1: HOD | Finance Manager (side by side)
+      const hodH = drawApBox(hodAp, 'HEAD OF DEPARTMENT', LX, y, false);
+      const finH = drawApBox(finAp, 'FINANCE MANAGER', BOX2_X, y, false);
+      y += Math.max(hodH, finH) + 10;
+
+      // Row 2: Managing Director (full width)
+      drawApBox(mdAp, 'MANAGING DIRECTOR', LX, y, true);
+      y += (mdAp && mdAp.comment ? 78 : 62) + 8;
     }
 
     // ── PROCUREMENT COMPLETION ───────────────────────────────────

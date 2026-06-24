@@ -2560,8 +2560,15 @@ app.get('/api/requisitions/:id/pdf', authenticate, async (req, res) => {
       md_approved_at: requisition.md_approved_at || null,
     };
 
+    // Fetch approvals and resolve usernames to full names
+    const rawApprovals = await db.getApprovalsByRequisitionId(requisition.id);
+    const approvals = await Promise.all(rawApprovals.map(async ap => {
+      const user = await db.User.findOne({ username: ap.user_name }).lean();
+      return { ...ap, user_name: user ? user.full_name : ap.user_name };
+    }));
+
     const pdfBuffer = await new Promise((resolve, reject) => {
-      generateRequisitionPDF(mapped, mapped.items || [], (err, buffer) => {
+      generateRequisitionPDF(mapped, mapped.items || [], approvals, (err, buffer) => {
         if (err) reject(err);
         else resolve(buffer);
       });
