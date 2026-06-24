@@ -429,7 +429,7 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
          .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
       doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
-         .text('EFT / CHEQUE REQUISITION FORM', 145, 58, { align: 'center', width: 265, lineBreak: false });
+         .text('EFT REQUISITION FORM', 145, 58, { align: 'center', width: 265, lineBreak: false });
 
       // Status badge — reflects actual document status
       const rawStatus = (eft.status || 'pending').toLowerCase().replace(/_/g, ' ');
@@ -467,7 +467,7 @@ async function generateEFTPDF(eft, approvals, outputPath) {
       const C2L = 307, C2LW = 110, C2V = 420, C2VW = 120;
 
       const infoRows = [
-        ['EFT / CHQ No:',    eft.eft_chq_number || 'N/A',         'Prepared By:',    eft.initiator_name || 'N/A'],
+        ['EFT No:',          eft.eft_chq_number || 'N/A',         'Prepared By:',    eft.initiator_name || 'N/A'],
         ['Amount:',          formatCurrency(eft.amount),            'Department:',     eft.department || 'N/A'],
         ['In Favour Of:',    eft.in_favour_of || 'N/A',            'Account Code:',   eft.account_code || 'N/A'],
         ['Bank Account No:', eft.bank_account_number || 'N/A',     'Bank Name:',      eft.bank_name || 'N/A'],

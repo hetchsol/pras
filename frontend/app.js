@@ -3006,7 +3006,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
       isGroup: true,
       children: [
         { id: 'expense-claims', label: 'Expense Claim', isLink: true, href: 'expense-claim.html', show: true },
-        { id: 'eft-requisitions', label: 'EFT / Cheque Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
+        { id: 'eft-requisitions', label: 'EFT Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
         { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass,
           toggled: bypassEnabled, loading: bypassLoading,
           // Only interactive when locked out (time window not active) OR bypass is already on to allow turning it off
@@ -4392,7 +4392,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           actionCard('expense', 'Expense Claim', 'Submit travel and expense claims for reimbursement', {
             attrs: { href: 'expense-claim.html' }
           }),
-          actionCard('eft', 'EFT / Cheque Requisition', 'Request electronic payment or cheque issuance', {
+          actionCard('eft', 'EFT Requisition', 'Request electronic funds transfer', {
             tag: eftAccess.canCreate ? 'a' : 'div',
             disabled: !eftAccess.canCreate,
             disabledText: `Closed — opens ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`,
@@ -10523,7 +10523,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
       ),
 
       requisitions.length === 0
-        ? React.createElement(EmptyState, { heading: 'No EFT requisitions yet', sub: 'Submitted EFT / cheque requests will appear here.' })
+        ? React.createElement(EmptyState, { heading: 'No EFT requisitions yet', sub: 'Submitted EFT requests will appear here.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
               React.createElement('thead', { className: "bg-gray-50" },
