@@ -109,13 +109,12 @@
                                 <th style="width: 50px;">No</th>
                                 <th style="width: 100px;">Date</th>
                                 <th style="width: 200px;">Details</th>
-                                <th style="width: 80px;">KM</th>
                                 <th style="width: 40px;">B</th>
                                 <th style="width: 40px;">L</th>
                                 <th style="width: 40px;">D</th>
                                 <th style="width: 100px;">Meals (K)</th>
                                 <th style="width: 100px;">Accom (K)</th>
-                                <th style="width: 100px;">Phone (K)</th>
+                                <th style="width: 100px;">Incidental (K)</th>
                                 <th style="width: 100px;">Total (K)</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
@@ -130,15 +129,6 @@
             <!-- Totals -->
             <div class="totals-section">
                 <div class="totals-grid">
-                    <div class="totals-label">Total Kilometers:</div>
-                    <div class="totals-value" id="totalKM">0.00</div>
-
-                    <div class="totals-label">Sub Total (Travel):</div>
-                    <div class="totals-value" id="subTotal">K 0.00</div>
-
-                    <div class="totals-label">Total Travel:</div>
-                    <div class="totals-value" id="totalTravel">K 0.00</div>
-
                     <div class="totals-label">TOTAL CLAIM:</div>
                     <div class="totals-value grand-total" id="totalClaim">K 0.00</div>
 
@@ -214,13 +204,12 @@
                 <td><input type="text" class="report_no" value="${rowCounter}" readonly></td>
                 <td><input type="date" class="date" required></td>
                 <td><input type="text" class="details" required></td>
-                <td><input type="number" class="km" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="checkbox" class="breakfast" onchange="calculateRow(this)"></td>
                 <td><input type="checkbox" class="lunch" onchange="calculateRow(this)"></td>
                 <td><input type="checkbox" class="dinner" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="meals" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="accommodation" step="0.01" value="0" onchange="calculateRow(this)"></td>
-                <td><input type="number" class="phone" step="0.01" value="0" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="incidental" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="total" step="0.01" value="0" readonly></td>
                 <td><button type="button" class="btn btn-danger" onclick="deleteRow(this)">×</button></td>
             `;
@@ -249,44 +238,27 @@
             }
 
             // Calculate row total
-            const km = parseFloat(row.querySelector('.km').value) || 0;
             const meals = parseFloat(mealsInput.value) || 0;
             const accommodation = parseFloat(row.querySelector('.accommodation').value) || 0;
-            const phone = parseFloat(row.querySelector('.phone').value) || 0;
+            const incidental = parseFloat(row.querySelector('.incidental').value) || 0;
 
-            const rowTotal = meals + accommodation + phone;
+            const rowTotal = meals + accommodation + incidental;
             row.querySelector('.total').value = rowTotal.toFixed(2);
 
             calculateTotals();
         }
 
-        // Default KM rate constant (set to 0 - KM tracked but not reimbursed)
-        const DEFAULT_KM_RATE = 0;
-
         function calculateTotals() {
             const rows = document.getElementById('expenseTableBody').rows;
-            const kmRate = DEFAULT_KM_RATE;
-
-            let totalKM = 0;
-            let totalExpenses = 0;
+            let totalClaim = 0;
 
             for (let row of rows) {
-                const km = parseFloat(row.querySelector('.km').value) || 0;
-                const total = parseFloat(row.querySelector('.total').value) || 0;
-
-                totalKM += km;
-                totalExpenses += total;
+                totalClaim += parseFloat(row.querySelector('.total').value) || 0;
             }
 
-            const subTotal = totalKM * kmRate;
-            const totalTravel = subTotal;
-            const totalClaim = totalTravel + totalExpenses;
             const amountAdvanced = parseFloat(document.getElementById('amount_advanced').value) || 0;
             const amountDue = totalClaim - amountAdvanced;
 
-            document.getElementById('totalKM').textContent = totalKM.toFixed(2);
-            document.getElementById('subTotal').textContent = 'K ' + subTotal.toFixed(2);
-            document.getElementById('totalTravel').textContent = 'K ' + totalTravel.toFixed(2);
             document.getElementById('totalClaim').textContent = 'K ' + totalClaim.toFixed(2);
             document.getElementById('amountDue').textContent = 'K ' + amountDue.toFixed(2);
         }
@@ -308,21 +280,16 @@
                     report_no: parseInt(row.querySelector('.report_no').value),
                     date: row.querySelector('.date').value,
                     details: row.querySelector('.details').value,
-                    km: parseFloat(row.querySelector('.km').value) || 0,
                     breakfast: row.querySelector('.breakfast').checked ? 1 : 0,
                     lunch: row.querySelector('.lunch').checked ? 1 : 0,
                     dinner: row.querySelector('.dinner').checked ? 1 : 0,
                     meals: parseFloat(row.querySelector('.meals').value) || 0,
                     accommodation: parseFloat(row.querySelector('.accommodation').value) || 0,
-                    sundries_phone: parseFloat(row.querySelector('.phone').value) || 0,
+                    sundries_phone: parseFloat(row.querySelector('.incidental').value) || 0,
                     total_zmw: parseFloat(row.querySelector('.total').value) || 0
                 });
             }
 
-            const totalKM = parseFloat(document.getElementById('totalKM').textContent);
-            const kmRate = DEFAULT_KM_RATE;
-            const subTotal = totalKM * kmRate;
-            const totalTravel = parseFloat(document.getElementById('totalTravel').textContent.replace('K ', ''));
             const totalClaim = parseFloat(document.getElementById('totalClaim').textContent.replace('K ', ''));
             const amountAdvanced = parseFloat(document.getElementById('amount_advanced').value) || 0;
             const amountDue = parseFloat(document.getElementById('amountDue').textContent.replace('K ', ''));
@@ -332,10 +299,6 @@
                 employee_number: document.getElementById('employee_number').value,
                 department: document.getElementById('department').value,
                 reason_for_trip: document.getElementById('reason_for_trip').value,
-                total_kilometers: totalKM,
-                km_rate: kmRate,
-                sub_total: subTotal,
-                total_travel: totalTravel,
                 total_claim: totalClaim,
                 amount_advanced: amountAdvanced,
                 amount_due: amountDue,

@@ -74,15 +74,8 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       y += 24;
 
       // ── INFO GRID  4 rows × 2 cols ────────────────────────────
-      const ROWH = 20;
       const C1L = LX, C1LW = 115, C1V = 168, C1VW = 133;
       const C2L = 307, C2LW = 104, C2V = 415, C2VW = 130;
-
-      doc.rect(LX, y, PW, ROWH * 4).stroke('#CCCCCC');
-      doc.moveTo(305, y).lineTo(305, y + ROWH * 4).stroke('#CCCCCC');
-      [1, 2, 3].forEach(n =>
-        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE')
-      );
 
       const infoRows = [
         ['Issued To:',         slip.issued_to,                                  'Delivery Date:',  formatDate(slip.delivery_date)],
@@ -91,25 +84,39 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
         ['Delivery Location:', slip.delivery_location,                          '',                ''],
       ];
 
+      doc.font('Helvetica').fontSize(9);
+      const rowHeights = infoRows.map(([, v1, l2, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || 'N/A'), { width: C1VW });
+        const h2 = l2 ? doc.heightOfString(String(v2 || 'N/A'), { width: C2VW }) : 0;
+        return Math.max(20, Math.max(h1, h2) + 8);
+      });
+      const gridH = rowHeights.reduce((s, h) => s + h, 0);
+
+      doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
+      doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
+
+      let gridY = y;
       infoRows.forEach(([l1, v1, l2, v2], row) => {
-        const ry = y + row * ROWH;
+        const rh = rowHeights[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
         if (row % 2 === 1) {
-          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#FFFBEB');
-          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#FFFBEB');
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#FFFBEB');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#FFFBEB');
         }
-        const ty = ry + 5;
+        const ty = gridY + 5;
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW, lineBreak: false });
+           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW });
         if (l2) {
           doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
              .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
           doc.font('Helvetica').fontSize(9).fillColor('#111111')
-             .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW, lineBreak: false });
+             .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW });
         }
+        gridY += rh;
       });
-      y += ROWH * 4 + 10;
+      y += gridH + 10;
 
       // ── CUSTOMER BANNER ───────────────────────────────────────
       if (slip.customer) {
@@ -312,15 +319,8 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       y += 24;
 
       // ── INFO GRID  3 rows × 2 cols ────────────────────────────
-      const ROWH = 20;
       const C1L = LX, C1LW = 115, C1V = 168, C1VW = 133;
       const C2L = 307, C2LW = 104, C2V = 415, C2VW = 130;
-
-      doc.rect(LX, y, PW, ROWH * 3).stroke('#CCCCCC');
-      doc.moveTo(305, y).lineTo(305, y + ROWH * 3).stroke('#CCCCCC');
-      [1, 2].forEach(n =>
-        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE')
-      );
 
       const infoRows = [
         ['Picked By:',    slip.picked_by,                               'Destination:',       slip.destination],
@@ -328,23 +328,37 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
         ['Reference No:', slip.reference_number,                        'Created By:',        slip.initiator_name],
       ];
 
+      doc.font('Helvetica').fontSize(9);
+      const rowHeights = infoRows.map(([, v1,, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || 'N/A'), { width: C1VW });
+        const h2 = doc.heightOfString(String(v2 || 'N/A'), { width: C2VW });
+        return Math.max(20, Math.max(h1, h2) + 8);
+      });
+      const gridH = rowHeights.reduce((s, h) => s + h, 0);
+
+      doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
+      doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
+
+      let gridY = y;
       infoRows.forEach(([l1, v1, l2, v2], row) => {
-        const ry = y + row * ROWH;
+        const rh = rowHeights[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
         if (row % 2 === 1) {
-          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F5F3FF');
-          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F5F3FF');
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F5F3FF');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F5F3FF');
         }
-        const ty = ry + 5;
+        const ty = gridY + 5;
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW, lineBreak: false });
+           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW });
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW, lineBreak: false });
+           .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW });
+        gridY += rh;
       });
-      y += ROWH * 3 + 10;
+      y += gridH + 10;
 
       // ── CUSTOMER BANNER ───────────────────────────────────────
       if (slip.customer) {
@@ -495,15 +509,8 @@ async function generateGRNPDF(grn, items, outputPath) {
       y += 24;
 
       // ── INFO GRID  4 rows × 2 cols ────────────────────────────
-      const ROWH = 20;
       const C1L = LX, C1LW = 115, C1V = 168, C1VW = 133;
       const C2L = 307, C2LW = 104, C2V = 415, C2VW = 130;
-
-      doc.rect(LX, y, PW, ROWH * 4).stroke('#CCCCCC');
-      doc.moveTo(305, y).lineTo(305, y + ROWH * 4).stroke('#CCCCCC');
-      [1, 2, 3].forEach(n =>
-        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE')
-      );
 
       const gridRows = [
         ['Receipt Date:',    formatDate(grn.receipt_date || grn.created_at), 'Received By:',  grn.received_by],
@@ -512,23 +519,37 @@ async function generateGRNPDF(grn, items, outputPath) {
         ['Delivery Note #:', grn.delivery_note_number,                       'Created By:',   grn.initiator_name],
       ];
 
+      doc.font('Helvetica').fontSize(9);
+      const gridRowH = gridRows.map(([, v1,, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || 'N/A'), { width: C1VW });
+        const h2 = doc.heightOfString(String(v2 || 'N/A'), { width: C2VW });
+        return Math.max(20, Math.max(h1, h2) + 8);
+      });
+      const gridH = gridRowH.reduce((s, h) => s + h, 0);
+
+      doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
+      doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
+
+      let gridY = y;
       gridRows.forEach(([l1, v1, l2, v2], row) => {
-        const ry = y + row * ROWH;
+        const rh = gridRowH[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
         if (row % 2 === 1) {
-          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F0FDF4');
-          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F0FDF4');
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F0FDF4');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F0FDF4');
         }
-        const ty = ry + 5;
+        const ty = gridY + 5;
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW, lineBreak: false });
+           .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW });
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW, lineBreak: false });
+           .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW });
+        gridY += rh;
       });
-      y += ROWH * 4 + 10;
+      y += gridH + 10;
 
       // ── RESERVATION BANNER ────────────────────────────────────
       if (grn.customer) {

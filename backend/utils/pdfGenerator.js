@@ -86,15 +86,8 @@ const _generateRequisitionPDF = (requisition, items, approvals, callback) => {
     y += 24;
 
     // ── INFO GRID  4 rows × 2 cols ───────────────────────────────
-    const ROWH = 20;
     const C1L = LX, C1LW = 115, C1V = 168, C1VW = 133;
     const C2L = 307, C2LW = 104, C2V = 415, C2VW = 130;
-
-    doc.rect(LX, y, PW, ROWH * 4).stroke('#CCCCCC');
-    doc.moveTo(305, y).lineTo(305, y + ROWH * 4).stroke('#CCCCCC');
-    [1, 2, 3].forEach(n =>
-      doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE')
-    );
 
     const gridRows = [
       ['Requested By:',    requisition.created_by_name,           'Department:',    requisition.department],
@@ -103,23 +96,37 @@ const _generateRequisitionPDF = (requisition, items, approvals, callback) => {
       ['Delivery Loc:',    requisition.delivery_location,         'Approved Date:', fmtDate(requisition.md_approved_at)],
     ];
 
+    doc.font('Helvetica').fontSize(9);
+    const gridRowH = gridRows.map(([, v1,, v2]) => {
+      const h1 = doc.heightOfString(String(v1 || 'N/A'), { width: C1VW });
+      const h2 = doc.heightOfString(String(v2 || 'N/A'), { width: C2VW });
+      return Math.max(20, Math.max(h1, h2) + 8);
+    });
+    const gridH = gridRowH.reduce((s, h) => s + h, 0);
+
+    doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
+    doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
+
+    let gridY = y;
     gridRows.forEach(([l1, v1, l2, v2], row) => {
-      const ry = y + row * ROWH;
+      const rh = gridRowH[row];
+      if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
       if (row % 2 === 1) {
-        doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F0F4FF');
-        doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F0F4FF');
+        doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F0F4FF');
+        doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F0F4FF');
       }
-      const ty = ry + 5;
+      const ty = gridY + 5;
       doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
          .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
       doc.font('Helvetica').fontSize(9).fillColor('#111111')
-         .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW, lineBreak: false });
+         .text(String(v1 || 'N/A'), C1V, ty, { width: C1VW });
       doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
          .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
       doc.font('Helvetica').fontSize(9).fillColor('#111111')
-         .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW, lineBreak: false });
+         .text(String(v2 || 'N/A'), C2V, ty, { width: C2VW });
+      gridY += rh;
     });
-    y += ROWH * 4 + 10;
+    y += gridH + 10;
 
     // ── DESCRIPTION ─────────────────────────────────────────────
     if (requisition.description) {

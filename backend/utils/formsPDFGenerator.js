@@ -52,20 +52,6 @@ function addHeader(doc, title, status) {
   doc.moveTo(50, 90).lineTo(545, 90).lineWidth(2).strokeColor('#2563EB').stroke();
 }
 
-// Helper function to format datetime with time
-function formatDateTime(dateString) {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-}
-
 // Helper function to add approval workflow section
 function addApprovalWorkflowSection(doc, approvals, yPosition) {
   doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
@@ -228,7 +214,6 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       y += 24;
 
       // ── EMPLOYEE INFO GRID ───────────────────────────────────────
-      const ROWH = 22;
       const C1L = LX, C1LW = 120, C1V = 173, C1VW = 128;
       const C2L = 307, C2LW = 110, C2V = 420, C2VW = 120;
 
@@ -238,54 +223,60 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
         ['Reason for Trip:', claim.reason_for_trip  || 'N/A', '',               ''],
       ];
 
-      const gridH = ROWH * infoRows.length;
+      doc.font('Helvetica').fontSize(9);
+      const rowHeights = infoRows.map(([, v1, l2, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || ''), { width: C1VW });
+        const h2 = l2 ? doc.heightOfString(String(v2 || ''), { width: C2VW }) : 0;
+        return Math.max(22, Math.max(h1, h2) + 10);
+      });
+      const gridH = rowHeights.reduce((s, h) => s + h, 0);
+
       doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
       doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
-      for (let n = 1; n < infoRows.length; n++)
-        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE');
 
+      let gridY = y;
       infoRows.forEach(([l1, v1, l2, v2], row) => {
-        const ry = y + row * ROWH;
+        const rh = rowHeights[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
         if (row % 2 === 1) {
-          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F5F3FF');
-          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F5F3FF');
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F5F3FF');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F5F3FF');
         }
-        const ty = ry + 6;
+        const ty = gridY + 6;
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v1 || ''), C1V, ty, { width: C1VW, lineBreak: false });
+           .text(String(v1 || ''), C1V, ty, { width: C1VW });
         if (l2) {
           doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
              .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
           doc.font('Helvetica').fontSize(9).fillColor('#111111')
-             .text(String(v2 || ''), C2V, ty, { width: C2VW, lineBreak: false });
+             .text(String(v2 || ''), C2V, ty, { width: C2VW });
         }
+        gridY += rh;
       });
       y += gridH + 10;
 
       // ── EXPENSE DETAILS TABLE ────────────────────────────────────
       // Column x-positions (all relative to LX=50)
-      const cNo   = LX;       // 30px wide
-      const cDate = LX + 32;  // 52px wide
-      const cDet  = LX + 86;  // 130px wide
-      const cKM   = LX + 218; // 32px wide
-      const cMeal = LX + 252; // 42px wide
-      const cAccom= LX + 296; // 68px wide
-      const cPhone= LX + 366; // 58px wide
-      const cTot  = LX + 426; // 68px wide (to RX=545)
+      const cNo   = LX;       // 32px wide
+      const cDate = LX + 32;  // 54px wide
+      const cDet  = LX + 86;  // 166px wide (gained KM's 34px)
+      const cMeal = LX + 252; // 44px wide
+      const cAccom= LX + 296; // 70px wide
+      const cInc  = LX + 366; // 60px wide
+      const cTot  = LX + 426; // 69px wide (to RX=545)
 
       const TH = 20;
       doc.rect(LX, y, PW, TH).fill(ACC_HDR);
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
-      doc.text('No',     cNo + 3,   y + 5, { width: 28,  lineBreak: false });
-      doc.text('Date',   cDate + 2, y + 5, { width: 50,  lineBreak: false });
-      doc.text('Details',cDet + 2,  y + 5, { width: 128, lineBreak: false });
-      doc.text('KM',     cKM + 2,   y + 5, { width: 30,  lineBreak: false });
-      doc.text('B/L/D',  cMeal + 2, y + 5, { width: 40,  lineBreak: false });
-      doc.text('Accom',  cAccom + 2,y + 5, { width: 64,  lineBreak: false });
-      doc.text('Phone',  cPhone + 2,y + 5, { width: 54,  lineBreak: false });
-      doc.text('Total',  cTot + 2,  y + 5, { width: 66, align: 'right', lineBreak: false });
+      doc.text('No',         cNo + 3,   y + 5, { width: 28,  lineBreak: false });
+      doc.text('Date',       cDate + 2, y + 5, { width: 50,  lineBreak: false });
+      doc.text('Details',    cDet + 2,  y + 5, { width: 162, lineBreak: false });
+      doc.text('B/L/D',      cMeal + 2, y + 5, { width: 40,  lineBreak: false });
+      doc.text('Accom',      cAccom + 2,y + 5, { width: 66,  lineBreak: false });
+      doc.text('Incidental', cInc + 2,  y + 5, { width: 56,  lineBreak: false });
+      doc.text('Total',      cTot + 2,  y + 5, { width: 66, align: 'right', lineBreak: false });
       y += TH;
 
       const ROW_H = 18;
@@ -296,11 +287,10 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
         doc.font('Helvetica').fontSize(8).fillColor('#111111');
         doc.text(String(item.report_no || idx + 1), cNo + 3,    y + 4, { width: 28,  lineBreak: false });
         doc.text(formatDate(item.date),              cDate + 2,  y + 4, { width: 50,  lineBreak: false });
-        doc.text(item.details || '',                 cDet + 2,   y + 4, { width: 128, lineBreak: false });
-        doc.text(String(item.km || 0),               cKM + 2,    y + 4, { width: 30,  lineBreak: false });
+        doc.text(item.details || '',                 cDet + 2,   y + 4, { width: 162, lineBreak: false });
         doc.text(meals,                              cMeal + 2,  y + 4, { width: 40,  lineBreak: false });
-        doc.text(formatCurrency(item.accommodation), cAccom + 2, y + 4, { width: 64,  lineBreak: false });
-        doc.text(formatCurrency(item.sundries_phone),cPhone + 2, y + 4, { width: 54,  lineBreak: false });
+        doc.text(formatCurrency(item.accommodation), cAccom + 2, y + 4, { width: 66,  lineBreak: false });
+        doc.text(formatCurrency(item.sundries_phone),cInc + 2,   y + 4, { width: 56,  lineBreak: false });
         doc.font('Helvetica-Bold').fontSize(8).fillColor('#111111')
            .text(formatCurrency(item.total_zmw),     cTot + 2,   y + 4, { width: 66, align: 'right', lineBreak: false });
         y += ROW_H;
@@ -309,13 +299,9 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
 
       // ── TOTALS BOX ───────────────────────────────────────────────
       const totRows = [
-        ['Total Kilometers:',  String(claim.total_kilometers || '0') + ' km', false],
-        ['KM Rate:',           formatCurrency(claim.km_rate),                  false],
-        ['Sub Total (Travel):', formatCurrency(claim.sub_total),               false],
-        ['Total Travel:',      formatCurrency(claim.total_travel),             false],
-        ['TOTAL CLAIM:',       formatCurrency(claim.total_claim),              true ],
-        ['Amount Advanced:',   formatCurrency(claim.amount_advanced),          false],
-        ['AMOUNT DUE:',        formatCurrency(claim.amount_due),               true ],
+        ['TOTAL CLAIM:',     formatCurrency(claim.total_claim),    true ],
+        ['Amount Advanced:', formatCurrency(claim.amount_advanced), false],
+        ['AMOUNT DUE:',      formatCurrency(claim.amount_due),      true ],
       ];
       const TR_H = 18, TR_LW = 130, TR_LX = LX + 240, TR_VX = LX + 375;
       totRows.forEach(([lbl, val, highlight], i) => {
@@ -466,8 +452,7 @@ async function generateEFTPDF(eft, approvals, outputPath) {
          .text(formatDate(eft.created_at), 422, y + 5, { width: 118, lineBreak: false });
       y += 24;
 
-      // ── INFO GRID (6 rows × 2 cols) ──────────────────────────────
-      const ROWH = 22;
+      // ── INFO GRID (5 rows × 2 cols) ──────────────────────────────
       const C1L = LX, C1LW = 120, C1V = 173, C1VW = 128;
       const C2L = 307, C2LW = 110, C2V = 420, C2VW = 120;
 
@@ -479,35 +464,42 @@ async function generateEFTPDF(eft, approvals, outputPath) {
         ['Branch:',          eft.branch || 'N/A',                  '',                ''],
       ];
 
-      const gridH = ROWH * infoRows.length;
+      doc.font('Helvetica').fontSize(9);
+      const rowHeights = infoRows.map(([, v1, l2, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || ''), { width: C1VW });
+        const h2 = l2 ? doc.heightOfString(String(v2 || ''), { width: C2VW }) : 0;
+        return Math.max(22, Math.max(h1, h2) + 10);
+      });
+      const gridH = rowHeights.reduce((s, h) => s + h, 0);
+
       doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
       doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
-      for (let n = 1; n < infoRows.length; n++)
-        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE');
 
+      let gridY = y;
       infoRows.forEach(([l1, v1, l2, v2], row) => {
-        const ry = y + row * ROWH;
+        const rh = rowHeights[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
         if (row % 2 === 1) {
-          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F0F4FB');
-          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F0F4FB');
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F0F4FB');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F0F4FB');
         }
-        const ty = ry + 6;
-        // Highlight the amount row
-        if (l1 === 'Amount:') {
-          doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D4ED8')
-             .text(v1, C1V, ty - 1, { width: C1VW, lineBreak: false });
-        } else {
-          doc.font('Helvetica').fontSize(9).fillColor('#111111')
-             .text(String(v1 || ''), C1V, ty, { width: C1VW, lineBreak: false });
-        }
+        const ty = gridY + 6;
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
+        if (l1 === 'Amount:') {
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D4ED8')
+             .text(v1, C1V, ty - 1, { width: C1VW });
+        } else {
+          doc.font('Helvetica').fontSize(9).fillColor('#111111')
+             .text(String(v1 || ''), C1V, ty, { width: C1VW });
+        }
         if (l2) {
           doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
              .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
           doc.font('Helvetica').fontSize(9).fillColor('#111111')
-             .text(String(v2 || ''), C2V, ty, { width: C2VW, lineBreak: false });
+             .text(String(v2 || ''), C2V, ty, { width: C2VW });
         }
+        gridY += rh;
       });
       y += gridH + 10;
 
@@ -686,7 +678,6 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       y += 24;
 
       // ── INFO GRID ────────────────────────────────────────────────
-      const ROWH = 22;
       const C1L = LX, C1LW = 110, C1V = 163, C1VW = 138;
       const C2L = 307, C2LW = 110, C2V = 420, C2VW = 120;
 
@@ -695,29 +686,37 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
         ['Payee Name:',  pc.payee_name || 'N/A', '',             ''],
       ];
 
-      const gridH = ROWH * infoRows.length;
+      doc.font('Helvetica').fontSize(9);
+      const rowHeights = infoRows.map(([, v1, l2, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || ''), { width: C1VW });
+        const h2 = l2 ? doc.heightOfString(String(v2 || ''), { width: C2VW }) : 0;
+        return Math.max(22, Math.max(h1, h2) + 10);
+      });
+      const gridH = rowHeights.reduce((s, h) => s + h, 0);
+
       doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
       doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
-      for (let n = 1; n < infoRows.length; n++)
-        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE');
 
+      let gridY = y;
       infoRows.forEach(([l1, v1, l2, v2], row) => {
-        const ry = y + row * ROWH;
+        const rh = rowHeights[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
         if (row % 2 === 1) {
-          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F0FBF6');
-          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F0FBF6');
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F0FBF6');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F0FBF6');
         }
-        const ty = ry + 6;
+        const ty = gridY + 6;
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
            .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor('#111111')
-           .text(String(v1 || ''), C1V, ty, { width: C1VW, lineBreak: false });
+           .text(String(v1 || ''), C1V, ty, { width: C1VW });
         if (l2) {
           doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
              .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
           doc.font('Helvetica').fontSize(9).fillColor('#111111')
-             .text(String(v2 || ''), C2V, ty, { width: C2VW, lineBreak: false });
+             .text(String(v2 || ''), C2V, ty, { width: C2VW });
         }
+        gridY += rh;
       });
       y += gridH + 6;
 
