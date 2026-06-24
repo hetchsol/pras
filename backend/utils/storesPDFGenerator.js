@@ -8,6 +8,14 @@ function formatDate(dateString) {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function formatDateTime(dateString) {
+  if (!dateString) return 'N/A';
+  const d = new Date(dateString);
+  if (isNaN(d)) return 'N/A';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}  ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ISSUE SLIP PDF  — accent: warm amber
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,8 +183,8 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
          .text('APPROVAL WORKFLOW', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
       y += 24;
 
-      const hodApproval     = (approvals || []).find(a => a.role === 'hod')     || null;
-      const financeApproval = (approvals || []).find(a => a.role === 'finance') || null;
+      const hodApproval     = (approvals || []).find(a => a.role === 'hod') || null;
+      const financeApproval = (approvals || []).find(a => a.role === 'finance' || a.role === 'finance_manager') || null;
       const BOX_W  = 242;
       const BOX2_X = LX + BOX_W + 11; // 303
 
@@ -200,7 +208,7 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
           doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
              .text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
           doc.font('Helvetica').fontSize(8).fillColor(tc)
-             .text(formatDate(ap.timestamp || ap.date), bx + 36, by + 38, { width: BOX_W - 44, lineBreak: false });
+             .text(formatDateTime(ap.timestamp || ap.date), bx + 36, by + 38, { width: BOX_W - 44, lineBreak: false });
           if (hasComment) {
             doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
                .text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
@@ -641,7 +649,7 @@ async function generateGRNPDF(grn, items, outputPath) {
         doc.font('Helvetica-Bold').fontSize(9).fillColor(aText)
            .text('Date:', 318, y + 28, { width: 34, lineBreak: false });
         doc.font('Helvetica').fontSize(9).fillColor(aText)
-           .text(approval.date ? formatDate(approval.date) : 'N/A', 355, y + 28, { width: 130, lineBreak: false });
+           .text(approval.date ? formatDateTime(approval.date) : 'N/A', 355, y + 28, { width: 130, lineBreak: false });
         if (hasComments) {
           doc.font('Helvetica-Bold').fontSize(9).fillColor(aText)
              .text('Comments:', LX + 10, y + 46, { width: 68, lineBreak: false });
