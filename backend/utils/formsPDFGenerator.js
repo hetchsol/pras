@@ -316,89 +316,218 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
 async function generateEFTPDF(eft, approvals, outputPath) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50 });
-      const stream = fs.createWriteStream(outputPath);
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const PW = 495, LX = 50, RX = 545;
 
+      // Blue accent palette — matches PR and existing EFT header
+      const ACC     = '#1E3A5F';
+      const ACC_MID = '#2563EB';
+      const ACC_LT  = '#EEF2F8';
+      const ACC_HDR = '#1D4ED8';
+
+      const stream = fs.createWriteStream(outputPath);
       doc.pipe(stream);
 
-      // Header
-      addHeader(doc, 'EFT / CHEQUE REQUISITION FORM', eft.status);
+      // ── HEADER ──────────────────────────────────────────────────
+      const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 33, { height: 28 });
 
-      // EFT ID
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.fillColor('#000000').text('EFT ID:', 50, 100);
-      doc.font('Helvetica').fillColor('#1D4ED8').text(eft.id, 95, 100);
-      doc.fillColor('#000000');
+      doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+         .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
+         .text('EFT / CHEQUE REQUISITION FORM', 145, 58, { align: 'center', width: 265, lineBreak: false });
 
-      // Form Details
-      let yPos = 150;
+      // Status badge — reflects actual document status
+      const rawStatus = (eft.status || 'pending').toLowerCase().replace(/_/g, ' ');
+      let bdBg, bdBdr, bdTxt;
+      if (rawStatus === 'approved') {
+        bdBg = '#D1FAE5'; bdBdr = '#059669'; bdTxt = '#065F46';
+      } else if (rawStatus.includes('reject')) {
+        bdBg = '#FEE2E2'; bdBdr = '#DC2626'; bdTxt = '#991B1B';
+      } else {
+        bdBg = ACC_LT; bdBdr = ACC_MID; bdTxt = ACC;
+      }
+      doc.roundedRect(421, 30, 124, 22, 4).fillAndStroke(bdBg, bdBdr);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(bdTxt)
+         .text(rawStatus.toUpperCase(), 423, 38, { width: 120, align: 'center', lineBreak: false });
 
-      // Box around main content
-      doc.rect(50, yPos, 500, 320).stroke();
-      yPos += 20;
+      let y = 90;
+      doc.moveTo(LX, y).lineTo(RX, y).lineWidth(2).strokeColor(ACC_MID).stroke();
+      y += 6;
 
-      doc.fontSize(11).font('Helvetica-Bold');
-      doc.text('EFT / CHQ NO:', 70, yPos);
-      doc.font('Helvetica').text(eft.eft_chq_number || 'N/A', 200, yPos);
-      yPos += 25;
+      // ── EFT ID ROW ───────────────────────────────────────────────
+      doc.rect(LX, y, PW, 20).fill(ACC_LT);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+         .text('EFT ID:', LX + 6, y + 5, { width: 46, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC_HDR)
+         .text(eft.id || '—', LX + 54, y + 5, { width: 250, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+         .text('Date:', 380, y + 5, { width: 40, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#000000')
+         .text(formatDate(eft.created_at), 422, y + 5, { width: 118, lineBreak: false });
+      y += 24;
 
-      doc.font('Helvetica-Bold').text('AMOUNT:', 70, yPos);
-      doc.font('Helvetica').fontSize(14).text(formatCurrency(eft.amount), 200, yPos);
-      yPos += 25;
+      // ── INFO GRID (6 rows × 2 cols) ──────────────────────────────
+      const ROWH = 22;
+      const C1L = LX, C1LW = 120, C1V = 173, C1VW = 128;
+      const C2L = 307, C2LW = 110, C2V = 420, C2VW = 120;
 
-      doc.fontSize(11).font('Helvetica-Bold').text('AMOUNT IN WORDS:', 70, yPos);
-      doc.font('Helvetica').text(eft.amount_in_words, 70, yPos + 15, { width: 460, align: 'center' });
-      yPos += 45;
+      const infoRows = [
+        ['EFT / CHQ No:',    eft.eft_chq_number || 'N/A',         'Prepared By:',    eft.initiator_name || 'N/A'],
+        ['Amount:',          formatCurrency(eft.amount),            'Department:',     eft.department || 'N/A'],
+        ['In Favour Of:',    eft.in_favour_of || 'N/A',            'Account Code:',   eft.account_code || 'N/A'],
+        ['Bank Account No:', eft.bank_account_number || 'N/A',     'Bank Name:',      eft.bank_name || 'N/A'],
+        ['Branch:',          eft.branch || 'N/A',                  '',                ''],
+      ];
 
-      doc.font('Helvetica-Bold').text('IN FAVOUR OF:', 70, yPos);
-      doc.font('Helvetica').text(eft.in_favour_of, 200, yPos);
-      yPos += 25;
+      const gridH = ROWH * infoRows.length;
+      doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
+      doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
+      for (let n = 1; n < infoRows.length; n++)
+        doc.moveTo(LX, y + ROWH * n).lineTo(RX, y + ROWH * n).stroke('#EEEEEE');
 
-      doc.font('Helvetica-Bold').text('BANK ACCOUNT NO:', 70, yPos);
-      doc.font('Helvetica').text(eft.bank_account_number || 'N/A', 200, yPos);
-      yPos += 25;
+      infoRows.forEach(([l1, v1, l2, v2], row) => {
+        const ry = y + row * ROWH;
+        if (row % 2 === 1) {
+          doc.rect(LX + 1, ry + 1, 253, ROWH - 2).fill('#F0F4FB');
+          doc.rect(306, ry + 1, PW - 256, ROWH - 2).fill('#F0F4FB');
+        }
+        const ty = ry + 6;
+        // Highlight the amount row
+        if (l1 === 'Amount:') {
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#1D4ED8')
+             .text(v1, C1V, ty - 1, { width: C1VW, lineBreak: false });
+        } else {
+          doc.font('Helvetica').fontSize(9).fillColor('#111111')
+             .text(String(v1 || ''), C1V, ty, { width: C1VW, lineBreak: false });
+        }
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
+        if (l2) {
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+             .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
+          doc.font('Helvetica').fontSize(9).fillColor('#111111')
+             .text(String(v2 || ''), C2V, ty, { width: C2VW, lineBreak: false });
+        }
+      });
+      y += gridH + 10;
 
-      doc.font('Helvetica-Bold').text('BANK NAME:', 70, yPos);
-      doc.font('Helvetica').text(eft.bank_name || 'N/A', 200, yPos);
-      yPos += 25;
+      // ── AMOUNT IN WORDS BANNER ───────────────────────────────────
+      if (eft.amount_in_words) {
+        doc.roundedRect(LX, y, PW, 26, 3).fillAndStroke(ACC_LT, ACC_MID);
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+           .text('Amount in Words:', LX + 8, y + 8, { width: 100, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor(ACC)
+           .text(eft.amount_in_words, LX + 112, y + 8, { width: PW - 120, lineBreak: false });
+        y += 34;
+      }
 
-      doc.font('Helvetica-Bold').text('BRANCH:', 70, yPos);
-      doc.font('Helvetica').text(eft.branch || 'N/A', 200, yPos);
-      yPos += 25;
-
-      doc.font('Helvetica-Bold').text('PURPOSE:', 70, yPos);
-      doc.font('Helvetica').text(eft.purpose, 70, yPos + 15, { width: 460 });
-      yPos += 45;
-
-      if (eft.account_code) {
-        doc.font('Helvetica-Bold').text('ACCOUNT CODE:', 70, yPos);
-        doc.font('Helvetica').text(eft.account_code, 200, yPos);
-        yPos += 25;
+      // ── PURPOSE ──────────────────────────────────────────────────
+      if (eft.purpose) {
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text('Purpose:', LX, y, { width: 55, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(eft.purpose, LX + 60, y, { width: PW - 60 });
+        const purposeLines = Math.max(1, Math.ceil(eft.purpose.length / 80));
+        y += purposeLines * 13 + 8;
       }
 
       if (eft.description) {
-        doc.font('Helvetica-Bold').text('DESCRIPTION:', 70, yPos);
-        doc.font('Helvetica').text(eft.description, 70, yPos + 15, { width: 460 });
-        yPos += 45;
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text('Description:', LX, y, { width: 70, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(eft.description, LX + 74, y, { width: PW - 74 });
+        y += 20;
+      }
+      y += 10;
+
+      // ── PREPARED BY (signature line) ─────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+         .text('PREPARED BY:', LX, y, { width: 90, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(eft.initiator_name || 'N/A', LX + 94, y, { lineBreak: false });
+      y += 14;
+      doc.font('Helvetica').fontSize(9).fillColor('#777777')
+         .text(`Date: ${formatDate(eft.created_at)}`, LX, y, { lineBreak: false });
+      y += 22;
+      doc.moveTo(LX, y).lineTo(LX + 200, y).lineWidth(0.8).strokeColor('#555555').stroke();
+      y += 4;
+      doc.font('Helvetica').fontSize(8).fillColor('#777777')
+         .text('Signature & Date', LX, y, { width: 200, align: 'center', lineBreak: false });
+      y += 20;
+
+      // ── APPROVAL WORKFLOW ────────────────────────────────────────
+      y += 6;
+      doc.rect(LX, y, PW, 20).fill(ACC_LT);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+         .text('APPROVAL WORKFLOW', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+      y += 24;
+
+      const hodApproval  = (approvals || []).find(a => a.role === 'hod')  || null;
+      const finApproval  = (approvals || []).find(a => a.role === 'finance' || a.role === 'finance_manager') || null;
+      const mdApproval   = (approvals || []).find(a => a.role === 'md')   || null;
+
+      const BOX_W  = 242;
+      const BOX2_X = LX + BOX_W + 11;
+
+      function drawApprovalBox(ap, title, bx, by, fullWidth) {
+        const w = fullWidth ? PW : BOX_W;
+        const action = ap ? (ap.action || 'pending').toLowerCase() : 'pending';
+        let bg, bdr, tc;
+        if (action === 'approved')      { bg = '#D1FAE5'; bdr = '#059669'; tc = '#065F46'; }
+        else if (action === 'rejected') { bg = '#FEE2E2'; bdr = '#DC2626'; tc = '#991B1B'; }
+        else                            { bg = ACC_LT;    bdr = ACC_MID;   tc = ACC;       }
+        const hasComment = ap && (ap.comment || ap.comments);
+        const bh = hasComment ? 78 : 62;
+        doc.roundedRect(bx, by, w, bh, 4).fillAndStroke(bg, bdr);
+        const lbl = action === 'approved' ? 'APPROVED' : action === 'rejected' ? 'REJECTED' : 'PENDING';
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(tc)
+           .text(`${title}: ${lbl}`, bx + 8, by + 8, { width: w - 16, lineBreak: false });
+        if (ap && action !== 'pending') {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
+             .text('By:', bx + 8, by + 24, { width: 18, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc)
+             .text(ap.user_name || ap.name || 'N/A', bx + 28, by + 24, { width: w - 36, lineBreak: false });
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
+             .text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc)
+             .text(formatDate(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
+          if (hasComment) {
+            doc.font('Helvetica-Bold').fontSize(8).fillColor(tc)
+               .text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
+            doc.font('Helvetica').fontSize(8).fillColor(tc)
+               .text(ap.comment || ap.comments, bx + 36, by + 54, { width: w - 44, lineBreak: false });
+          }
+        } else {
+          // Pending — show placeholder sig line
+          doc.font('Helvetica').fontSize(8).fillColor(tc)
+             .text('Awaiting approval', bx + 8, by + 24, { width: w - 16, lineBreak: false });
+          doc.moveTo(bx + 8, by + bh - 14).lineTo(bx + 140, by + bh - 14)
+             .lineWidth(0.5).strokeColor(bdr).stroke();
+          doc.font('Helvetica').fontSize(7).fillColor(tc)
+             .text('Signature & Date', bx + 8, by + bh - 10, { width: 140, lineBreak: false });
+        }
+        return bh;
       }
 
-      yPos = 490;
+      // Row 1: HOD | Finance Manager
+      const hodH = drawApprovalBox(hodApproval, 'HEAD OF DEPARTMENT', LX, y, false);
+      const finH = drawApprovalBox(finApproval, 'FINANCE MANAGER', BOX2_X, y, false);
+      y += Math.max(hodH, finH) + 10;
 
-      // Initiator Information
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.text('PREPARED BY:', 70, yPos);
-      doc.font('Helvetica').text(eft.initiator_name, 70, yPos + 15);
-      doc.text(`Date: ${formatDate(eft.created_at)}`, 70, yPos + 30);
-      doc.text('_______________________', 70, yPos + 50);
-      doc.font('Helvetica-Bold').text('Signature & Date', 70, yPos + 65);
+      // Row 2: Managing Director (full width)
+      const mdH = drawApprovalBox(mdApproval, 'MANAGING DIRECTOR', LX, y, true);
+      y += mdH;
 
-      yPos += 120;
-
-      // Signatures
-      addSignatureSection(doc, approvals, yPos);
+      // ── FOOTER ───────────────────────────────────────────────────
+      doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      doc.font('Helvetica').fontSize(7).fillColor('#888888')
+         .text(
+           `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${eft.id || ''}`,
+           LX, 780, { width: PW, align: 'center', lineBreak: false }
+         );
 
       doc.end();
-
       stream.on('finish', () => resolve(outputPath));
       stream.on('error', reject);
     } catch (error) {
