@@ -14,6 +14,7 @@ const issueSlipSchema = new mongoose.Schema({
   issue_date: { type: Date, default: Date.now },
   issued_to: { type: String, required: true },
   department: { type: String },
+  location: { type: String, required: true },  // Kitwe / Lusaka - branch stock is issued from
   delivery_location: { type: String },
   delivery_date: { type: Date },
   delivered_by: { type: String },

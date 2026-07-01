@@ -14251,6 +14251,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
                   React.createElement('th', { className: "tbl-th" }, "ID"),
                   React.createElement('th', { className: "tbl-th" }, "Issued To"),
                   React.createElement('th', { className: "tbl-th" }, "Department"),
+                  React.createElement('th', { className: "tbl-th" }, "Location"),
                   React.createElement('th', { className: "tbl-th" }, "Created By"),
                   React.createElement('th', { className: "tbl-th" }, "Status"),
                   React.createElement('th', { className: "tbl-th" }, "Date"),
@@ -14263,6 +14264,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, slip.id),
                     React.createElement('td', { className: "tbl-td" }, slip.issued_to),
                     React.createElement('td', { className: "tbl-td" }, slip.department || slip.initiator_department || 'N/A'),
+                    React.createElement('td', { className: "tbl-td" }, slip.location || '-'),
                     React.createElement('td', { className: "tbl-td" }, slip.initiator_name),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('span', {
@@ -14791,12 +14793,13 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
             React.createElement('table', { className: "w-full table-fixed" },
               React.createElement('thead', { className: "bg-gray-50" },
                 React.createElement('tr', null,
-                  React.createElement('th', { className: "tbl-th", style: { width: '175px' } }, "GRN ID"),
-                  React.createElement('th', { className: "tbl-th", style: { width: '165px' } }, "PR Ref"),
-                  React.createElement('th', { className: "tbl-th", style: { width: '90px'  } }, "Supplier"),
-                  React.createElement('th', { className: "tbl-th", style: { width: '110px' } }, "Received By"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '160px' } }, "GRN ID"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '150px' } }, "PR Ref"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '85px'  } }, "Supplier"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '100px' } }, "Received By"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '75px'  } }, "Location"),
                   React.createElement('th', { className: "tbl-th", style: { width: '100px' } }, "Status"),
-                  React.createElement('th', { className: "tbl-th", style: { width: '145px' } }, "Customer"),
+                  React.createElement('th', { className: "tbl-th", style: { width: '130px' } }, "Customer"),
                   React.createElement('th', { className: "tbl-th", style: { width: '80px'  } }, "Date"),
                   React.createElement('th', { className: "tbl-th", style: { width: '95px'  } }, "Actions")
                 )
@@ -14829,6 +14832,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "tbl-td text-blue-600" }, grn.pr_id),
                     React.createElement('td', { className: "tbl-td" }, grn.supplier || 'N/A'),
                     React.createElement('td', { className: "tbl-td" }, grn.received_by),
+                    React.createElement('td', { className: "tbl-td" }, grn.location || '-'),
                     React.createElement('td', { className: "tbl-td" },
                       React.createElement('span', {
                         className: `badge ${grnBadgeCls}`
@@ -15179,6 +15183,8 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
 function StockRegister({ user }) {
   const [stockItems, setStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
 
   useEffect(() => {
     fetchStockRegister();
@@ -15198,6 +15204,17 @@ function StockRegister({ user }) {
     }
   };
 
+  const uniqueLocations = [...new Set(stockItems.map(item => item.location || 'Unspecified'))].sort();
+
+  const filteredItems = stockItems.filter(item => {
+    if (locationFilter && (item.location || 'Unspecified') !== locationFilter) return false;
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (item.item_code || '').toLowerCase().includes(term) ||
+           (item.item_name || '').toLowerCase().includes(term) ||
+           (item.location || '').toLowerCase().includes(term);
+  });
+
   if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
@@ -15210,7 +15227,25 @@ function StockRegister({ user }) {
         }, 'Refresh')
       ),
 
-      stockItems.length === 0
+      React.createElement('div', { className: "mb-4 flex flex-col md:flex-row gap-3" },
+        React.createElement('input', {
+          type: 'text',
+          placeholder: 'Search by item or location...',
+          value: searchTerm,
+          onChange: (e) => setSearchTerm(e.target.value),
+          className: "w-full md:w-80 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        }),
+        React.createElement('select', {
+          value: locationFilter,
+          onChange: (e) => setLocationFilter(e.target.value),
+          className: "w-full md:w-56 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        },
+          React.createElement('option', { value: '' }, 'All Locations'),
+          uniqueLocations.map(loc => React.createElement('option', { key: loc, value: loc }, loc))
+        )
+      ),
+
+      filteredItems.length === 0
         ? React.createElement(EmptyState, { heading: 'Stock register is empty', sub: 'Receive goods via a GRN to populate the stock register.' })
         : React.createElement('div', { className: "overflow-x-auto" },
             React.createElement('table', { className: "w-full" },
@@ -15218,6 +15253,7 @@ function StockRegister({ user }) {
                 React.createElement('tr', null,
                   React.createElement('th', { className: "tbl-th" }, "Item Code"),
                   React.createElement('th', { className: "tbl-th" }, "Item Name"),
+                  React.createElement('th', { className: "tbl-th" }, "Location"),
                   React.createElement('th', { className: "tbl-th" }, "Unit"),
                   React.createElement('th', { className: "tbl-th tbl-th-right" }, "Stock In"),
                   React.createElement('th', { className: "tbl-th tbl-th-right" }, "Stock Out"),
@@ -15226,10 +15262,11 @@ function StockRegister({ user }) {
                 )
               ),
               React.createElement('tbody', { className: "divide-y divide-gray-200" },
-                stockItems.map((item, idx) =>
+                filteredItems.map((item, idx) =>
                   React.createElement('tr', { key: idx, className: "hover:bg-gray-50" },
                     React.createElement('td', { className: "tbl-td font-medium" }, item.item_code || '-'),
                     React.createElement('td', { className: "tbl-td" }, item.item_name),
+                    React.createElement('td', { className: "tbl-td" }, item.location || '-'),
                     React.createElement('td', { className: "tbl-td" }, item.unit),
                     React.createElement('td', { className: "tbl-td text-right font-medium text-blue-600" }, item.stock_in),
                     React.createElement('td', { className: "tbl-td text-right font-medium text-orange-600" }, item.stock_out),
@@ -15260,6 +15297,9 @@ function StockItems({ user }) {
   const [form, setForm] = useState({
     item_number: '',
     item_description: '',
+    material: '',
+    pump_model: '',
+    accessories: '',
     unit: '',
     packaging_uom: '',
     preferred_vendor: ''
@@ -15284,7 +15324,7 @@ function StockItems({ user }) {
   };
 
   const resetForm = () => {
-    setForm({ item_number: '', item_description: '', unit: '', packaging_uom: '', preferred_vendor: '' });
+    setForm({ item_number: '', item_description: '', material: '', pump_model: '', accessories: '', unit: '', packaging_uom: '', preferred_vendor: '' });
     setEditingItem(null);
     setShowForm(false);
   };
@@ -15293,6 +15333,9 @@ function StockItems({ user }) {
     setForm({
       item_number: item.item_number || '',
       item_description: item.item_description || '',
+      material: item.material || '',
+      pump_model: item.pump_model || '',
+      accessories: item.accessories || '',
       unit: item.unit || '',
       packaging_uom: item.packaging_uom || '',
       preferred_vendor: item.preferred_vendor || ''
@@ -15349,8 +15392,14 @@ function StockItems({ user }) {
     const desc = get('description', 'item description', 'item name');
     if (!desc) return null;
     item.item_description = desc;
-    const num = get('item number', 'item no', 'item#', 'item code', 'itemno', 'itemnumber');
+    const num = get('item number', 'item no', 'item#', 'item code', 'itemno', 'itemnumber', 'mm number', 'mm no');
     if (num) item.item_number = num;
+    const material = get('material');
+    if (material) item.material = material;
+    const pumpModel = get('pump model');
+    if (pumpModel) item.pump_model = pumpModel;
+    const accessories = get('accessories');
+    if (accessories) item.accessories = accessories;
     const unit = get('unit', 'uom');
     if (unit) item.unit = unit;
     else item.unit = 'EA';
@@ -15424,6 +15473,9 @@ function StockItems({ user }) {
     const term = searchTerm.toLowerCase();
     return (item.item_number || '').toLowerCase().includes(term) ||
            (item.item_description || '').toLowerCase().includes(term) ||
+           (item.material || '').toLowerCase().includes(term) ||
+           (item.pump_model || '').toLowerCase().includes(term) ||
+           (item.accessories || '').toLowerCase().includes(term) ||
            (item.unit || '').toLowerCase().includes(term) ||
            (item.preferred_vendor || '').toLowerCase().includes(term);
   });
@@ -15455,7 +15507,7 @@ function StockItems({ user }) {
       showUpload && React.createElement('div', { className: "mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" },
         React.createElement('h3', { className: "font-semibold text-green-800 mb-2" }, "Bulk Upload Stock Items"),
         React.createElement('p', { className: "text-sm text-green-700 mb-3" },
-          "Upload an Excel/CSV file with columns: Item Number, Description (required), Unit, Packaging UoM, Preferred Vendor. Items with matching item numbers will be updated."
+          "Upload an Excel/CSV file with columns: Item Number (or MM Number), Description (required), Material, Pump Model, Accessories, Unit, Packaging UoM, Preferred Vendor. Items with matching item numbers will be updated."
         ),
         React.createElement('input', {
           type: 'file',
@@ -15489,6 +15541,36 @@ function StockItems({ user }) {
               onChange: (e) => setForm({ ...form, item_description: e.target.value }),
               className: "form-input w-full",
               placeholder: "Item description"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Material"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.material,
+              onChange: (e) => setForm({ ...form, material: e.target.value }),
+              className: "form-input w-full",
+              placeholder: "e.g. Stainless Steel"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Pump Model"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.pump_model,
+              onChange: (e) => setForm({ ...form, pump_model: e.target.value }),
+              className: "form-input w-full",
+              placeholder: "e.g. ETANORM 100-80-250"
+            })
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" }, "Accessories"),
+            React.createElement('input', {
+              type: 'text',
+              value: form.accessories,
+              onChange: (e) => setForm({ ...form, accessories: e.target.value }),
+              className: "form-input w-full",
+              placeholder: "e.g. 90KW, 525V"
             })
           ),
           React.createElement('div', null,
@@ -15560,6 +15642,9 @@ function StockItems({ user }) {
                 React.createElement('tr', null,
                   React.createElement('th', { className: "tbl-th" }, "Item Number"),
                   React.createElement('th', { className: "tbl-th" }, "Description"),
+                  React.createElement('th', { className: "tbl-th" }, "Material"),
+                  React.createElement('th', { className: "tbl-th" }, "Pump Model"),
+                  React.createElement('th', { className: "tbl-th" }, "Accessories"),
                   React.createElement('th', { className: "tbl-th" }, "Unit"),
                   React.createElement('th', { className: "tbl-th" }, "Packaging UoM"),
                   React.createElement('th', { className: "tbl-th" }, "Preferred Vendor"),
@@ -15571,6 +15656,9 @@ function StockItems({ user }) {
                   React.createElement('tr', { key: item._id || idx, className: "hover:bg-gray-50" },
                     React.createElement('td', { className: "tbl-td font-mono text-gray-700" }, item.item_number || '-'),
                     React.createElement('td', { className: "tbl-td text-gray-900" }, item.item_description),
+                    React.createElement('td', { className: "tbl-td text-gray-600" }, item.material || '-'),
+                    React.createElement('td', { className: "tbl-td text-gray-600" }, item.pump_model || '-'),
+                    React.createElement('td', { className: "tbl-td text-gray-600" }, item.accessories || '-'),
                     React.createElement('td', { className: "tbl-td text-gray-600" }, item.unit),
                     React.createElement('td', { className: "tbl-td text-gray-600" }, item.packaging_uom || '-'),
                     React.createElement('td', { className: "tbl-td text-gray-600" }, item.preferred_vendor || '-'),

@@ -144,6 +144,14 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="location">Location *</label>
+                        <select id="location" required>
+                            <option value="">-- Select Location --</option>
+                            <option value="Kitwe">Kitwe</option>
+                            <option value="Lusaka">Lusaka</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="delivery_location">Delivery Location</label>
                         <input type="text" id="delivery_location" placeholder="Where items will be delivered">
                     </div>
@@ -322,12 +330,15 @@
             const tbody = document.getElementById('itemsTableBody');
             const customerSelect = document.getElementById('customer');
 
+            const locationSelect = document.getElementById('location');
+
             if (!select.value) {
                 banner.style.display = 'none';
                 selectedGRN = null;
                 document.getElementById('reference_number').value = '';
                 addBtn.style.display = 'inline-block';
                 customerSelect.disabled = false;
+                locationSelect.disabled = false;
                 // Reset items table
                 tbody.innerHTML = '';
                 rowCounter = 0;
@@ -340,6 +351,10 @@
 
             // Set hidden reference_number
             document.getElementById('reference_number').value = selectedGRN.id;
+
+            // Location must match the GRN's receiving location
+            locationSelect.value = selectedGRN.location || '';
+            locationSelect.disabled = !!selectedGRN.location;
 
             // Show GRN info banner
             banner.style.display = 'block';
@@ -505,6 +520,12 @@
                 return;
             }
 
+            const location = document.getElementById('location').value;
+            if (!location) {
+                showAlert('Please select a location', 'error');
+                return;
+            }
+
             const deliveredBySelect = document.getElementById('delivered_by_select').value;
             const deliveredBy = (deliveredBySelect && deliveredBySelect !== '__other__') ? deliveredBySelect : document.getElementById('delivered_by').value.trim();
 
@@ -514,6 +535,7 @@
             const slipData = {
                 issued_to: issuedTo,
                 department: document.getElementById('department').value,
+                location: location,
                 delivery_location: document.getElementById('delivery_location').value.trim(),
                 delivery_date: document.getElementById('delivery_date').value || null,
                 delivered_by: deliveredBy,
@@ -545,6 +567,7 @@
                     document.getElementById('grnInfoBanner').style.display = 'none';
                     document.getElementById('addItemBtn').style.display = 'inline-block';
                     document.getElementById('customer').disabled = false;
+                    document.getElementById('location').disabled = false;
                     selectedGRN = null;
                     rowCounter = 0;
                     addItemRow();

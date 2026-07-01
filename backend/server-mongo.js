@@ -3257,6 +3257,7 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     const {
       issued_to,
       department,
+      location,
       delivery_location,
       delivery_date,
       delivered_by,
@@ -3265,6 +3266,10 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
       remarks,
       items
     } = req.body;
+
+    if (!location) {
+      return res.status(400).json({ error: 'Location is required' });
+    }
 
     const userId = req.user.id;
     const userName = req.user.full_name || req.user.name;
@@ -3294,6 +3299,10 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
           }
           if (grn.status !== 'approved') {
             throw new HttpError(400, { error: `GRN ${reference_number} is not approved` });
+          }
+
+          if (grn.location && grn.location !== location) {
+            throw new HttpError(400, { error: `GRN ${reference_number} was received at ${grn.location}; issue slip location must match` });
           }
 
           if (grn.customer) {
@@ -3341,6 +3350,7 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
           id: slipId,
           issued_to,
           department: department || req.user.department,
+          location,
           delivery_location,
           delivery_date: delivery_date || null,
           delivered_by,
@@ -3609,6 +3619,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
       picked_by,
       destination,
       delivery_location,
+      location,
       department,
       reference_number,
       customer,
@@ -3637,6 +3648,7 @@ app.post('/api/stores/picking-slips', authenticate, async (req, res) => {
       picked_by,
       destination,
       delivery_location,
+      location,
       department: department || req.user.department,
       reference_number,
       customer,
@@ -3761,7 +3773,7 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
   try {
     const {
       pr_id, pr_description, supplier, receipt_date,
-      delivery_note_number, invoice_number, received_by,
+      delivery_note_number, invoice_number, received_by, location,
       department, customer, reservation_type, remarks, items
     } = req.body;
 
@@ -3770,6 +3782,9 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
     }
     if (!received_by) {
       return res.status(400).json({ error: 'Received By is required' });
+    }
+    if (!location) {
+      return res.status(400).json({ error: 'Location is required' });
     }
 
     // Validate PR exists and is approved
@@ -3812,6 +3827,7 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
       delivery_note_number,
       invoice_number,
       received_by,
+      location,
       department: department || req.user.department,
       reservation_type: reservation_type || 'none',
       customer,
@@ -3958,18 +3974,21 @@ app.get('/api/stores/stock-register', authenticate, async (req, res) => {
       status: { $in: ['pending_hod', 'pending_finance', 'approved'] }
     }).lean();
 
-    // Build stock map keyed by item identifier
+    // Build stock map keyed by item identifier + location
     const stockMap = {};
 
     // Stock In from GRNs
     grns.forEach(grn => {
+      const location = grn.location || 'Unspecified';
       (grn.items || []).forEach(item => {
-        const key = item.item_code || item.description || item.item_name;
+        const itemKey = item.item_code || item.description || item.item_name;
+        const key = `${itemKey}::${location}`;
         if (!stockMap[key]) {
           stockMap[key] = {
             item_code: item.item_code || '',
-            item_name: item.item_name || item.description || key,
+            item_name: item.item_name || item.description || itemKey,
             unit: item.unit || 'pcs',
+            location,
             stock_in: 0,
             stock_out: 0,
             reserved: 0
@@ -3987,8 +4006,10 @@ app.get('/api/stores/stock-register', authenticate, async (req, res) => {
     // Stock Out from approved issue slips
     issueSlips.forEach(slip => {
       if (slip.status === 'approved') {
+        const location = slip.location || 'Unspecified';
         (slip.items || []).forEach(item => {
-          const key = item.item_code || item.description || item.item_name;
+          const itemKey = item.item_code || item.description || item.item_name;
+          const key = `${itemKey}::${location}`;
           if (stockMap[key]) {
             stockMap[key].stock_out += (item.quantity || 0);
           }

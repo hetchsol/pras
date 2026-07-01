@@ -94,6 +94,14 @@
                         <input type="text" id="delivery_location" placeholder="Where items will be delivered">
                     </div>
                     <div class="form-group">
+                        <label for="location">Location</label>
+                        <select id="location">
+                            <option value="">-- Select Location (optional) --</option>
+                            <option value="Kitwe">Kitwe</option>
+                            <option value="Lusaka">Lusaka</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="department">Department</label>
                         <select id="department">
                             <option value="">Select Department</option>
@@ -341,6 +349,7 @@
                 picked_by: pickedBy,
                 destination: destination,
                 delivery_location: document.getElementById('delivery_location').value.trim(),
+                location: document.getElementById('location').value,
                 department: document.getElementById('department').value,
                 reference_number: document.getElementById('reference_number').value.trim(),
                 customer: document.getElementById('customer').value,

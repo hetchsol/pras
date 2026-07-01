@@ -20,6 +20,7 @@ const goodsReceiptNoteSchema = new mongoose.Schema({
   delivery_note_number: { type: String },
   invoice_number: { type: String },
   received_by: { type: String, required: true },
+  location: { type: String, required: true },  // Kitwe / Lusaka - where stock physically landed
   department: { type: String },
   reservation_type: { type: String, enum: ['none', 'internal', 'external', 'stores'], default: 'none' },
   customer: { type: String },  // Name of employee/client/vendor the GRN is reserved for

@@ -14,6 +14,7 @@ const pickingSlipSchema = new mongoose.Schema({
   pick_date: { type: Date, default: Date.now },
   picked_by: { type: String, required: true },
   destination: { type: String, required: true },
+  location: { type: String },  // Kitwe / Lusaka - optional, record-keeping only
   delivery_location: { type: String },
   department: { type: String },
   reference_number: { type: String },
