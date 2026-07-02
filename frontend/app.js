@@ -4998,9 +4998,10 @@ function CreateRequisition({ user, setView, loadData }) {
   const [loading, setLoading] = useState(false);
   const [hodUsers, setHodUsers] = useState([]);
   const [stockItemsCatalog, setStockItemsCatalog] = useState([]);
+  const [openItemSearchIndex, setOpenItemSearchIndex] = useState(null);
 
-  // Soft-assist only: fetch the Stock Items catalog for the item code
-  // datalist. Never blocks PR creation if it fails - PRs cover all company
+  // Soft-assist only: fetch the Stock Items catalog for the item search.
+  // Never blocks PR creation if it fails - PRs cover all company
   // procurement, not just stores/spares, so item_code stays optional here.
   useEffect(() => {
     fetchWithAuth(`${API_URL}/stores/stock-items`)
@@ -5092,11 +5093,38 @@ function CreateRequisition({ user, setView, loadData }) {
   const handleItemCodeChange = (index, value) => {
     const newItems = [...lineItems];
     newItems[index].item_code = value;
+    // Typing an exact catalog code (without using the suggestion list)
+    // still auto-fills the description - always overwrite so switching
+    // to a different code replaces the previous item's description too.
     const match = stockItemsCatalog.find(i => (i.item_number || '').trim().toLowerCase() === value.trim().toLowerCase());
-    if (match && !newItems[index].item_name.trim()) {
+    if (match) {
       newItems[index].item_name = match.item_description || '';
     }
     setLineItems(newItems);
+    setOpenItemSearchIndex(value ? index : null);
+  };
+
+  const selectCatalogItem = (index, catalogItem) => {
+    const newItems = [...lineItems];
+    newItems[index].item_code = catalogItem.item_number || '';
+    newItems[index].item_name = catalogItem.item_description || '';
+    setLineItems(newItems);
+    setOpenItemSearchIndex(null);
+  };
+
+  // Search the catalog by code, description, material, pump model, or
+  // accessories - not just item_code - so users who don't know the exact
+  // code can still find the right part.
+  const filterCatalogItems = (term) => {
+    if (!term || !term.trim()) return [];
+    const t = term.trim().toLowerCase();
+    return stockItemsCatalog.filter(i =>
+      (i.item_number || '').toLowerCase().includes(t) ||
+      (i.item_description || '').toLowerCase().includes(t) ||
+      (i.material || '').toLowerCase().includes(t) ||
+      (i.pump_model || '').toLowerCase().includes(t) ||
+      (i.accessories || '').toLowerCase().includes(t)
+    ).slice(0, 20);
   };
 
   const handleSaveAsDraft = async () => {
@@ -5311,7 +5339,7 @@ function CreateRequisition({ user, setView, loadData }) {
                   }, 'Remove')
                 ),
                 React.createElement('div', { className: "grid grid-cols-12 gap-3" },
-                  React.createElement('div', { className: "col-span-2" },
+                  React.createElement('div', { className: "col-span-2 relative" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       "Item Code"
                     ),
@@ -5319,10 +5347,28 @@ function CreateRequisition({ user, setView, loadData }) {
                       type: "text",
                       value: item.item_code,
                       onChange: (e) => handleItemCodeChange(index, e.target.value),
-                      list: "prStockItemsDatalist",
+                      onFocus: () => item.item_code && setOpenItemSearchIndex(index),
+                      onBlur: () => setOpenItemSearchIndex(null),
                       className: "form-input w-full",
-                      placeholder: "e.g., ITM-001"
-                    })
+                      placeholder: "Code, description, pump model..."
+                    }),
+                    openItemSearchIndex === index && filterCatalogItems(item.item_code).length > 0 &&
+                      React.createElement('div', {
+                        className: "absolute z-20 mt-1 w-72 max-h-56 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg"
+                      },
+                        filterCatalogItems(item.item_code).map(ci =>
+                          React.createElement('div', {
+                            key: ci._id || ci.item_number,
+                            onMouseDown: (e) => { e.preventDefault(); selectCatalogItem(index, ci); },
+                            className: "px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          },
+                            React.createElement('div', { className: "font-medium text-gray-900" }, ci.item_number || '(no code)'),
+                            React.createElement('div', { className: "text-xs text-gray-500" },
+                              [ci.item_description, ci.pump_model, ci.material].filter(Boolean).join(' — ')
+                            )
+                          )
+                        )
+                      )
                   ),
                   React.createElement('div', { className: "col-span-5" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
@@ -5374,14 +5420,6 @@ function CreateRequisition({ user, setView, loadData }) {
                   )
                 )
               )
-            )
-          ),
-          React.createElement('datalist', { id: 'prStockItemsDatalist' },
-            stockItemsCatalog.filter(i => i.item_number).map(i =>
-              React.createElement('option', {
-                key: i.item_number,
-                value: i.item_number
-              }, [i.item_description, i.pump_model, i.material].filter(Boolean).join(' — '))
             )
           ),
           // Totals Summary (only show for procurement or if there are prices)
