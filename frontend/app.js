@@ -5270,7 +5270,7 @@ function CreateRequisition({ user, setView, loadData }) {
     }
   };
 
-  return React.createElement('div', { className: "max-w-3xl mx-auto" },
+  return React.createElement('div', { className: "max-w-6xl mx-auto" },
     // Navigation Header
     React.createElement('div', { className: "flex gap-3 mb-4" },
       React.createElement('button', {
@@ -5373,7 +5373,7 @@ function CreateRequisition({ user, setView, loadData }) {
                         )
                       )
                   ),
-                  React.createElement('div', { className: "col-span-5" },
+                  React.createElement('div', { className: "col-span-6" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       "Item Description *"
                     ),
@@ -5399,7 +5399,7 @@ function CreateRequisition({ user, setView, loadData }) {
                       placeholder: "Qty"
                     })
                   ),
-                  React.createElement('div', { className: "col-span-3" },
+                  React.createElement('div', { className: "col-span-2" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       hasRole(user.role, 'initiator') ? "Unit Price (ZMW)" : "Unit Price (ZMW) *"
                     ),
