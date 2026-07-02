@@ -5288,13 +5288,16 @@ function CreateRequisition({ user, setView, loadData }) {
       // Auto-generated information section
       React.createElement('div', { className: "mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200" },
         React.createElement('h3', { className: "text-sm font-semibold text-blue-900 mb-3" }, "Auto-Generated Information"),
-        React.createElement('div', { className: "grid grid-cols-3 gap-4" },
-          React.createElement('div', null,
-            React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "PR Number"),
-            React.createElement('div', { className: "px-3 py-2 bg-white border border-blue-300 rounded text-sm font-semibold text-blue-900" },
-              prNumber
-            )
-          ),
+        // PR Number gets its own full-width row - the timestamped format
+        // (KSB-DEPT-XX-YYYYMMDDHHMMSS) is too long to share a 3-column
+        // grid without wrapping mid-string.
+        React.createElement('div', { className: "mb-3" },
+          React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "PR Number"),
+          React.createElement('div', { className: "px-3 py-2 bg-white border border-blue-300 rounded text-sm font-semibold text-blue-900 whitespace-nowrap overflow-x-auto" },
+            prNumber
+          )
+        ),
+        React.createElement('div', { className: "grid grid-cols-2 gap-4" },
           React.createElement('div', null,
             React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Department"),
             React.createElement('div', { className: "px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-900" },

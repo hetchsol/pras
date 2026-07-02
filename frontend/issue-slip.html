@@ -29,8 +29,11 @@
     <!-- Shared financial form styles -->
     <link rel="stylesheet" href="forms.css">
     <style>
-        .nav-header { max-width: 1000px; }
-        .container  { max-width: 1000px; }
+        .nav-header { max-width: 1300px; }
+        .container  { max-width: 1300px; }
+        @media (min-width: 1200px) {
+            .form-grid { grid-template-columns: repeat(3, 1fr); }
+        }
 
         /* GRN info banner shown when a GRN record is linked */
         .grn-info-banner {
