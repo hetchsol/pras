@@ -45,6 +45,13 @@ class HttpError extends Error {
   }
 }
 
+// Item codes are the primary key tying GRN/Issue Slip lines to the Stock
+// Items catalog. Trim + uppercase everywhere so "j10090-208a" and
+// "J10090-208A " never fragment into separate catalog/register entries.
+function normalizeItemCode(code) {
+  return (code || '').trim().toUpperCase();
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -3182,6 +3189,33 @@ const StockItem = require('./models/StockItem');
   } catch (e) { /* indexes may not exist yet */ }
 })();
 
+// item_code is the primary key tying GRN/Issue Slip lines to the Stock
+// Items catalog: any normalized code not already in the catalog gets a
+// minimal entry created here. $setOnInsert so an existing catalog entry
+// (e.g. one enriched with material/pump_model from the spreadsheet import)
+// is never overwritten by a bare transaction line.
+async function upsertCatalogEntriesForItems(items) {
+  const codes = [...new Set((items || []).map(i => i.item_code).filter(Boolean))];
+  if (codes.length === 0) return;
+  const ops = codes.map(code => {
+    const source = items.find(i => i.item_code === code);
+    return {
+      updateOne: {
+        filter: { item_number: code },
+        update: {
+          $setOnInsert: {
+            item_number: code,
+            item_description: source.description || source.item_name || '',
+            unit: source.unit || ''
+          }
+        },
+        upsert: true
+      }
+    };
+  });
+  await StockItem.bulkWrite(ops);
+}
+
 // Get all issue slips (filtered by user role)
 app.get('/api/stores/issue-slips', authenticate, async (req, res) => {
   try {
@@ -3270,6 +3304,11 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     if (!location) {
       return res.status(400).json({ error: 'Location is required' });
     }
+    for (let i = 0; i < (items || []).length; i++) {
+      if (!normalizeItemCode(items[i].item_code)) {
+        return res.status(400).json({ error: `Item code is required for line ${i + 1}` });
+      }
+    }
 
     const userId = req.user.id;
     const userName = req.user.full_name || req.user.name;
@@ -3279,8 +3318,15 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     const timestamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 17);
     const slipId = `KSB-ISS-${timestamp}`;
 
-    const slipItems = (items || []).map(item => ({
-      item_code: item.item_code || '',
+    // Normalize once and reuse for both GRN-lot validation and the saved doc
+    // so a code typed differently than the GRN's still matches correctly.
+    const normalizedItems = (items || []).map(item => ({
+      ...item,
+      item_code: normalizeItemCode(item.item_code)
+    }));
+
+    const slipItems = normalizedItems.map(item => ({
+      item_code: item.item_code,
       item_name: item.item_name,
       description: item.description || '',
       quantity: item.quantity,
@@ -3324,7 +3370,7 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
             });
           });
 
-          for (const item of (items || [])) {
+          for (const item of normalizedItems) {
             const key = item.item_code || item.description || item.item_name;
             const grnItem = grn.items.find(gi =>
               (gi.item_code && gi.item_code === item.item_code) ||
@@ -3375,6 +3421,8 @@ app.post('/api/stores/issue-slips', authenticate, async (req, res) => {
     } finally {
       await session.endSession();
     }
+
+    await upsertCatalogEntriesForItems(slipItems);
 
     res.status(201).json({
       message: 'Issue slip created successfully',
@@ -3786,6 +3834,11 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
     if (!location) {
       return res.status(400).json({ error: 'Location is required' });
     }
+    for (let i = 0; i < (items || []).length; i++) {
+      if (!normalizeItemCode(items[i].item_code)) {
+        return res.status(400).json({ error: `Item code is required for line ${i + 1}` });
+      }
+    }
 
     // Validate PR exists and is approved
     const Requisition = require('./models/Requisition');
@@ -3805,7 +3858,7 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
     const grnId = `KSB-GRN-${timestamp}`;
 
     const grnItems = (items || []).map(item => ({
-      item_code: item.item_code || '',
+      item_code: normalizeItemCode(item.item_code),
       item_name: item.item_name || item.description || '',
       description: item.description || '',
       quantity_ordered: item.quantity_ordered || 0,
@@ -3839,6 +3892,8 @@ app.post('/api/stores/grns', authenticate, async (req, res) => {
       status: 'pending_approval',
       items: grnItems
     });
+
+    await upsertCatalogEntriesForItems(grnItems);
 
     res.status(201).json({ message: 'GRN created successfully - pending approval', grn });
   } catch (error) {
@@ -3981,7 +4036,7 @@ app.get('/api/stores/stock-register', authenticate, async (req, res) => {
     grns.forEach(grn => {
       const location = grn.location || 'Unspecified';
       (grn.items || []).forEach(item => {
-        const itemKey = item.item_code || item.description || item.item_name;
+        const itemKey = item.item_code ? normalizeItemCode(item.item_code) : (item.description || item.item_name);
         const key = `${itemKey}::${location}`;
         if (!stockMap[key]) {
           stockMap[key] = {
@@ -4008,7 +4063,7 @@ app.get('/api/stores/stock-register', authenticate, async (req, res) => {
       if (slip.status === 'approved') {
         const location = slip.location || 'Unspecified';
         (slip.items || []).forEach(item => {
-          const itemKey = item.item_code || item.description || item.item_name;
+          const itemKey = item.item_code ? normalizeItemCode(item.item_code) : (item.description || item.item_name);
           const key = `${itemKey}::${location}`;
           if (stockMap[key]) {
             stockMap[key].stock_out += (item.quantity || 0);
@@ -4129,8 +4184,8 @@ app.post('/api/stores/stock-items/bulk-upload', authenticate, async (req, res) =
     if (withNumber.length > 0) {
       const ops = withNumber.map(item => ({
         updateOne: {
-          filter: { item_number: item.item_number.trim() },
-          update: { $set: { ...item, item_number: item.item_number.trim() } },
+          filter: { item_number: normalizeItemCode(item.item_number) },
+          update: { $set: { ...item, item_number: normalizeItemCode(item.item_number) } },
           upsert: true
         }
       }));

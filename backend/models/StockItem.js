@@ -17,4 +17,11 @@ stockItemSchema.index({ item_description: 1 });
 stockItemSchema.index({ pump_model: 1 });
 stockItemSchema.index({ status: 1 });
 
+stockItemSchema.pre('save', function(next) {
+  if (this.item_number) {
+    this.item_number = this.item_number.trim().toUpperCase();
+  }
+  next();
+});
+
 module.exports = mongoose.model('StockItem', stockItemSchema);

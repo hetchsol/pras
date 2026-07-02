@@ -4997,6 +4997,17 @@ function CreateRequisition({ user, setView, loadData }) {
   ]);
   const [loading, setLoading] = useState(false);
   const [hodUsers, setHodUsers] = useState([]);
+  const [stockItemsCatalog, setStockItemsCatalog] = useState([]);
+
+  // Soft-assist only: fetch the Stock Items catalog for the item code
+  // datalist. Never blocks PR creation if it fails - PRs cover all company
+  // procurement, not just stores/spares, so item_code stays optional here.
+  useEffect(() => {
+    fetchWithAuth(`${API_URL}/stores/stock-items`)
+      .then(res => res.ok ? res.json() : [])
+      .then(setStockItemsCatalog)
+      .catch(() => setStockItemsCatalog([]));
+  }, []);
 
   // Generate PR Number: KSB-DeptCode-Initials-FullTimeStamp
   const generatePRNumber = () => {
@@ -5075,6 +5086,16 @@ function CreateRequisition({ user, setView, loadData }) {
   const updateLineItem = (index, field, value) => {
     const newItems = [...lineItems];
     newItems[index][field] = value;
+    setLineItems(newItems);
+  };
+
+  const handleItemCodeChange = (index, value) => {
+    const newItems = [...lineItems];
+    newItems[index].item_code = value;
+    const match = stockItemsCatalog.find(i => (i.item_number || '').trim().toLowerCase() === value.trim().toLowerCase());
+    if (match && !newItems[index].item_name.trim()) {
+      newItems[index].item_name = match.item_description || '';
+    }
     setLineItems(newItems);
   };
 
@@ -5297,7 +5318,8 @@ function CreateRequisition({ user, setView, loadData }) {
                     React.createElement('input', {
                       type: "text",
                       value: item.item_code,
-                      onChange: (e) => updateLineItem(index, 'item_code', e.target.value),
+                      onChange: (e) => handleItemCodeChange(index, e.target.value),
+                      list: "prStockItemsDatalist",
                       className: "form-input w-full",
                       placeholder: "e.g., ITM-001"
                     })
@@ -5352,6 +5374,14 @@ function CreateRequisition({ user, setView, loadData }) {
                   )
                 )
               )
+            )
+          ),
+          React.createElement('datalist', { id: 'prStockItemsDatalist' },
+            stockItemsCatalog.filter(i => i.item_number).map(i =>
+              React.createElement('option', {
+                key: i.item_number,
+                value: i.item_number
+              }, [i.item_description, i.pump_model, i.material].filter(Boolean).join(' — '))
             )
           ),
           // Totals Summary (only show for procurement or if there are prices)

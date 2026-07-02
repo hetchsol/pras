@@ -54,7 +54,7 @@ describe('stores smoke', () => {
         location: 'Kitwe',
         delivery_location: 'Warehouse',
         delivered_by: 'Test',
-        items: [{ item_name: 'Widget', quantity: 5, unit: 'pcs' }]
+        items: [{ item_code: 'WIDGET-1', item_name: 'Widget', quantity: 5, unit: 'pcs' }]
       });
     // Routes may 404 if endpoint removed or 201 on success.
     expect([201, 500]).toContain(res.status);
@@ -76,7 +76,7 @@ describe('stores smoke', () => {
         delivery_location: 'Warehouse',
         delivered_by: 'Test',
         reference_number: 'KSB-GRN-DOES-NOT-EXIST',
-        items: [{ item_name: 'Widget', quantity: 5, unit: 'pcs' }]
+        items: [{ item_code: 'WIDGET-1', item_name: 'Widget', quantity: 5, unit: 'pcs' }]
       });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/not found/i);
@@ -186,5 +186,97 @@ describe('stores multi-location', () => {
     expect(kitweAfter.available).toBe(7);
     expect(lusakaAfter.stock_out).toBe(0);
     expect(lusakaAfter.available).toBe(4);
+  });
+});
+
+describe('stores item_code as primary key', () => {
+  const Requisition = require('../../models/Requisition');
+  let prId;
+
+  beforeAll(async () => {
+    prId = `TEST-PR-CODE-${Date.now()}`;
+    await Requisition.create({
+      id: prId,
+      description: 'Test PR for item_code smoke test',
+      quantity: 1,
+      department: 'Operations',
+      urgency: 'normal',
+      initiator_id: 'test-initiator',
+      initiator_name: 'Test Initiator',
+      status: 'approved',
+      items: [{ item_name: 'Test Widget', quantity: 20 }]
+    });
+  });
+
+  test('GRN with a blank item_code is rejected', async () => {
+    const res = await request(app)
+      .post('/api/stores/grns')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pr_id: prId,
+        received_by: 'Test',
+        location: 'Kitwe',
+        items: [{ item_code: '  ', item_name: 'Test Widget', quantity_ordered: 5, quantity_received: 5, unit: 'pcs' }]
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/item code is required/i);
+  });
+
+  test('GRN with an uncatalogued item_code auto-creates a catalog entry, normalized', async () => {
+    const grn = await request(app)
+      .post('/api/stores/grns')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pr_id: prId,
+        received_by: 'Test',
+        location: 'Kitwe',
+        items: [{ item_code: 'new-part-99', item_name: 'Brand New Part', quantity_ordered: 5, quantity_received: 5, unit: 'pcs' }]
+      });
+    expect(grn.status).toBe(201);
+    // Saved on the GRN itself, normalized.
+    expect(grn.body.grn.items[0].item_code).toBe('NEW-PART-99');
+    await request(app)
+      .put(`/api/stores/grns/${grn.body.grn.id}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ action: 'approved' });
+
+    const catalog = await request(app)
+      .get('/api/stores/stock-items')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const created = catalog.body.filter(i => i.item_number === 'NEW-PART-99');
+    expect(created.length).toBe(1);
+    expect(created[0].item_description).toBe('Brand New Part');
+
+    // A second GRN reusing the same code with different case/whitespace
+    // must not create a duplicate catalog entry.
+    const grn2 = await request(app)
+      .post('/api/stores/grns')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pr_id: prId,
+        received_by: 'Test',
+        location: 'Kitwe',
+        items: [{ item_code: ' New-Part-99 ', item_name: 'Brand New Part', quantity_ordered: 3, quantity_received: 3, unit: 'pcs' }]
+      });
+    expect(grn2.status).toBe(201);
+    await request(app)
+      .put(`/api/stores/grns/${grn2.body.grn.id}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ action: 'approved' });
+
+    const catalogAfter = await request(app)
+      .get('/api/stores/stock-items')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const stillOne = catalogAfter.body.filter(i => i.item_number === 'NEW-PART-99');
+    expect(stillOne.length).toBe(1);
+
+    // The Stock Register must collapse both GRNs' lines into a single row
+    // despite the case/whitespace differences in how item_code was typed.
+    const register = await request(app)
+      .get('/api/stores/stock-register')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const rows = register.body.filter(r => r.item_code === 'NEW-PART-99');
+    expect(rows.length).toBe(1);
+    expect(rows[0].stock_in).toBe(8);
   });
 });

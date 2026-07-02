@@ -236,6 +236,7 @@
                         </tbody>
                     </table>
                 </div>
+                <datalist id="stockItemsDatalist"></datalist>
             </div>
 
             <!-- Actions -->
@@ -247,6 +248,7 @@
     </div>
 
     <script src="config.js"></script>
+    <script src="stores-item-lookup.js"></script>
     <script>
         const API_URL = window.API_URL || 'http://localhost:3001/api';
         let approvedPRs = [];
@@ -255,6 +257,7 @@
 
         let vendorsList = [];
         let clientsList = [];
+        let stockItemsCatalog = [];
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', async function() {
@@ -266,6 +269,9 @@
             // Set today's date as default
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('receipt_date').value = today;
+
+            stockItemsCatalog = await fetchStockItemsCatalog();
+            populateStockItemsDatalist(document.getElementById('stockItemsDatalist'), stockItemsCatalog);
 
             await Promise.all([loadApprovedPRs(), loadUsers(), loadExternalOptions()]);
         });
@@ -462,7 +468,7 @@
             const row = tbody.insertRow();
             row.innerHTML = `
                 <td>1</td>
-                <td><input type="text" class="item_code" value="" placeholder="Code"></td>
+                <td><input type="text" class="item_code" value="" placeholder="Code" list="stockItemsDatalist" required onchange="handleItemCodeInput(this)"></td>
                 <td><input type="text" class="description" value="${escapeHtml(selectedPR.description)}" readonly style="background:#f5f5f5;"></td>
                 <td><input type="number" class="quantity_ordered" value="${selectedPR.quantity}" readonly style="background:#f5f5f5;"></td>
                 <td><input type="number" class="quantity_received" min="0" step="1" value="${selectedPR.quantity}" required oninput="computeOutstanding(this)"></td>
@@ -470,6 +476,16 @@
                 <td><select class="unit">${buildUomSelect('pcs')}</select></td>
                 <td><input type="text" class="condition_notes" placeholder="e.g. Good, Damaged"></td>
             `;
+        }
+
+        function handleItemCodeInput(inputEl) {
+            const match = lookupStockItemByCode(stockItemsCatalog, inputEl.value);
+            if (!match) return;
+            const row = inputEl.closest('tr');
+            const unitSelect = row.querySelector('.unit');
+            if (unitSelect && match.unit && [...unitSelect.options].some(o => o.value === match.unit)) {
+                unitSelect.value = match.unit;
+            }
         }
 
         function escapeHtml(str) {
@@ -515,6 +531,10 @@
                 const qtyReceived = parseFloat(row.querySelector('.quantity_received').value);
                 if (isNaN(qtyReceived) || qtyReceived < 0) {
                     showAlert(`Please enter a valid quantity received for row ${i + 1}`, 'error');
+                    return;
+                }
+                if (!row.querySelector('.item_code').value.trim()) {
+                    showAlert(`Item code is required for row ${i + 1}`, 'error');
                     return;
                 }
                 items.push({

@@ -201,6 +201,7 @@
                         </tbody>
                     </table>
                 </div>
+                <datalist id="stockItemsDatalist"></datalist>
             </div>
 
             <!-- Hidden reference_number field (auto-set from GRN) -->
@@ -215,12 +216,14 @@
     </div>
 
     <script src="config.js"></script>
+    <script src="stores-item-lookup.js"></script>
     <script>
         const API_URL = window.API_URL || 'http://localhost:3001/api';
         let rowCounter = 0;
 
         let usersList = [];
         let selectedGRN = null;
+        let stockItemsCatalog = [];
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', async function() {
@@ -229,6 +232,9 @@
             if (userData.department) {
                 document.getElementById('department').value = userData.department;
             }
+
+            stockItemsCatalog = await fetchStockItemsCatalog();
+            populateStockItemsDatalist(document.getElementById('stockItemsDatalist'), stockItemsCatalog);
 
             // Load all dropdowns in parallel
             await Promise.all([loadGRNs(), loadUsers(), loadVendors()]);
@@ -419,6 +425,20 @@
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        function handleItemCodeInput(inputEl) {
+            const match = lookupStockItemByCode(stockItemsCatalog, inputEl.value);
+            if (!match) return;
+            const row = inputEl.closest('tr');
+            const descInput = row.querySelector('.description');
+            if (descInput && !descInput.value.trim()) {
+                descInput.value = match.item_description || '';
+            }
+            const unitSelect = row.querySelector('.unit');
+            if (unitSelect && match.unit && [...unitSelect.options].some(o => o.value === match.unit)) {
+                unitSelect.value = match.unit;
+            }
+        }
+
         function addItemRow() {
             // Don't allow manual item addition when GRN is selected
             if (selectedGRN) return;
@@ -429,7 +449,7 @@
 
             row.innerHTML = `
                 <td>${rowCounter}</td>
-                <td><input type="text" class="item_code" placeholder="Code"></td>
+                <td><input type="text" class="item_code" placeholder="Code" list="stockItemsDatalist" required onchange="handleItemCodeInput(this)"></td>
                 <td><input type="text" class="description" required placeholder="Item description"></td>
                 <td><input type="number" class="quantity" min="1" step="1" value="1" required></td>
                 <td>
@@ -489,6 +509,11 @@
 
                 if (!description) {
                     showAlert(`Please enter a description for row ${i + 1}`, 'error');
+                    return;
+                }
+
+                if (!row.querySelector('.item_code').value.trim()) {
+                    showAlert(`Item code is required for row ${i + 1}`, 'error');
                     return;
                 }
 
