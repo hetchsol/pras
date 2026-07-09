@@ -258,6 +258,14 @@
                 input.required = false;
                 input.value = '';
             }
+
+            // Auto-fill department from the selected person's record.
+            if (fieldId === 'picked_by' && select.value && select.value !== '__other__') {
+                const match = usersList.find(u => u.full_name === select.value);
+                if (match && match.department) {
+                    document.getElementById('department').value = match.department;
+                }
+            }
         }
 
         function addItemRow() {
