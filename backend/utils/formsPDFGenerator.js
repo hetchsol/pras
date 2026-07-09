@@ -259,21 +259,21 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
 
       // ── EXPENSE DETAILS TABLE ────────────────────────────────────
       // Column x-positions (all relative to LX=50)
-      const cNo   = LX;       // 32px wide
-      const cDate = LX + 32;  // 54px wide
-      const cDet  = LX + 86;  // 166px wide (gained KM's 34px)
-      const cMeal = LX + 252; // 44px wide
-      const cAccom= LX + 296; // 70px wide
-      const cInc  = LX + 366; // 60px wide
-      const cTot  = LX + 426; // 69px wide (to RX=545)
+      const cNo    = LX;       // 32px wide
+      const cDate  = LX + 32;  // 54px wide
+      const cDet   = LX + 86;  // 150px wide
+      const cMeals = LX + 236; // 60px wide - shows the meals amount, not just B/L/D badges
+      const cAccom = LX + 296; // 70px wide
+      const cInc   = LX + 366; // 60px wide
+      const cTot   = LX + 426; // 69px wide (to RX=545)
 
       const TH = 20;
       doc.rect(LX, y, PW, TH).fill(ACC_HDR);
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
       doc.text('No',         cNo + 3,   y + 5, { width: 28,  lineBreak: false });
       doc.text('Date',       cDate + 2, y + 5, { width: 50,  lineBreak: false });
-      doc.text('Details',    cDet + 2,  y + 5, { width: 162, lineBreak: false });
-      doc.text('B/L/D',      cMeal + 2, y + 5, { width: 40,  lineBreak: false });
+      doc.text('Details',    cDet + 2,  y + 5, { width: 146, lineBreak: false });
+      doc.text('Meals',      cMeals + 2,y + 5, { width: 56,  lineBreak: false });
       doc.text('Accom',      cAccom + 2,y + 5, { width: 66,  lineBreak: false });
       doc.text('Incidental', cInc + 2,  y + 5, { width: 56,  lineBreak: false });
       doc.text('Total',      cTot + 2,  y + 5, { width: 66, align: 'right', lineBreak: false });
@@ -283,12 +283,11 @@ async function generateExpenseClaimPDF(claim, items, approvals, outputPath) {
       (items || []).forEach((item, idx) => {
         if (y > 650) { doc.addPage({ size: 'A4' }); y = 50; }
         if (idx % 2 === 1) doc.rect(LX, y, PW, ROW_H).fill('#F5F3FF');
-        const meals = [item.breakfast && 'B', item.lunch && 'L', item.dinner && 'D'].filter(Boolean).join(' ') || '—';
         doc.font('Helvetica').fontSize(8).fillColor('#111111');
         doc.text(String(item.report_no || idx + 1), cNo + 3,    y + 4, { width: 28,  lineBreak: false });
         doc.text(formatDate(item.date),              cDate + 2,  y + 4, { width: 50,  lineBreak: false });
-        doc.text(item.details || '',                 cDet + 2,   y + 4, { width: 162, lineBreak: false });
-        doc.text(meals,                              cMeal + 2,  y + 4, { width: 40,  lineBreak: false });
+        doc.text(item.details || '',                 cDet + 2,   y + 4, { width: 146, lineBreak: false });
+        doc.text(formatCurrency(item.meals),         cMeals + 2, y + 4, { width: 56,  lineBreak: false });
         doc.text(formatCurrency(item.accommodation), cAccom + 2, y + 4, { width: 66,  lineBreak: false });
         doc.text(formatCurrency(item.sundries_phone),cInc + 2,   y + 4, { width: 56,  lineBreak: false });
         doc.font('Helvetica-Bold').fontSize(8).fillColor('#111111')
@@ -837,7 +836,7 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
       }
 
       const hodH = drawBox(hodApproval, 'HEAD OF DEPARTMENT', LX, y, false);
-      const finH = drawBox(finApproval, 'FINANCE MANAGER', BOX2_X, y, false);
+      const finH = drawBox(finApproval, 'FINANCE DEPT', BOX2_X, y, false);
       y += Math.max(hodH, finH) + 10;
       drawBox(mdApproval, 'MANAGING DIRECTOR', LX, y, true);
 

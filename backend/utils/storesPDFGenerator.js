@@ -611,9 +611,14 @@ async function generateGRNPDF(grn, items, outputPath) {
       y += 18;
 
       items.forEach((item, idx) => {
-        if (y > 700) { doc.addPage(); y = 50; }
+        const conditionText = item.condition_notes || 'Good';
+        doc.font('Helvetica').fontSize(8);
+        const conditionH = doc.heightOfString(conditionText, { width: cols[6].w - 6 });
+        const rowH = Math.max(18, conditionH + 8);
+
+        if (y + rowH > 700) { doc.addPage(); y = 50; }
         const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0FDF4';
-        doc.rect(LX, y, PW, 18).fillAndStroke(rowBg, '#BBF7D0');
+        doc.rect(LX, y, PW, rowH).fillAndStroke(rowBg, '#BBF7D0');
         cx = LX;
         const cells = [
           String(idx + 1),
@@ -622,14 +627,15 @@ async function generateGRNPDF(grn, items, outputPath) {
           String(item.quantity_ordered ?? 0),
           String(item.quantity_received ?? 0),
           item.unit || 'pcs',
-          item.condition_notes || 'Good',
         ];
         doc.font('Helvetica').fontSize(8).fillColor('#111111');
         cells.forEach((val, i) => {
           doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6, lineBreak: false });
           cx += cols[i].w;
         });
-        y += 18;
+        // Condition column wraps across multiple lines instead of clipping.
+        doc.text(conditionText, cx + 3, y + 5, { width: cols[6].w - 6 });
+        y += rowH;
       });
       doc.moveTo(LX, y).lineTo(RX, y).lineWidth(0.8).strokeColor('#AAAAAA').stroke();
       y += 16;
