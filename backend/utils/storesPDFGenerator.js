@@ -162,10 +162,6 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
       y += 18;
 
       items.forEach((item, idx) => {
-        if (y > 640) { doc.addPage(); y = 50; }
-        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#FFFBEB';
-        doc.rect(LX, y, PW, 18).fillAndStroke(rowBg, '#E5D3B3');
-        cx = LX;
         const cells = [
           String(idx + 1),
           item.item_code || '—',
@@ -173,12 +169,19 @@ async function generateIssueSlipPDF(slip, items, approvals, outputPath) {
           String(item.quantity ?? 0),
           item.unit || 'pcs',
         ];
+        doc.font('Helvetica').fontSize(8);
+        const rowH = Math.max(18, Math.max(...cells.map((val, i) => doc.heightOfString(val, { width: itemCols[i].w - 6 }))) + 8);
+
+        if (y + rowH > 640) { doc.addPage(); y = 50; }
+        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#FFFBEB';
+        doc.rect(LX, y, PW, rowH).fillAndStroke(rowBg, '#E5D3B3');
+        cx = LX;
         doc.font('Helvetica').fontSize(8).fillColor('#111111');
         cells.forEach((val, i) => {
-          doc.text(val, cx + 3, y + 5, { width: itemCols[i].w - 6, lineBreak: false });
+          doc.text(val, cx + 3, y + 5, { width: itemCols[i].w - 6 });
           cx += itemCols[i].w;
         });
-        y += 18;
+        y += rowH;
       });
       doc.moveTo(LX, y).lineTo(RX, y).lineWidth(0.8).strokeColor('#AAAAAA').stroke();
       y += 16;
@@ -404,10 +407,6 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
       y += 18;
 
       items.forEach((item, idx) => {
-        if (y > 700) { doc.addPage(); y = 50; }
-        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#EEF2FF';
-        doc.rect(LX, y, PW, 18).fillAndStroke(rowBg, '#C7D2FE');
-        cx = LX;
         const cells = [
           String(idx + 1),
           item.item_code || '—',
@@ -415,12 +414,19 @@ async function generatePickingSlipPDF(slip, items, outputPath) {
           String(item.quantity ?? 0),
           item.unit || 'pcs',
         ];
+        doc.font('Helvetica').fontSize(8);
+        const rowH = Math.max(18, Math.max(...cells.map((val, i) => doc.heightOfString(val, { width: itemCols[i].w - 6 }))) + 8);
+
+        if (y + rowH > 700) { doc.addPage(); y = 50; }
+        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#EEF2FF';
+        doc.rect(LX, y, PW, rowH).fillAndStroke(rowBg, '#C7D2FE');
+        cx = LX;
         doc.font('Helvetica').fontSize(8).fillColor('#111111');
         cells.forEach((val, i) => {
-          doc.text(val, cx + 3, y + 5, { width: itemCols[i].w - 6, lineBreak: false });
+          doc.text(val, cx + 3, y + 5, { width: itemCols[i].w - 6 });
           cx += itemCols[i].w;
         });
-        y += 18;
+        y += rowH;
       });
       doc.moveTo(LX, y).lineTo(RX, y).lineWidth(0.8).strokeColor('#AAAAAA').stroke();
       y += 20;
@@ -612,14 +618,6 @@ async function generateGRNPDF(grn, items, outputPath) {
 
       items.forEach((item, idx) => {
         const conditionText = item.condition_notes || 'Good';
-        doc.font('Helvetica').fontSize(8);
-        const conditionH = doc.heightOfString(conditionText, { width: cols[6].w - 6 });
-        const rowH = Math.max(18, conditionH + 8);
-
-        if (y + rowH > 700) { doc.addPage(); y = 50; }
-        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0FDF4';
-        doc.rect(LX, y, PW, rowH).fillAndStroke(rowBg, '#BBF7D0');
-        cx = LX;
         const cells = [
           String(idx + 1),
           item.item_code || '—',
@@ -628,9 +626,18 @@ async function generateGRNPDF(grn, items, outputPath) {
           String(item.quantity_received ?? 0),
           item.unit || 'pcs',
         ];
+        doc.font('Helvetica').fontSize(8);
+        const cellsH = Math.max(...cells.map((val, i) => doc.heightOfString(val, { width: cols[i].w - 6 })));
+        const conditionH = doc.heightOfString(conditionText, { width: cols[6].w - 6 });
+        const rowH = Math.max(18, Math.max(cellsH, conditionH) + 8);
+
+        if (y + rowH > 700) { doc.addPage(); y = 50; }
+        const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0FDF4';
+        doc.rect(LX, y, PW, rowH).fillAndStroke(rowBg, '#BBF7D0');
+        cx = LX;
         doc.font('Helvetica').fontSize(8).fillColor('#111111');
         cells.forEach((val, i) => {
-          doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6, lineBreak: false });
+          doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6 });
           cx += cols[i].w;
         });
         // Condition column wraps across multiple lines instead of clipping.

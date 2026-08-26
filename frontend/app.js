@@ -4253,29 +4253,34 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
 
   const previewFormPDF = async (form) => {
     try {
-      let blob, title;
+      let blob, title, filename;
       switch (form.formType) {
         case 'purchase_requisition':
         case 'purchase':
           blob = await api.downloadRequisitionPDF(form.id);
           title = `Purchase Requisition - ${form.req_number || form.id}`;
+          filename = `PR_${form.req_number || form.id}.pdf`;
           break;
         case 'expense':
           blob = await api.downloadExpenseClaimPDF(form.id);
           title = `Expense Claim - ${form.id}`;
+          filename = `ExpenseClaim_${form.id}.pdf`;
           break;
         case 'eft':
           blob = await api.downloadEFTRequisitionPDF(form.id);
           title = `EFT Requisition - ${form.id}`;
+          filename = `EFT_${form.id}.pdf`;
           break;
         case 'petty_cash':
           blob = await api.downloadPettyCashPDF(form.id);
           title = `Petty Cash - ${form.id}`;
+          filename = `PettyCash_${form.id}.pdf`;
           break;
         default:
           throw new Error('Unknown form type');
       }
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       setPreviewPdfUrl(url);
       setPreviewPdfTitle(title);
       setShowPdfPreview(true);
@@ -4288,7 +4293,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   const previewRequisitionPDF = async (reqId, reqNumber) => {
     try {
       const blob = await api.downloadRequisitionPDF(reqId);
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `PR_${reqNumber || reqId}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       setPreviewPdfUrl(url);
       setPreviewPdfTitle(`Purchase Requisition - ${reqNumber}`);
       setShowPdfPreview(true);
@@ -5652,7 +5658,8 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   const downloadApprovedPDF = async () => {
     try {
       const blob = await api.downloadRequisitionPDF(req.id);
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `PR_${req.req_number || req.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       console.error('Error previewing PDF:', error);
@@ -9811,15 +9818,18 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
 
   const handlePreviewPDF = async (row) => {
     try {
-      let blob;
+      let blob, filename;
       const id = row._row.id || row._row._id;
       switch (row._formType) {
-        case 'purchase':  blob = await api.downloadRequisitionPDF(id); break;
-        case 'eft':       blob = await api.downloadEFTRequisitionPDF(id); break;
-        case 'pettyCash': blob = await api.downloadPettyCashPDF(id); break;
-        case 'expense':   blob = await api.downloadExpenseClaimPDF(id); break;
+        case 'purchase':  blob = await api.downloadRequisitionPDF(id); filename = `PR_${row._row.req_number || id}.pdf`; break;
+        case 'eft':       blob = await api.downloadEFTRequisitionPDF(id); filename = `EFT_${id}.pdf`; break;
+        case 'pettyCash': blob = await api.downloadPettyCashPDF(id); filename = `PettyCash_${id}.pdf`; break;
+        case 'expense':   blob = await api.downloadExpenseClaimPDF(id); filename = `ExpenseClaim_${id}.pdf`; break;
       }
-      if (blob) window.open(window.URL.createObjectURL(blob), '_blank');
+      if (blob) {
+        const file = new File([blob], filename, { type: 'application/pdf' });
+        window.open(window.URL.createObjectURL(file), '_blank');
+      }
     } catch (e) {
       showToast('Preview failed: ' + (e.message || 'unknown error'));
     }
@@ -10134,7 +10144,8 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
       const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `PettyCash_${req.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -10346,7 +10357,8 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
       const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `ExpenseClaim_${claim.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -10546,7 +10558,8 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
       const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `EFT_${req.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -14260,7 +14273,8 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
       const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slip.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `IssueSlip_${slip.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -14498,7 +14512,8 @@ function ApproveIssueSlip({ slip, user, setView }) {
       const response = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slipData.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `IssueSlip_${slipData.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -14690,7 +14705,8 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
       const response = await fetchWithAuth(`${API_URL}/stores/picking-slips/${slip.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `PickingSlip_${slip.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -14815,7 +14831,8 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
       const response = await fetchWithAuth(`${API_URL}/stores/grns/${grn.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `GRN_${grn.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -15003,7 +15020,8 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
       const response = await fetchWithAuth(`${API_URL}/stores/grns/${grnProp.id}/pdf`);
       if (!response.ok) throw new Error('Failed to generate PDF');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const file = new File([blob], `GRN_${grnProp.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
       window.open(url, '_blank');
     } catch (error) {
       showToast('Error: ' + error.message);

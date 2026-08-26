@@ -165,13 +165,10 @@ const _generateRequisitionPDF = (requisition, items, approvals, callback) => {
     y += 18;
 
     let subtotal = 0;
+    doc.font('Helvetica').fontSize(8);
     items.forEach((item, idx) => {
-      if (y > 710) { doc.addPage(); y = 50; }
-      const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0F4FF';
-      doc.rect(LX, y, PW, 18).fillAndStroke(rowBg, '#D1D5DB');
       const itemTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
       subtotal += itemTotal;
-      cx = LX;
       const row = [
         String(idx + 1),
         item.item_code || '—',
@@ -181,12 +178,21 @@ const _generateRequisitionPDF = (requisition, items, approvals, callback) => {
         fmtMoney(itemTotal),
         item.vendor_name || requisition.approved_vendor || 'TBD',
       ];
+      // Row height must fit the tallest wrapped cell (pdfkit wraps text
+      // to the given width regardless of lineBreak: false), otherwise
+      // multi-line descriptions/vendor names overflow into the next row.
+      const rowH = Math.max(18, Math.max(...row.map((val, i) => doc.heightOfString(val, { width: cols[i].w - 6 }))) + 8);
+
+      if (y + rowH > 710) { doc.addPage(); y = 50; }
+      const rowBg = idx % 2 === 0 ? '#FFFFFF' : '#F0F4FF';
+      doc.rect(LX, y, PW, rowH).fillAndStroke(rowBg, '#D1D5DB');
+      cx = LX;
       doc.font('Helvetica').fontSize(8).fillColor('#111111');
       row.forEach((val, i) => {
-        doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6, lineBreak: false });
+        doc.text(val, cx + 3, y + 5, { width: cols[i].w - 6 });
         cx += cols[i].w;
       });
-      y += 18;
+      y += rowH;
     });
 
     // Totals
