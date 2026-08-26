@@ -485,7 +485,13 @@
                 <td><input type="number" class="quantity_received" min="0" step="1" value="${selectedPR.quantity}" required oninput="computeOutstanding(this)"></td>
                 <td class="qty_outstanding" style="text-align:center; color:#6b7280; padding: 8px;">—</td>
                 <td><select class="unit">${buildUomSelect('pcs')}</select></td>
-                <td><input type="text" class="condition_notes" placeholder="e.g. Good, Damaged"></td>
+                <td><select class="condition_notes">
+                    <option value="Excellent">Excellent</option>
+                    <option value="Good" selected>Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Bad">Bad</option>
+                    <option value="Unacceptable">Unacceptable</option>
+                </select></td>
             `;
         }
 
