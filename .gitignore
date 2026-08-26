@@ -31,6 +31,9 @@ lerna-debug.log*
 uploads/
 backend/uploads/
 
+# Archived production data dumps (contain real records, never commit)
+backend/backups/
+
 # OS files
 .DS_Store
 Thumbs.db
