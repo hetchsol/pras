@@ -9797,7 +9797,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
           ),
           React.createElement('div', null,
-            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requester"),
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requested For"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.requester_name || requisition.initiator_name)
           ),
           React.createElement('div', null,
@@ -9807,6 +9807,11 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Quantity"),
             React.createElement('p', { className: "text-2xl font-bold text-purple-600" }, requisition.quantity || 1)
+          ),
+          requisition.requester_name && requisition.requester_name !== requisition.initiator_name &&
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Submitted By"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, `${requisition.initiator_name} (on behalf of requester)`)
           )
         ),
 
@@ -10652,7 +10657,10 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
                 requisitions.map(req =>
                   React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
                     React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
-                    React.createElement('td', { className: "tbl-td" }, req.requester_name),
+                    React.createElement('td', { className: "tbl-td" },
+                      React.createElement('div', null, req.requester_name),
+                      req.requester_name !== req.initiator_name && React.createElement('div', { className: "text-xs text-gray-500" }, `submitted by ${req.initiator_name}`)
+                    ),
                     React.createElement('td', { className: "tbl-td" }, req.equipment_description),
                     React.createElement('td', { className: "tbl-td" }, req.quantity || 1),
                     React.createElement('td', { className: "px-4 py-3" },
