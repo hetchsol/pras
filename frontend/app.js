@@ -4713,7 +4713,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     backgroundColor: 'var(--color-success)',
                     color: '#FFFFFF'
                   }
-                }, 'Approve'),
+                }, (user.role === 'it' && req.status === 'pending_issuance') ? 'Issue' : 'Approve'),
                 React.createElement('button', {
                   onClick: async (e) => {
                     e.stopPropagation();
