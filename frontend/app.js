@@ -353,6 +353,12 @@ const api = {
     return res.json();
   },
 
+  getITEquipmentRequests: async () => {
+    const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests`);
+    if (!res.ok) throw new Error('Failed to fetch IT equipment requests');
+    return res.json();
+  },
+
   downloadExpenseClaimPDF: async (claimId) => {
     const res = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claimId}/pdf`);
     if (!res.ok) throw new Error('Failed to download expense claim PDF');
@@ -368,6 +374,12 @@ const api = {
   downloadPettyCashPDF: async (pettyCashId) => {
     const res = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${pettyCashId}/pdf`);
     if (!res.ok) throw new Error('Failed to download petty cash PDF');
+    return res.blob();
+  },
+
+  downloadITEquipmentRequestPDF: async (requestId) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requestId}/pdf`);
+    if (!res.ok) throw new Error('Failed to download IT equipment request PDF');
     return res.blob();
   },
 
@@ -1667,6 +1679,13 @@ const STEPPER_STEPS = {
     { label: 'HOD Review', key: 'pending_hod' },
     { label: 'Finance',    key: 'pending_finance' },
     { label: 'Approved',   key: 'approved' }
+  ],
+  it_equipment: [
+    { label: 'Submitted',      key: 'submitted' },
+    { label: 'HR Verification', key: 'pending_hr' },
+    { label: 'MD Approval',    key: 'pending_md' },
+    { label: 'IT Issuance',    key: 'pending_issuance' },
+    { label: 'Issued',         key: 'issued' }
   ]
 };
 
@@ -1680,7 +1699,8 @@ const STEPPER_STATUS_INDEX = {
   petty_cash:    { pending_hod: 1, pending_finance: 2, pending_md: 3, approved: 4 },
   eft:           { pending_hod: 1, pending_finance: 2, pending_md: 3, approved: 4 },
   expense_claim: { pending_hod: 1, pending_finance: 2, pending_md: 3, approved: 4 },
-  issue_slip:    { pending_hod: 1, pending_finance: 2, approved: 3 }
+  issue_slip:    { pending_hod: 1, pending_finance: 2, approved: 3 },
+  it_equipment:  { pending_hr: 1, pending_md: 2, pending_issuance: 3, issued: 4 }
 };
 
 function ApprovalStepper({ formType, status, approvals }) {
@@ -1691,7 +1711,7 @@ function ApprovalStepper({ formType, status, approvals }) {
 
   const getApprover = (stepKey) => {
     if (!Array.isArray(approvals)) return null;
-    const roleMap = { pending_hod: 'hod', pending_procurement: 'procurement', pending_finance: 'finance', pending_md: 'md' };
+    const roleMap = { pending_hod: 'hod', pending_procurement: 'procurement', pending_finance: 'finance', pending_md: 'md', pending_hr: 'hr', pending_issuance: 'it' };
     const role = roleMap[stepKey];
     if (!role) return null;
     return approvals.find(a => a.role === role && a.action === 'approved') || null;
@@ -1991,7 +2011,8 @@ function App() {
     departments: [],
     expenseClaims: [],
     eftRequisitions: [],
-    pettyCashRequisitions: []
+    pettyCashRequisitions: [],
+    itEquipmentRequests: []
   });
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -2040,12 +2061,13 @@ function App() {
     setLoading(true);
     try {
       // Load all requisition types (purchase requisitions and forms)
-      const [requisitions, vendors, expenseClaims, eftRequisitions, pettyCashRequisitions, departments] = await Promise.all([
+      const [requisitions, vendors, expenseClaims, eftRequisitions, pettyCashRequisitions, itEquipmentRequests, departments] = await Promise.all([
         api.getRequisitions(currentUser?.id, currentUser?.role),
         api.getVendors(),
         api.getExpenseClaims(),
         api.getEFTRequisitions(),
         api.getPettyCashRequisitions(),
+        api.getITEquipmentRequests(),
         api.getDepartments()
       ]);
       setData({
@@ -2054,6 +2076,7 @@ function App() {
         expenseClaims,
         eftRequisitions,
         pettyCashRequisitions,
+        itEquipmentRequests,
         users: [],
         departments
       });
@@ -2107,7 +2130,8 @@ function App() {
       departments: [],
       expenseClaims: [],
       eftRequisitions: [],
-      pettyCashRequisitions: []
+      pettyCashRequisitions: [],
+      itEquipmentRequests: []
     });
   };
 
@@ -2174,6 +2198,8 @@ function App() {
         view === 'approve-eft-requisition' && React.createElement(ApproveEFTRequisition, { requisition: selectedReq, user: currentUser, setView }),
         view === 'approve-petty-cash' && React.createElement(ApprovePettyCash, { requisition: selectedReq, user: currentUser, setView }),
         view === 'petty-cash-requisitions' && React.createElement(PettyCashRequisitionsList, { user: currentUser, setView, setSelectedReq }),
+        view === 'approve-it-equipment' && React.createElement(ApproveITEquipmentRequest, { requisition: selectedReq, user: currentUser, setView }),
+        view === 'it-equipment-requests' && React.createElement(ITEquipmentRequestsList, { user: currentUser, setView, setSelectedReq }),
         // Stores Module Views
         view === 'grns' && React.createElement(GoodsReceiptNotesList, { user: currentUser, setView, setSelectedReq }),
         view === 'view-grn' && React.createElement(ViewGoodsReceiptNote, { grn: selectedReq, user: currentUser, setView }),
@@ -2989,7 +3015,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'requisitions', label: 'My Submissions', show: true },
         { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
         { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(user.role, 'procurement', 'admin') },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'admin']) },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) },
         { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
@@ -3017,7 +3043,8 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
           onPickerCancel: () => setBypassPickerOpen(false),
           untilLabel: bypassEnabled ? fmtBypassTime(bypassUntil) : '' },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'admin']) }
+        { id: 'it-equipment-requests', label: 'IT Equipment Request', isLink: true, href: 'it-equipment-request.html', show: true },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) }
       ]
     },
     // Stores Management Group - Issue Slips & Picking Slips
@@ -3842,7 +3869,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       user.role === 'initiator' ? r.initiator_id === user.id : true
     ).map(r => ({...r, formType: 'petty_cash', displayType: 'Petty Cash'}));
 
-    return [...expenseClaims, ...eftReqs, ...pettyCash];
+    const itEquipment = (data.itEquipmentRequests || []).filter(r =>
+      user.role === 'initiator' ? r.initiator_id === user.id : true
+    ).map(r => ({...r, formType: 'it_equipment', displayType: 'IT Equipment Request'}));
+
+    return [...expenseClaims, ...eftReqs, ...pettyCash, ...itEquipment];
   };
 
   // Helper function to check if a form is approved (any approval status)
@@ -3851,7 +3882,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
            status === 'completed' ||
            status === 'hod_approved' ||
            status === 'finance_approved' ||
-           status === 'md_approved';
+           status === 'md_approved' ||
+           status === 'issued';
   };
 
   const requisitions = getRequisitionsForUser();
@@ -3871,6 +3903,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       return status === 'pending_md' || status === 'finance_approved';
     } else if (role === 'procurement') {
       return status === 'pending_finance' || status === 'pending_md';
+    } else if (role === 'hr') {
+      return status === 'pending_hr';
+    } else if (role === 'it') {
+      return status === 'pending_issuance';
     } else if (role === 'admin') {
       // Admin sees all pending items
       return status.includes('pending') || status === 'hod_approved' || status === 'finance_approved';
@@ -3888,7 +3924,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
 
   // Approved: only fully approved items
   const approvedPurchaseRequisitions = requisitions.filter(r => r.status === 'approved' || r.status === 'completed' || r.status === 'md_approved');
-  const approvedForms = allForms.filter(f => f.status === 'approved' || f.status === 'completed' || f.status === 'md_approved');
+  const approvedForms = allForms.filter(f => f.status === 'approved' || f.status === 'completed' || f.status === 'md_approved' || f.status === 'issued');
   const approvedRequisitions = [...approvedPurchaseRequisitions, ...approvedForms];
 
   // In-progress: partially approved (HOD or Finance approved, still pending further approval)
@@ -3916,6 +3952,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       hod_approved:        'badge-success',
       finance_approved:    'badge-success',
       md_approved:         'badge-success',
+      pending_hr:          'badge-pending',
+      pending_issuance:    'badge-warning',
+      issued:              'badge-success',
       rejected:            'badge-danger'
     };
     return colors[status] || 'badge-neutral';
@@ -3933,6 +3972,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       hod_approved: 'HOD Approved',
       finance_approved: 'Finance Approved',
       md_approved: 'MD Approved',
+      pending_hr: 'Pending HR',
+      pending_issuance: 'Pending IT Issuance',
+      issued: 'Issued',
       rejected: 'Rejected'
     };
     return text[status] || status;
@@ -3990,6 +4032,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           endpoint = `${API_URL}/forms/eft-requisitions/${form._id || form.id}/approve`;
         } else if (form.formType === 'petty_cash') {
           endpoint = `${API_URL}/forms/petty-cash-requisitions/${form._id || form.id}/approve`;
+        } else if (form.formType === 'it_equipment') {
+          endpoint = `${API_URL}/forms/it-equipment-requests/${form._id || form.id}/approve`;
         }
 
         // Forms use unified approve format
@@ -4234,6 +4278,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           blob = await api.downloadPettyCashPDF(form.id);
           filename = `PettyCash_${form.id}.pdf`;
           break;
+        case 'it_equipment':
+          blob = await api.downloadITEquipmentRequestPDF(form.id);
+          filename = `ITEquipmentRequest_${form.id}.pdf`;
+          break;
         default:
           throw new Error('Unknown form type');
       }
@@ -4275,6 +4323,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           blob = await api.downloadPettyCashPDF(form.id);
           title = `Petty Cash - ${form.id}`;
           filename = `PettyCash_${form.id}.pdf`;
+          break;
+        case 'it_equipment':
+          blob = await api.downloadITEquipmentRequestPDF(form.id);
+          title = `IT Equipment Request - ${form.id}`;
+          filename = `ITEquipmentRequest_${form.id}.pdf`;
           break;
         default:
           throw new Error('Unknown form type');
@@ -4520,6 +4573,19 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                 className: "text-sm font-bold",
                 style: { color: '#D97706' }
               }, approvedForms.filter(f => f.formType === 'expense_claim').length)
+            ),
+            React.createElement('div', {
+              className: "flex items-center justify-between p-2 rounded",
+              style: { backgroundColor: 'var(--bg-primary)' }
+            },
+              React.createElement('span', {
+                className: "text-sm transition-colors",
+                style: { color: 'var(--text-secondary)' }
+              }, "IT Equipment Requests:"),
+              React.createElement('span', {
+                className: "text-sm font-bold",
+                style: { color: '#6D28D9' }
+              }, approvedForms.filter(f => f.formType === 'it_equipment').length)
             )
           ),
           React.createElement('div', {
@@ -4559,9 +4625,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     className: "px-2 py-1 text-xs font-semibold rounded",
                     style: {
                       backgroundColor: req.formType === 'expense_claim' ? '#FEF3C7' :
-                                      req.formType === 'eft' ? '#DBEAFE' : '#D1FAE5',
+                                      req.formType === 'eft' ? '#DBEAFE' :
+                                      req.formType === 'it_equipment' ? '#EDE9FE' : '#D1FAE5',
                       color: req.formType === 'expense_claim' ? '#D97706' :
-                             req.formType === 'eft' ? '#1E40AF' : '#059669'
+                             req.formType === 'eft' ? '#1E40AF' :
+                             req.formType === 'it_equipment' ? '#6D28D9' : '#059669'
                     }
                   }, req.displayType),
                   React.createElement('h3', {
@@ -4628,7 +4696,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               showBreakdown === 'pending' && (
                 (user.role === 'hod' && req.status === 'pending_hod') ||
                 (['finance', 'finance_manager'].includes(user.role) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
-                (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved'))
+                (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) ||
+                (user.role === 'hr' && req.status === 'pending_hr') ||
+                (user.role === 'it' && req.status === 'pending_issuance')
               ) &&
               React.createElement('div', { className: "flex items-center gap-2 mt-3" },
                 React.createElement('button', {
@@ -8709,12 +8779,13 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     setLoading(true);
     try {
       // Fetch all types of requisitions/forms
-      const [reqRes, expRes, eftRes, pcRes, issRes] = await Promise.all([
+      const [reqRes, expRes, eftRes, pcRes, issRes, itRes] = await Promise.all([
         fetchWithAuth(`${API_URL}/requisitions`),
         fetchWithAuth(`${API_URL}/forms/expense-claims`),
         fetchWithAuth(`${API_URL}/forms/eft-requisitions`),
         fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`),
-        fetchWithAuth(`${API_URL}/stores/issue-slips`)
+        fetchWithAuth(`${API_URL}/stores/issue-slips`),
+        fetchWithAuth(`${API_URL}/forms/it-equipment-requests`)
       ]);
 
       const requisitions = reqRes.ok ? await reqRes.json() : [];
@@ -8722,6 +8793,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       const eftRequisitions = eftRes.ok ? await eftRes.json() : [];
       const pettyCash = pcRes.ok ? await pcRes.json() : [];
       const issueSlips = issRes.ok ? await issRes.json() : [];
+      const itEquipmentRequests = itRes.ok ? await itRes.json() : [];
 
       // Add type identifier to each item
       const taggedReqs = requisitions.map(r => ({ ...r, formType: 'purchase_requisition', displayType: 'Purchase Req' }));
@@ -8729,8 +8801,9 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       const taggedEft = eftRequisitions.map(r => ({ ...r, formType: 'eft_requisition', displayType: 'EFT' }));
       const taggedPc = pettyCash.map(r => ({ ...r, formType: 'petty_cash', displayType: 'Petty Cash' }));
       const taggedIss = issueSlips.map(r => ({ ...r, formType: 'issue_slip', displayType: 'Issue Slip' }));
+      const taggedIt = itEquipmentRequests.map(r => ({ ...r, formType: 'it_equipment', displayType: 'IT Equipment' }));
 
-      const combinedItems = [...taggedReqs, ...taggedExp, ...taggedEft, ...taggedPc, ...taggedIss];
+      const combinedItems = [...taggedReqs, ...taggedExp, ...taggedEft, ...taggedPc, ...taggedIss, ...taggedIt];
 
       // Filter based on user role and status.
       // The pending_hod bypass (Finance/MD acting before HOD) only applies
@@ -8752,13 +8825,19 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
           item.status === 'finance_approved' ||
           (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
         );
+      } else if (user.role === 'hr') {
+        filtered = combinedItems.filter(item => item.status === 'pending_hr');
+      } else if (user.role === 'it') {
+        filtered = combinedItems.filter(item => item.status === 'pending_issuance');
       } else if (user.role === 'admin') {
         filtered = combinedItems.filter(item =>
           item.status === 'pending_hod' ||
           item.status === 'pending_finance' ||
           item.status === 'pending_md' ||
           item.status === 'hod_approved' ||
-          item.status === 'finance_approved'
+          item.status === 'finance_approved' ||
+          item.status === 'pending_hr' ||
+          item.status === 'pending_issuance'
         );
       }
 
@@ -8785,6 +8864,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       setView('approve-petty-cash');
     } else if (item.formType === 'issue_slip') {
       setView('approve-issue-slip');
+    } else if (item.formType === 'it_equipment') {
+      setView('approve-it-equipment');
     } else {
       setView('approve');
     }
@@ -8803,6 +8884,9 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       'hod_approved':     { label: 'HOD Approved',     cls: 'badge-success' },
       'finance_approved': { label: 'Finance Approved', cls: 'badge-success' },
       'approved':         { label: 'Approved',         cls: 'badge-success' },
+      'pending_hr':       { label: 'Pending HR',        cls: 'badge-pending' },
+      'pending_issuance': { label: 'Pending IT Issuance', cls: 'badge-warning' },
+      'issued':           { label: 'Issued',           cls: 'badge-success' },
       'rejected':         { label: 'Rejected',         cls: 'badge-danger' }
     };
     const config = statusConfig[status] || { label: status, cls: 'badge-neutral' };
@@ -8824,7 +8908,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
   };
 
   const getItemDescription = (item) => {
-    return item.description || item.purpose || item.reason_for_trip || item.in_favour_of || 'N/A';
+    return item.description || item.purpose || item.reason_for_trip || item.in_favour_of || item.equipment_description || 'N/A';
   };
 
   const getItemInitiator = (item) => {
@@ -8851,7 +8935,8 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
             React.createElement('option', { value: 'expense_claim' }, 'Expense Claims'),
             React.createElement('option', { value: 'eft_requisition' }, 'EFT Requisitions'),
             React.createElement('option', { value: 'petty_cash' }, 'Petty Cash'),
-            React.createElement('option', { value: 'issue_slip' }, 'Issue Slips')
+            React.createElement('option', { value: 'issue_slip' }, 'Issue Slips'),
+            React.createElement('option', { value: 'it_equipment' }, 'IT Equipment')
           ),
           React.createElement('button', {
             onClick: fetchAllPendingItems,
@@ -9640,6 +9725,139 @@ function ApprovePettyCash({ requisition, user, setView }) {
   );
 }
 
+function ApproveITEquipmentRequest({ requisition, user, setView }) {
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!requisition) {
+    return React.createElement('div', { className: "text-center py-12" },
+      React.createElement('p', { className: "text-gray-500" }, "No IT equipment request selected"),
+      React.createElement('button', {
+        onClick: () => setView('approval-console'),
+        className: "mt-4 text-blue-600 hover:text-blue-800"
+      }, "Back to Approval Console")
+    );
+  }
+
+  const submitDecision = async (approved) => {
+    if (!approved && !comment.trim()) {
+      showToast('Please provide a reason for rejection');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requisition._id || requisition.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved,
+          approver_role: user.role,
+          approver_name: user.full_name || user.name,
+          comments: comment || (approved ? 'Approved' : '')
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || (approved ? 'Approval failed' : 'Rejection failed'));
+      }
+
+      showToast(`IT equipment request ${approved ? (user.role === 'it' ? 'issued' : 'approved') : 'rejected'} successfully!`);
+      setView('approval-console');
+    } catch (error) {
+      console.error('Error updating IT equipment request:', error);
+      showToast(error.message || 'Error updating IT equipment request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // The approve action reads differently at each stage of the chain.
+  const approveLabel = user.role === 'it' ? 'Issue Equipment' : 'Approve';
+  const roleHint = user.role === 'hr'
+    ? 'Verify that the requester is entitled to receive this equipment before approving.'
+    : user.role === 'it'
+      ? 'Confirm the equipment has been issued to the requester.'
+      : '';
+
+  return React.createElement('div', { className: "max-w-4xl mx-auto" },
+    React.createElement('div', { className: "card card-lg" },
+      React.createElement('div', { className: "card-header mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review IT Equipment Request"),
+        React.createElement('span', {
+          className: `px-4 py-2 rounded-full text-sm font-medium border border-purple-400 text-purple-700 bg-transparent`
+        }, requisition.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
+      ),
+
+      React.createElement('div', { className: "space-y-6" },
+        React.createElement(ApprovalStepper, { formType: 'it_equipment', status: requisition.status, approvals: requisition.approvals }),
+        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Request ID"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requester"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.requester_name || requisition.initiator_name)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Department"),
+            React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.department)
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Quantity"),
+            React.createElement('p', { className: "text-2xl font-bold text-purple-600" }, requisition.quantity || 1)
+          )
+        ),
+
+        React.createElement('div', { className: "card-section" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Equipment Requested"),
+          React.createElement('p', { className: "text-gray-900" }, requisition.equipment_description || 'N/A')
+        ),
+
+        React.createElement('div', { className: "card-section" },
+          React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Justification"),
+          React.createElement('p', { className: "text-gray-900" }, requisition.justification || 'N/A')
+        ),
+
+        roleHint && React.createElement('div', { className: "p-4 bg-purple-50 rounded-lg" },
+          React.createElement('p', { className: "text-sm text-purple-900" }, roleHint)
+        ),
+
+        // Comments Section
+        React.createElement('div', null,
+          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Comments"),
+          React.createElement('textarea', {
+            value: comment,
+            onChange: (e) => setComment(e.target.value),
+            placeholder: "Add your comments here (required for rejection)...",
+            className: "form-input w-full",
+            rows: 3
+          })
+        ),
+
+        // Action Buttons
+        React.createElement('div', { className: "flex gap-4 mt-6" },
+          React.createElement('button', {
+            onClick: () => submitDecision(true),
+            disabled: loading,
+            className: "btn-primary btn-lg flex-1"
+          }, loading ? 'Processing...' : approveLabel),
+          React.createElement('button', {
+            onClick: () => submitDecision(false),
+            disabled: loading,
+            className: "btn-danger btn-lg flex-1"
+          }, loading ? 'Processing...' : 'Reject'),
+          React.createElement('button', {
+            onClick: () => setView('approval-console'),
+            className: "btn-secondary btn-lg"
+          }, 'Cancel')
+        )
+      )
+    )
+  );
+}
+
 // ============================================
 // SUBMISSIONS TRACKER — unified table across all four form types.
 // One component drives three sidebar entries via the `mode` prop:
@@ -9746,11 +9964,12 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
     const userId = String(user.id || user._id || '');
     const safe = (p) => p.then(r => r.ok ? r.json() : []).catch(() => []);
     try {
-      const [pr, eft, pc, ec] = await Promise.all([
+      const [pr, eft, pc, ec, iteq] = await Promise.all([
         safe(fetchWithAuth(`${API_URL}/requisitions?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(user.role || '')}`)),
         safe(fetchWithAuth(`${API_URL}/forms/eft-requisitions`)),
         safe(fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions`)),
-        safe(fetchWithAuth(`${API_URL}/forms/expense-claims`))
+        safe(fetchWithAuth(`${API_URL}/forms/expense-claims`)),
+        safe(fetchWithAuth(`${API_URL}/forms/it-equipment-requests`))
       ]);
 
       // Mode-dependent predicate. 'mine' only keeps the user's own
@@ -9760,7 +9979,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       const ownedBy = (r) => String(r.initiator_id || r.created_by || '') === userId;
       const isApproved = (r) => {
         const s = String(r.status || '').toLowerCase();
-        return s === 'approved' || s === 'completed';
+        return s === 'approved' || s === 'completed' || s === 'issued';
       };
       const isRejected = (r) => String(r.status || '').toLowerCase() === 'rejected';
       const keep =
@@ -9792,6 +10011,12 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
           _description: r.description || r.purpose || 'N/A',
           _amount: r.amount || r.total_amount || 0,
           _viewName: 'approve-expense-claim'
+        })),
+        ...(Array.isArray(iteq) ? iteq : []).filter(keep).map(r => ({
+          _row: r, _formType: 'itEquipment', _formLabel: 'IT Equipment',
+          _description: r.equipment_description || 'N/A',
+          _amount: 0,
+          _viewName: 'approve-it-equipment'
         }))
       ];
       combined.sort((a, b) => new Date(b._row.created_at || 0) - new Date(a._row.created_at || 0));
@@ -9806,7 +10031,8 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
     { id: 'purchase',  label: 'Purchase Req' },
     { id: 'eft',       label: 'EFT' },
     { id: 'pettyCash', label: 'Petty Cash' },
-    { id: 'expense',   label: 'Expense Claim' }
+    { id: 'expense',   label: 'Expense Claim' },
+    { id: 'itEquipment', label: 'IT Equipment' }
   ];
 
   const filtered = filter === 'all' ? rows : rows.filter(r => r._formType === filter);
@@ -9825,6 +10051,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         case 'eft':       blob = await api.downloadEFTRequisitionPDF(id); filename = `EFT_${id}.pdf`; break;
         case 'pettyCash': blob = await api.downloadPettyCashPDF(id); filename = `PettyCash_${id}.pdf`; break;
         case 'expense':   blob = await api.downloadExpenseClaimPDF(id); filename = `ExpenseClaim_${id}.pdf`; break;
+        case 'itEquipment': blob = await api.downloadITEquipmentRequestPDF(id); filename = `ITEquipmentRequest_${id}.pdf`; break;
       }
       if (blob) {
         const file = new File([blob], filename, { type: 'application/pdf' });
@@ -9838,7 +10065,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
   const statusPill = (status) => {
     const s = String(status || '').toLowerCase();
     if (s === 'rejected') return 'bg-red-600 text-white';
-    if (s === 'approved' || s === 'completed' || s.endsWith('_approved')) return 'border border-green-500 text-green-700 bg-transparent';
+    if (s === 'approved' || s === 'completed' || s === 'issued' || s.endsWith('_approved')) return 'border border-green-500 text-green-700 bg-transparent';
     if (s === 'draft') return 'border border-gray-300 text-gray-600 bg-transparent';
     return 'border border-yellow-400 text-yellow-700 bg-transparent';
   };
@@ -10260,6 +10487,208 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                     expandedReceipts === req.id && React.createElement('tr', null,
                       React.createElement('td', { colSpan: 7, style: { padding: '0 16px 16px', background: 'var(--bg-secondary)' } },
                         React.createElement(PettyCashReceiptsPanel, { pcId: req.id, user })
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+    )
+  );
+}
+
+// ============================================
+// IT EQUIPMENT REQUESTS LIST COMPONENT
+// ============================================
+function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
+  const [requisitions, setRequisitions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchITEquipmentRequests();
+  }, []);
+
+  const fetchITEquipmentRequests = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests`);
+      if (!res.ok) throw new Error('Failed to fetch IT equipment requests');
+      const data = await res.json();
+      setRequisitions(data);
+    } catch (error) {
+      console.error('Error fetching IT equipment requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = (req) => {
+    setSelectedReq(req);
+    setView('approve-it-equipment');
+  };
+
+  const canApprove = (req) => {
+    if (user.role === 'hr' && req.status === 'pending_hr') return true;
+    if (user.role === 'md' && req.status === 'pending_md') return true;
+    if (user.role === 'it' && req.status === 'pending_issuance') return true;
+    if (user.role === 'admin') return true;
+    return false;
+  };
+
+  const handleApprove = async (req) => {
+    const verb = req.status === 'pending_issuance' ? 'issue' : 'approve';
+    if (!confirm(`Confirm you want to ${verb} IT equipment request ${req.id}?`)) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: true,
+          approver_role: user.role,
+          approver_name: user.full_name || user.name,
+          comments: 'Approved'
+        })
+      });
+      if (!response.ok) throw new Error('Approval failed');
+      showToast(`IT equipment request ${verb === 'issue' ? 'issued' : 'approved'}!`);
+      fetchITEquipmentRequests();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
+  const handleReject = async (req) => {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: user.role,
+          approver_name: user.full_name || user.name,
+          comments: reason
+        })
+      });
+      if (!response.ok) throw new Error('Rejection failed');
+      showToast('IT equipment request rejected');
+      fetchITEquipmentRequests();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
+  const handlePreviewPDF = async (req) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const file = new File([blob], `ITEquipmentRequest_${req.id}.pdf`, { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(file);
+      window.open(url, '_blank');
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDF = async (req) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ITEquipmentRequest_${req.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
+  const isApproved = (status) => {
+    return status === 'issued' || status === 'pending_issuance';
+  };
+
+  if (loading) return React.createElement(SkeletonList);
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
+        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "IT Equipment Requests"),
+        React.createElement('div', { className: "flex gap-3" },
+          React.createElement('a', {
+            href: 'it-equipment-request.html',
+            className: "btn-primary"
+          }, '+ New IT Equipment Request'),
+          React.createElement('button', {
+            onClick: fetchITEquipmentRequests,
+            className: "btn-primary"
+          }, 'Refresh')
+        )
+      ),
+
+      requisitions.length === 0
+        ? React.createElement(EmptyState, { heading: 'No IT equipment requests yet', sub: 'Submitted IT equipment requests will appear here.' })
+        : React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { className: "bg-gray-50" },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "tbl-th" }, "ID"),
+                  React.createElement('th', { className: "tbl-th" }, "Requester"),
+                  React.createElement('th', { className: "tbl-th" }, "Equipment"),
+                  React.createElement('th', { className: "tbl-th" }, "Qty"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  React.createElement('th', { className: "tbl-th" }, "Date"),
+                  React.createElement('th', { className: "tbl-th" }, "Action")
+                )
+              ),
+              React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                requisitions.map(req =>
+                  React.createElement('tr', { key: req._id || req.id, className: "hover:bg-gray-50", style: statusStripe(req.status) },
+                    React.createElement('td', { className: "tbl-td font-medium text-blue-600" }, req.id),
+                    React.createElement('td', { className: "tbl-td" }, req.requester_name),
+                    React.createElement('td', { className: "tbl-td" }, req.equipment_description),
+                    React.createElement('td', { className: "tbl-td" }, req.quantity || 1),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('span', {
+                        className: `px-2 py-1 text-xs font-semibold rounded-full ${
+                          req.status === 'issued' ? 'border border-green-500 text-green-700 bg-transparent' :
+                          req.status === 'rejected' ? 'bg-red-600 text-white' :
+                          'border border-yellow-400 text-yellow-700 bg-transparent'
+                        }`
+                      }, req.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
+                    ),
+                    React.createElement('td', { className: "tbl-td text-gray-500" },
+                      new Date(req.created_at).toLocaleDateString()
+                    ),
+                    React.createElement('td', { className: "px-4 py-3" },
+                      React.createElement('div', { className: "flex gap-1 flex-wrap" },
+                        React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "btn-primary btn-sm"
+                        }, 'View'),
+                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleApprove(req),
+                          className: "btn-primary btn-sm"
+                        }, req.status === 'pending_issuance' ? 'Issue' : 'Approve'),
+                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                          onClick: () => handleReject(req),
+                          className: "btn-danger btn-sm"
+                        }, 'Reject'),
+                        isApproved(req.status) && React.createElement('button', {
+                          onClick: () => handlePreviewPDF(req),
+                          className: "btn-primary btn-sm"
+                        }, 'Preview'),
+                        isApproved(req.status) && React.createElement('button', {
+                          onClick: () => handleDownloadPDF(req),
+                          className: "btn-primary btn-sm"
+                        }, 'Download')
                       )
                     )
                   )

@@ -2308,6 +2308,35 @@ app.get('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => 
   }
 });
 
+// IT equipment requests are routed User -> HR -> MD -> IT (issuance), not the
+// usual HOD chain, so HR/MD/IT need global visibility while everyone else
+// only sees their own requests.
+const getITEquipmentFilter = async (user) => {
+  const role = (user.role || '').toLowerCase();
+  if (['hr', 'md', 'admin', 'it'].includes(role)) {
+    return {};
+  }
+  const fullUser = await db.getUserById(user.id);
+  return {
+    $or: [
+      { initiator_id: user.id },
+      { initiator_id: fullUser?._id },
+      { initiator_name: fullUser?.full_name }
+    ]
+  };
+};
+
+app.get('/api/forms/it-equipment-requests', authenticate, async (req, res) => {
+  try {
+    const filter = await getITEquipmentFilter(req.user);
+    const requests = await db.ITEquipmentRequest.find(filter).sort({ created_at: -1 }).lean();
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching IT equipment requests:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // POST forms - create expense claims
 app.post('/api/forms/expense-claims', authenticate, async (req, res) => {
   try {
@@ -2442,8 +2471,36 @@ app.post('/api/forms/petty-cash-requisitions', authenticate, async (req, res) =>
   }
 });
 
+// POST forms - create IT equipment requests
+app.post('/api/forms/it-equipment-requests', authenticate, async (req, res) => {
+  try {
+    const user = await db.getUserById(req.user.id);
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, '');
+    const requestId = `KSB-ITEQ-${dateStr}${timeStr}`;
+
+    const itRequest = await db.ITEquipmentRequest.create({
+      id: requestId,
+      requester_name: req.body.requester_name || user?.full_name || '',
+      department: req.body.department || user?.department || '',
+      equipment_description: req.body.equipment_description || '',
+      quantity: req.body.quantity || 1,
+      justification: req.body.justification || '',
+      initiator_id: req.user.id,
+      initiator_name: user?.full_name || req.user.username,
+      status: 'pending_hr'
+    });
+
+    res.status(201).json({ success: true, id: requestId, request_number: requestId });
+  } catch (error) {
+    console.error('Create IT equipment request error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
 // PDF Generation endpoints
-const { generateExpenseClaimPDF, generateEFTPDF, generatePettyCashPDF } = require('./utils/formsPDFGenerator');
+const { generateExpenseClaimPDF, generateEFTPDF, generatePettyCashPDF, generateITEquipmentRequestPDF } = require('./utils/formsPDFGenerator');
 const { generateRequisitionPDF } = require('./utils/pdfGenerator');
 const { generateRequisitionSummaryPDF, generateBudgetReportPDF, generateDepartmentalSpendingPDF } = require('./utils/reportPDFGenerator');
 const { generateRequisitionSummaryExcel, generateBudgetReportExcel, generateFXRatesExcel } = require('./utils/excelReportGenerator');
@@ -2533,6 +2590,38 @@ app.get('/api/forms/petty-cash-requisitions/:id/pdf', authenticate, async (req, 
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="PettyCash_${pc.id}.pdf"`);
+
+    const fileStream = fs.createReadStream(outputPath);
+    fileStream.pipe(res);
+    fileStream.on('end', () => {
+      fs.unlink(outputPath, () => {});
+    });
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// IT Equipment Request PDF
+app.get('/api/forms/it-equipment-requests/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    let itReq = null;
+    try {
+      itReq = await db.ITEquipmentRequest.findById(reqId).lean();
+    } catch (e) {}
+    if (!itReq) {
+      itReq = await db.ITEquipmentRequest.findOne({ id: reqId }).lean();
+    }
+    if (!itReq) {
+      return res.status(404).json({ error: 'IT equipment request not found' });
+    }
+
+    const outputPath = path.join(os.tmpdir(), `it_equipment_${itReq.id}.pdf`);
+    await generateITEquipmentRequestPDF(itReq, itReq.approvals || [], outputPath);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="ITEquipmentRequest_${itReq.id}.pdf"`);
 
     const fileStream = fs.createReadStream(outputPath);
     fileStream.pipe(res);
@@ -2805,6 +2894,62 @@ app.put('/api/forms/petty-cash-requisitions/:id/approve', authenticate, async (r
     });
   } catch (error) {
     console.error('Error approving petty cash requisition:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// Approve/Reject IT Equipment Request
+// Workflow: User Request -> HR Verification -> MD Approval -> IT Issuance
+app.put('/api/forms/it-equipment-requests/:id/approve', authenticate, async (req, res) => {
+  try {
+    const { approved, approver_role, approver_name, comments } = req.body;
+    const reqId = req.params.id;
+
+    let itReq = null;
+    try {
+      itReq = await db.ITEquipmentRequest.findById(reqId);
+    } catch (e) {
+      // Not a valid ObjectId, try finding by custom id
+    }
+    if (!itReq) {
+      itReq = await db.ITEquipmentRequest.findOne({ id: reqId });
+    }
+    if (!itReq) {
+      return res.status(404).json({ error: 'IT equipment request not found' });
+    }
+
+    // Determine new status based on approver role and approval decision
+    let newStatus;
+    if (!approved) {
+      newStatus = 'rejected';
+    } else if (approver_role === 'hr') {
+      newStatus = 'pending_md';
+    } else if (approver_role === 'md') {
+      newStatus = 'pending_issuance';
+    } else if (approver_role === 'it' || approver_role === 'admin') {
+      newStatus = 'issued';
+    } else {
+      newStatus = 'pending_md';
+    }
+
+    const approvalRecord = {
+      role: approver_role,
+      name: approver_name,
+      action: approved ? 'approved' : 'rejected',
+      comments: comments,
+      date: new Date()
+    };
+
+    itReq.status = newStatus;
+    if (!itReq.approvals) itReq.approvals = [];
+    itReq.approvals.push(approvalRecord);
+    itReq.updated_at = new Date();
+
+    await itReq.save();
+
+    res.json({ success: true, message: `IT equipment request ${approved ? 'approved' : 'rejected'}`, requisition: itReq });
+  } catch (error) {
+    console.error('Error approving IT equipment request:', error);
     res.status(500).json({ error: error.message || 'Server error' });
   }
 });

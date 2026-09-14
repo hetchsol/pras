@@ -857,8 +857,198 @@ async function generatePettyCashPDF(pc, items, approvals, outputPath) {
   });
 }
 
+async function generateITEquipmentRequestPDF(itReq, approvals, outputPath) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const PW = 495, LX = 50, RX = 545;
+
+      // Violet palette
+      const ACC     = '#4C1D95';
+      const ACC_MID = '#7C3AED';
+      const ACC_LT  = '#EDE9FE';
+      const ACC_HDR = '#6D28D9';
+
+      const stream = fs.createWriteStream(outputPath);
+      doc.pipe(stream);
+
+      // ── HEADER ──────────────────────────────────────────────────
+      const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+      if (fs.existsSync(logoPath)) doc.image(logoPath, LX, 33, { height: 28 });
+
+      doc.font('Helvetica-Bold').fontSize(20).fillColor('#0A1628')
+         .text('KSB ZAMBIA LIMITED', 145, 34, { align: 'center', width: 265, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(12).fillColor(ACC_HDR)
+         .text('IT EQUIPMENT REQUEST FORM', 145, 58, { align: 'center', width: 265, lineBreak: false });
+
+      const rawStatus = (itReq.status || 'pending').toLowerCase().replace(/_/g, ' ');
+      let bdBg, bdBdr, bdTxt;
+      if (rawStatus === 'issued')            { bdBg = '#D1FAE5'; bdBdr = '#059669'; bdTxt = '#065F46'; }
+      else if (rawStatus.includes('reject')) { bdBg = '#FEE2E2'; bdBdr = '#DC2626'; bdTxt = '#991B1B'; }
+      else                                   { bdBg = ACC_LT;    bdBdr = ACC_MID;   bdTxt = ACC;       }
+      doc.roundedRect(421, 30, 124, 22, 4).fillAndStroke(bdBg, bdBdr);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(bdTxt)
+         .text(rawStatus.toUpperCase(), 423, 38, { width: 120, align: 'center', lineBreak: false });
+
+      let y = 90;
+      doc.moveTo(LX, y).lineTo(RX, y).lineWidth(2).strokeColor(ACC_MID).stroke();
+      y += 6;
+
+      // ── ID ROW ───────────────────────────────────────────────────
+      doc.rect(LX, y, PW, 20).fill(ACC_LT);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+         .text('Request ID:', LX + 6, y + 5, { width: 80, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC_HDR)
+         .text(itReq.id || '—', LX + 88, y + 5, { width: 220, lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(ACC)
+         .text('Date:', 380, y + 5, { width: 40, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#000000')
+         .text(formatDate(itReq.created_at), 422, y + 5, { width: 118, lineBreak: false });
+      y += 24;
+
+      // ── INFO GRID ────────────────────────────────────────────────
+      const C1L = LX, C1LW = 110, C1V = 163, C1VW = 138;
+      const C2L = 307, C2LW = 110, C2V = 420, C2VW = 120;
+
+      const infoRows = [
+        ['Department:',   itReq.department || 'N/A', 'Requested By:', itReq.initiator_name || 'N/A'],
+        ['Requester:',    itReq.requester_name || 'N/A', 'Quantity:',  String(itReq.quantity || 1)],
+      ];
+
+      doc.font('Helvetica').fontSize(9);
+      const rowHeights = infoRows.map(([, v1, l2, v2]) => {
+        const h1 = doc.heightOfString(String(v1 || ''), { width: C1VW });
+        const h2 = l2 ? doc.heightOfString(String(v2 || ''), { width: C2VW }) : 0;
+        return Math.max(22, Math.max(h1, h2) + 10);
+      });
+      const gridH = rowHeights.reduce((s, h) => s + h, 0);
+
+      doc.rect(LX, y, PW, gridH).stroke('#CCCCCC');
+      doc.moveTo(305, y).lineTo(305, y + gridH).stroke('#CCCCCC');
+
+      let gridY = y;
+      infoRows.forEach(([l1, v1, l2, v2], row) => {
+        const rh = rowHeights[row];
+        if (row > 0) doc.moveTo(LX, gridY).lineTo(RX, gridY).stroke('#EEEEEE');
+        if (row % 2 === 1) {
+          doc.rect(LX + 1, gridY + 1, 253, rh - 2).fill('#F5F3FF');
+          doc.rect(306, gridY + 1, PW - 256, rh - 2).fill('#F5F3FF');
+        }
+        const ty = gridY + 6;
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+           .text(l1, C1L + 5, ty, { width: C1LW, lineBreak: false });
+        doc.font('Helvetica').fontSize(9).fillColor('#111111')
+           .text(String(v1 || ''), C1V, ty, { width: C1VW });
+        if (l2) {
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+             .text(l2, C2L + 5, ty, { width: C2LW, lineBreak: false });
+          doc.font('Helvetica').fontSize(9).fillColor('#111111')
+             .text(String(v2 || ''), C2V, ty, { width: C2VW });
+        }
+        gridY += rh;
+      });
+      y += gridH + 10;
+
+      // ── EQUIPMENT DESCRIPTION ────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+         .text('Equipment Requested:', LX, y, { width: 130, lineBreak: false });
+      y += 14;
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(itReq.equipment_description || 'N/A', LX, y, { width: PW });
+      y += doc.heightOfString(itReq.equipment_description || 'N/A', { width: PW }) + 12;
+
+      // ── JUSTIFICATION ────────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+         .text('Justification:', LX, y, { width: 130, lineBreak: false });
+      y += 14;
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(itReq.justification || 'N/A', LX, y, { width: PW });
+      y += doc.heightOfString(itReq.justification || 'N/A', { width: PW }) + 18;
+
+      // ── REQUESTED BY ─────────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333333')
+         .text('REQUESTED BY:', LX, y, { width: 90, lineBreak: false });
+      doc.font('Helvetica').fontSize(9).fillColor('#111111')
+         .text(itReq.initiator_name || 'N/A', LX + 94, y, { lineBreak: false });
+      y += 14;
+      doc.font('Helvetica').fontSize(9).fillColor('#777777')
+         .text(`Date: ${formatDate(itReq.created_at)}`, LX, y, { lineBreak: false });
+      y += 22;
+      doc.moveTo(LX, y).lineTo(LX + 200, y).lineWidth(0.8).strokeColor('#555555').stroke();
+      y += 4;
+      doc.font('Helvetica').fontSize(8).fillColor('#777777')
+         .text('Signature & Date', LX, y, { width: 200, align: 'center', lineBreak: false });
+      y += 20;
+
+      // ── APPROVAL WORKFLOW ────────────────────────────────────────
+      y += 6;
+      doc.rect(LX, y, PW, 20).fill(ACC_LT);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+         .text('APPROVAL WORKFLOW', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+      y += 24;
+
+      const hrApproval = (approvals || []).find(a => a.role === 'hr') || null;
+      const mdApproval = (approvals || []).find(a => a.role === 'md') || null;
+      const itApproval = (approvals || []).find(a => a.role === 'it') || null;
+
+      const BOX_W  = 242;
+      const BOX2_X = LX + BOX_W + 11;
+
+      function drawBox(ap, title, bx, by, fullWidth) {
+        const w = fullWidth ? PW : BOX_W;
+        const action = ap ? (ap.action || 'pending').toLowerCase() : 'pending';
+        let bg, bdr, tc;
+        if (action === 'approved')      { bg = '#D1FAE5'; bdr = '#059669'; tc = '#065F46'; }
+        else if (action === 'rejected') { bg = '#FEE2E2'; bdr = '#DC2626'; tc = '#991B1B'; }
+        else                            { bg = ACC_LT;    bdr = ACC_MID;   tc = ACC;       }
+        const hasComment = ap && (ap.comment || ap.comments);
+        const bh = hasComment ? 78 : 62;
+        doc.roundedRect(bx, by, w, bh, 4).fillAndStroke(bg, bdr);
+        const lbl = action === 'approved' ? 'APPROVED' : action === 'rejected' ? 'REJECTED' : 'PENDING';
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(tc)
+           .text(`${title}: ${lbl}`, bx + 8, by + 8, { width: w - 16, lineBreak: false });
+        if (ap && action !== 'pending') {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('By:', bx + 8, by + 24, { width: 18, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.user_name || ap.name || 'N/A', bx + 28, by + 24, { width: w - 36, lineBreak: false });
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Date:', bx + 8, by + 38, { width: 26, lineBreak: false });
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text(formatDateTime(ap.timestamp || ap.date), bx + 36, by + 38, { width: w - 44, lineBreak: false });
+          if (hasComment) {
+            doc.font('Helvetica-Bold').fontSize(8).fillColor(tc).text('Note:', bx + 8, by + 54, { width: 26, lineBreak: false });
+            doc.font('Helvetica').fontSize(8).fillColor(tc).text(ap.comment || ap.comments, bx + 36, by + 54, { width: w - 44, lineBreak: false });
+          }
+        } else {
+          doc.font('Helvetica').fontSize(8).fillColor(tc).text('Awaiting approval', bx + 8, by + 24, { width: w - 16, lineBreak: false });
+          doc.moveTo(bx + 8, by + bh - 14).lineTo(bx + 140, by + bh - 14).lineWidth(0.5).strokeColor(bdr).stroke();
+          doc.font('Helvetica').fontSize(7).fillColor(tc).text('Signature & Date', bx + 8, by + bh - 10, { width: 140, lineBreak: false });
+        }
+        return bh;
+      }
+
+      const hrH = drawBox(hrApproval, 'HR VERIFICATION', LX, y, false);
+      const mdH = drawBox(mdApproval, 'MD APPROVAL', BOX2_X, y, false);
+      y += Math.max(hrH, mdH) + 10;
+      drawBox(itApproval, 'IT ISSUANCE', LX, y, true);
+
+      // ── FOOTER ───────────────────────────────────────────────────
+      doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();
+      doc.font('Helvetica').fontSize(7).fillColor('#888888')
+         .text(
+           `Generated ${new Date().toLocaleString('en-GB')} · KSB Internal Approvals System · ${itReq.id || ''}`,
+           LX, 780, { width: PW, align: 'center', lineBreak: false }
+         );
+
+      doc.end();
+      stream.on('finish', () => resolve(outputPath));
+      stream.on('error', reject);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   generateExpenseClaimPDF,
   generateEFTPDF,
-  generatePettyCashPDF
+  generatePettyCashPDF,
+  generateITEquipmentRequestPDF
 };
