@@ -3043,7 +3043,6 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
           onPickerCancel: () => setBypassPickerOpen(false),
           untilLabel: bypassEnabled ? fmtBypassTime(bypassUntil) : '' },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
-        { id: 'it-equipment-requests', label: 'IT Equipment Request', isLink: true, href: 'it-equipment-request.html', show: true },
         { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) }
       ]
     },
@@ -4463,6 +4462,9 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           }),
           actionCard('petty', 'Petty Cash Requisition', 'Request petty cash for minor expenses', {
             attrs: { href: 'petty-cash-requisition.html' }
+          }),
+          actionCard('itEquipment', 'IT Equipment Request', 'Request laptops, printers, or other IT equipment', {
+            attrs: { href: 'it-equipment-request.html' }
           })
         ];
         if (hasRole(user.role, 'initiator', 'procurement')) {
@@ -7121,6 +7123,8 @@ function AdminPanel({ data, loadData }) {
             React.createElement('option', { value: "finance" }, "Finance"),
             React.createElement('option', { value: "finance_manager" }, "Finance Manager"),
             React.createElement('option', { value: "md" }, "MD"),
+            React.createElement('option', { value: "hr" }, "HR"),
+            React.createElement('option', { value: "it" }, "IT"),
             React.createElement('option', { value: "admin" }, "Admin")
           ),
           React.createElement('select', {
