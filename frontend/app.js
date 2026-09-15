@@ -398,6 +398,12 @@ const api = {
     return res.blob();
   },
 
+  deleteITEquipmentRequest: async (requestId) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requestId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete IT equipment request');
+    return res.json();
+  },
+
   // ============================================
   // FX RATES API - COMPLETE
   // ============================================
@@ -3045,7 +3051,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
-        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
+        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') },
+        // Admin-only management view — lists every IT Equipment Request
+        // (any status) with the ability to delete entries.
+        { id: 'it-equipment-requests', label: 'Manage IT Equipment Requests', show: hasRole(getUserRoles(user), 'admin') }
       ]
     },
     // Financial Forms Group — mirrors the Dashboard's Quick Actions.
@@ -4729,14 +4738,14 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   }, getStatusText(req.status))
                 )
               ),
-              // Quick Approval Buttons for HOD, Finance, MD and HR (NOT Procurement).
-              // IT issuance is excluded here — it needs make/model/serial
-              // captured on the detail screen, not a one-click quick action.
+              // Quick Approval Buttons for HOD, Finance, and MD (NOT Procurement).
+              // HR and IT issuance are excluded here — HR must see the
+              // equipment details before approving (Review & Approve, below),
+              // and IT issuance needs make/model/serial on the detail screen.
               showBreakdown === 'pending' && (
                 (getUserRoles(user).includes('hod') && req.status === 'pending_hod') ||
                 (getUserRoles(user).some(r => ['finance', 'finance_manager'].includes(r)) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
-                (getUserRoles(user).includes('md') && (req.status === 'pending_md' || req.status === 'finance_approved')) ||
-                (getUserRoles(user).includes('hr') && req.status === 'pending_hr')
+                (getUserRoles(user).includes('md') && (req.status === 'pending_md' || req.status === 'finance_approved'))
               ) &&
               React.createElement('div', { className: "flex items-center gap-2 mt-3" },
                 React.createElement('button', {
@@ -4782,6 +4791,39 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     color: '#FFFFFF'
                   }
                 }, 'Review to Issue'),
+                React.createElement('button', {
+                  onClick: async (e) => {
+                    e.stopPropagation();
+                    await handleQuickAction(req, 'reject');
+                  },
+                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded border transition-all",
+                  style: {
+                    backgroundColor: 'transparent',
+                    borderColor: 'var(--color-danger)',
+                    color: 'var(--color-danger)'
+                  }
+                }, 'Reject')
+              ),
+              // HR verification step — route to the full review screen so the
+              // equipment details are seen before approving, rather than a
+              // blind one-click approve.
+              showBreakdown === 'pending' &&
+              getUserRoles(user).includes('hr') &&
+              req.formType === 'it_equipment' &&
+              req.status === 'pending_hr' &&
+              React.createElement('div', { className: "flex items-center gap-2 mt-3" },
+                React.createElement('button', {
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    setSelectedReq(req);
+                    setView('approve-it-equipment');
+                  },
+                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: {
+                    backgroundColor: 'var(--color-success)',
+                    color: '#FFFFFF'
+                  }
+                }, 'Review & Approve'),
                 React.createElement('button', {
                   onClick: async (e) => {
                     e.stopPropagation();
@@ -8970,6 +9012,40 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     }
   };
 
+  // A dual-role user (e.g. one person holds both HR and IT) is acting AS
+  // whichever of their roles the item's current stage expects.
+  const resolveITEquipmentActingRole = (item) => {
+    const roles = getUserRoles(user);
+    if (item.status === 'pending_hr' && roles.includes('hr')) return 'hr';
+    if (item.status === 'pending_md' && roles.includes('md')) return 'md';
+    if (item.status === 'pending_issuance' && roles.includes('it')) return 'it';
+    return user.role;
+  };
+
+  // Reject doesn't need the full review screen — HR/MD/IT can decline with
+  // just a reason, without pulling up the equipment details form.
+  const handleQuickReject = async (item) => {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+    try {
+      const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${item._id || item.id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approved: false,
+          approver_role: resolveITEquipmentActingRole(item),
+          approver_name: user.full_name || user.name,
+          comments: reason
+        })
+      });
+      if (!response.ok) throw new Error('Rejection failed');
+      showToast('IT equipment request rejected');
+      fetchAllPendingItems();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   // Filter items based on selected filter
   const filteredItems = filter === 'all' ? allItems : allItems.filter(item => item.formType === filter);
 
@@ -9110,10 +9186,16 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
                       new Date(item.created_at).toLocaleDateString()
                     ),
                     React.createElement('td', { className: "px-4 py-4 whitespace-nowrap" },
-                      React.createElement('button', {
-                        onClick: () => handleReview(item),
-                        className: "px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                      }, 'Review')
+                      React.createElement('div', { className: "flex gap-2" },
+                        React.createElement('button', {
+                          onClick: () => handleReview(item),
+                          className: "px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        }, item.formType === 'it_equipment' ? 'Review & Approve' : 'Review'),
+                        item.formType === 'it_equipment' && React.createElement('button', {
+                          onClick: () => handleQuickReject(item),
+                          className: "px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                        }, 'Reject')
+                      )
                     )
                   )
                 )
@@ -10025,7 +10107,20 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
           React.createElement('button', {
             onClick: () => setView('approval-console'),
             className: "btn-secondary btn-lg"
-          }, 'Cancel')
+          }, 'Cancel'),
+          getUserRoles(user).includes('admin') && React.createElement('button', {
+            onClick: async () => {
+              if (!confirm(`Permanently delete IT equipment request ${requisition.id}? This cannot be undone.`)) return;
+              try {
+                await api.deleteITEquipmentRequest(requisition._id || requisition.id);
+                showToast('IT equipment request deleted');
+                setView('approval-console');
+              } catch (error) {
+                showToast('Error: ' + error.message);
+              }
+            },
+            className: "btn-danger btn-lg"
+          }, 'Delete')
         )
       )
     )
@@ -10778,6 +10873,17 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handleDelete = async (req) => {
+    if (!confirm(`Permanently delete IT equipment request ${req.id}? This cannot be undone.`)) return;
+    try {
+      await api.deleteITEquipmentRequest(req._id || req.id);
+      showToast('IT equipment request deleted');
+      fetchITEquipmentRequests();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   const handleDownloadPDF = async (req) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/pdf`);
@@ -10867,7 +10973,13 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
                           onClick: () => handleView(req),
                           className: "btn-primary btn-sm"
                         }, 'Issue'),
-                        canApprove(req) && req.status.includes('pending') && req.status !== 'pending_issuance' && React.createElement('button', {
+                        // HR must see the equipment details before approving —
+                        // route to the review screen instead of a blind approve.
+                        canApprove(req) && req.status === 'pending_hr' && React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "btn-primary btn-sm"
+                        }, 'Review & Approve'),
+                        canApprove(req) && req.status.includes('pending') && req.status !== 'pending_issuance' && req.status !== 'pending_hr' && React.createElement('button', {
                           onClick: () => handleApprove(req),
                           className: "btn-primary btn-sm"
                         }, 'Approve'),
@@ -10882,7 +10994,11 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
                         isApproved(req.status) && React.createElement('button', {
                           onClick: () => handleDownloadPDF(req),
                           className: "btn-primary btn-sm"
-                        }, 'Download')
+                        }, 'Download'),
+                        getUserRoles(user).includes('admin') && React.createElement('button', {
+                          onClick: () => handleDelete(req),
+                          className: "btn-danger btn-sm"
+                        }, 'Delete')
                       )
                     )
                   )

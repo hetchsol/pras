@@ -2971,6 +2971,29 @@ app.put('/api/forms/it-equipment-requests/:id/approve', authenticate, async (req
   }
 });
 
+// Delete IT Equipment Request (admin only)
+app.delete('/api/forms/it-equipment-requests/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const reqId = req.params.id;
+    let result = null;
+    try {
+      result = await db.ITEquipmentRequest.findByIdAndDelete(reqId);
+    } catch (e) {
+      // Not a valid ObjectId, try finding by custom id
+    }
+    if (!result) {
+      result = await db.ITEquipmentRequest.findOneAndDelete({ id: reqId });
+    }
+    if (!result) {
+      return res.status(404).json({ error: 'IT equipment request not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting IT equipment request:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Simple requisitions list
 app.get('/api/requisitions/simple', authenticate, async (req, res) => {
   try {
