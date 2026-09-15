@@ -3,7 +3,8 @@
  *
  * What it covers:
  *   - Requisition, GoodsReceiptNote, IssueSlip, PickingSlip, ExpenseClaim,
- *     PettyCashRequisition, EFTRequisition — matched on their own `created_at`.
+ *     PettyCashRequisition, EFTRequisition, ITEquipmentRequest — matched on
+ *     their own `created_at`.
  *   - Approval / FormApproval — matched by parent document id, not by their
  *     own `timestamp`, so approval history stays attached to whichever
  *     documents get archived (and only those).
@@ -39,6 +40,7 @@ const {
   ExpenseClaim,
   PettyCashRequisition,
   EFTRequisition,
+  ITEquipmentRequest,
   Approval,
   FormApproval
 } = require('../models');
@@ -65,7 +67,8 @@ const CORE_COLLECTIONS = [
   { name: 'PickingSlips', model: PickingSlip, formType: 'picking_slip' },
   { name: 'ExpenseClaims', model: ExpenseClaim, formType: 'expense_claim' },
   { name: 'PettyCashRequisitions', model: PettyCashRequisition, formType: 'petty_cash' },
-  { name: 'EFTRequisitions', model: EFTRequisition, formType: 'eft' }
+  { name: 'EFTRequisitions', model: EFTRequisition, formType: 'eft' },
+  { name: 'ITEquipmentRequests', model: ITEquipmentRequest, formType: 'it_equipment' }
 ];
 
 function serialize(docs) {
