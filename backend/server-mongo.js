@@ -198,6 +198,35 @@ const authorizeAny = (...roles) => {
   };
 };
 
+// Registers a hard-delete route for a form-type collection, admin/IT only.
+// Tries Mongo _id first, then falls back to the collection's own custom id
+// field (the "KSB-..." reference number) — the lookup pattern already used
+// by every approve/PDF route for these forms.
+function registerFormDeleteRoute(path, getModel, label) {
+  app.delete(path, authenticate, authorizeAny('admin', 'it'), async (req, res) => {
+    try {
+      const Model = getModel();
+      const docId = req.params.id;
+      let result = null;
+      try {
+        result = await Model.findByIdAndDelete(docId);
+      } catch (e) {
+        // Not a valid ObjectId, try finding by custom id
+      }
+      if (!result) {
+        result = await Model.findOneAndDelete({ id: docId });
+      }
+      if (!result) {
+        return res.status(404).json({ error: `${label} not found` });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`Error deleting ${label.toLowerCase()}:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+}
+
 // Map MongoDB requisition fields to frontend-expected field names
 const mapRequisitionFields = (req) => {
   if (!req) return req;
@@ -976,7 +1005,7 @@ app.post('/api/admin/vendors', authenticate, authorize('admin'), async (req, res
   }
 });
 
-app.delete('/api/admin/requisitions/:id', authenticate, authorize('admin'), async (req, res) => {
+app.delete('/api/admin/requisitions/:id', authenticate, authorizeAny('admin', 'it'), async (req, res) => {
   try {
     const result = await db.Requisition.findOneAndDelete({ id: req.params.id });
     if (!result) {
@@ -2984,27 +3013,17 @@ app.put('/api/forms/it-equipment-requests/:id/approve', authenticate, async (req
 });
 
 // Delete IT Equipment Request (admin or IT — hard delete, not a status flag)
-app.delete('/api/forms/it-equipment-requests/:id', authenticate, authorizeAny('admin', 'it'), async (req, res) => {
-  try {
-    const reqId = req.params.id;
-    let result = null;
-    try {
-      result = await db.ITEquipmentRequest.findByIdAndDelete(reqId);
-    } catch (e) {
-      // Not a valid ObjectId, try finding by custom id
-    }
-    if (!result) {
-      result = await db.ITEquipmentRequest.findOneAndDelete({ id: reqId });
-    }
-    if (!result) {
-      return res.status(404).json({ error: 'IT equipment request not found' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting IT equipment request:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+registerFormDeleteRoute('/api/forms/it-equipment-requests/:id', () => db.ITEquipmentRequest, 'IT equipment request');
+
+// Hard-delete for every other form type, admin/IT only — same lookup
+// pattern as IT Equipment Requests above. Purchase Requisitions already
+// have their own admin delete route (widened to admin/IT further up).
+registerFormDeleteRoute('/api/forms/expense-claims/:id', () => db.ExpenseClaim, 'Expense claim');
+registerFormDeleteRoute('/api/forms/eft-requisitions/:id', () => db.EFTRequisition, 'EFT requisition');
+registerFormDeleteRoute('/api/forms/petty-cash-requisitions/:id', () => db.PettyCashRequisition, 'Petty cash requisition');
+registerFormDeleteRoute('/api/stores/issue-slips/:id', () => IssueSlip, 'Issue slip');
+registerFormDeleteRoute('/api/stores/picking-slips/:id', () => PickingSlip, 'Picking slip');
+registerFormDeleteRoute('/api/stores/grns/:id', () => GoodsReceiptNote, 'GRN');
 
 // Redirect an IT Equipment Request to any stage (admin or IT). Lets a stuck
 // or mis-routed ticket be sent back to HR/MD/IT (or resolved directly)

@@ -554,6 +554,44 @@ const api = {
     return res.json();
   },
 
+  // Hard-delete for every other form type, admin/IT only (same backend
+  // pattern as deleteITEquipmentRequest above).
+  deleteRequisition: async (requisitionId) => {
+    const res = await fetchWithAuth(`${API_URL}/admin/requisitions/${requisitionId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete requisition');
+    return res.json();
+  },
+  deleteExpenseClaim: async (claimId) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claimId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete expense claim');
+    return res.json();
+  },
+  deleteEFTRequisition: async (eftId) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${eftId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete EFT requisition');
+    return res.json();
+  },
+  deletePettyCashRequisition: async (pcId) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${pcId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete petty cash requisition');
+    return res.json();
+  },
+  deleteIssueSlip: async (slipId) => {
+    const res = await fetchWithAuth(`${API_URL}/stores/issue-slips/${slipId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete issue slip');
+    return res.json();
+  },
+  deletePickingSlip: async (slipId) => {
+    const res = await fetchWithAuth(`${API_URL}/stores/picking-slips/${slipId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete picking slip');
+    return res.json();
+  },
+  deleteGRN: async (grnId) => {
+    const res = await fetchWithAuth(`${API_URL}/stores/grns/${grnId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete GRN');
+    return res.json();
+  },
+
   rerouteITEquipmentRequest: async (requestId, new_status, comment) => {
     const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requestId}/admin-override`, {
       method: 'PUT',
@@ -3512,6 +3550,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
                   React.createElement('button', {
                     key: child.id,
                     onClick: () => nav(child.id),
+                    title: child.id === 'approval-console' ? 'Review and act on requests pending your approval' : undefined,
                     className: "block w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     style: view === child.id ? {
                       backgroundColor: 'var(--sidebar-active-bg)',
@@ -4046,6 +4085,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         break;
       case 'admin':
         // Admin sees ALL requisitions
+        filtered = data.requisitions;
+        break;
+      case 'it':
+        // IT sees ALL requisitions (needed for the delete capability below)
         filtered = data.requisitions;
         break;
       default:
@@ -4593,9 +4636,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
     // Summary metric cards — icon chip + big number, elevated on hover for
     // the clickable ones.
     (function renderSummaryCards() {
-      const metricCard = (label, value, onClick, icon, iconBg, iconColor) => React.createElement('div', {
+      const metricCard = (label, value, onClick, icon, iconBg, iconColor, hint) => React.createElement('div', {
         key: label,
         onClick: onClick,
+        title: onClick && hint ? hint : undefined,
         className: "rounded-lg p-6 transition-all flex items-start gap-4" + (onClick ? " cursor-pointer hover:shadow-md" : ""),
         style: {
           backgroundColor: 'var(--bg-primary)',
@@ -4614,15 +4658,19 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           React.createElement('p', {
             className: "text-3xl font-semibold",
             style: { color: 'var(--text-primary)' }
-          }, value)
+          }, value),
+          onClick && hint && React.createElement('p', {
+            className: "text-xs mt-1",
+            style: { color: 'var(--color-primary)' }
+          }, hint)
         )
       );
       const totalValue = `ZMW ${requisitions.reduce((sum, r) => sum + (r.amount || r.total_amount || 0), 0).toLocaleString()}`;
       const cards = [
         metricCard('Total Requisitions', allRequisitions.length, () => setShowBreakdown('total'), 'fileText', 'var(--color-primary-light)', 'var(--color-primary)'),
         user.role === 'procurement'
-          ? metricCard('PRs In Pipeline', pendingApprovals, () => setView('incoming-prs'), 'clock', 'var(--color-warning-bg)', 'var(--color-warning-dark)')
-          : metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending'), 'clock', 'var(--color-warning-bg)', 'var(--color-warning-dark)'),
+          ? metricCard('PRs In Pipeline', pendingApprovals, () => setView('incoming-prs'), 'clock', 'var(--color-warning-bg)', 'var(--color-warning-dark)', 'Click to review')
+          : metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending'), 'clock', 'var(--color-warning-bg)', 'var(--color-warning-dark)', pendingApprovals > 0 ? 'Click to review and approve' : undefined),
         metricCard('Approved', approvedRequisitions.length, () => setShowBreakdown('approved'), 'checkCircle', 'var(--color-success-bg)', 'var(--color-success-dark)'),
         metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'), 'xCircle', 'var(--color-danger-bg)', 'var(--color-danger-dark)')
       ];
@@ -5156,7 +5204,21 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                             className: "row-icon-btn",
                             title: "Download Approved Requisition PDF"
                           }, React.createElement(Icon, { name: 'download', size: 14 }))
-                        )
+                        ),
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: async () => {
+                            if (!confirm(`Permanently delete requisition ${req.req_number || req.id}? This cannot be undone.`)) return;
+                            try {
+                              await api.deleteRequisition(req.id);
+                              showToast('Requisition deleted');
+                              loadData();
+                            } catch (error) {
+                              showToast('Error: ' + error.message);
+                            }
+                          },
+                          className: "row-icon-btn",
+                          title: "Delete Requisition"
+                        }, React.createElement(Icon, { name: 'xCircle', size: 14 }))
                       )
                     )
                   )
@@ -9320,6 +9382,10 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
           }, 'Refresh')
         )
       ),
+      React.createElement('p', {
+        className: "text-sm mb-6",
+        style: { color: 'var(--text-tertiary)' }
+      }, "Everything below is awaiting your approval — use each row's action button (e.g. Review & Approve) to act on it."),
 
       // Summary Cards
       React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" },
@@ -9429,7 +9495,21 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
                         item.formType === 'it_equipment' && getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
                           onClick: () => handleReview(item),
                           className: "px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors"
-                        }, 'Reroute')
+                        }, 'Reroute'),
+                        item.formType === 'it_equipment' && getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: async () => {
+                            if (!confirm(`Permanently delete IT equipment request ${item.id}? This cannot be undone.`)) return;
+                            try {
+                              await api.deleteITEquipmentRequest(item._id || item.id);
+                              showToast('IT equipment request deleted');
+                              fetchAllPendingItems();
+                              if (loadData) loadData();
+                            } catch (error) {
+                              showToast('Error: ' + error.message);
+                            }
+                          },
+                          className: "px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                        }, 'Delete')
                       )
                     )
                   )
@@ -10941,6 +11021,17 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handleDelete = async (req) => {
+    if (!confirm(`Permanently delete petty cash requisition ${req.id}? This cannot be undone.`)) return;
+    try {
+      await api.deletePettyCashRequisition(req._id || req.id);
+      showToast('Petty cash requisition deleted');
+      fetchPettyCashRequisitions();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   const handlePreviewPDF = async (req) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/pdf`);
@@ -11045,7 +11136,11 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                           React.createElement('button', {
                             onClick: () => setExpandedReceipts(expandedReceipts === req.id ? null : req.id),
                             className: "btn-secondary btn-sm"
-                          }, expandedReceipts === req.id ? 'Hide Receipts' : `Receipts${req.receipts && req.receipts.length ? ` (${req.receipts.length})` : ''}`)
+                          }, expandedReceipts === req.id ? 'Hide Receipts' : `Receipts${req.receipts && req.receipts.length ? ` (${req.receipts.length})` : ''}`),
+                          getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                            onClick: () => handleDelete(req),
+                            className: "btn-danger btn-sm"
+                          }, 'Delete')
                         )
                       )
                     ),
@@ -11388,6 +11483,17 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handleDelete = async (claim) => {
+    if (!confirm(`Permanently delete expense claim ${claim.id}? This cannot be undone.`)) return;
+    try {
+      await api.deleteExpenseClaim(claim._id || claim.id);
+      showToast('Expense claim deleted');
+      fetchExpenseClaims();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   const handlePreviewPDF = async (claim) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/pdf`);
@@ -11487,7 +11593,11 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                           className: "btn-danger btn-sm"
                         }, 'Reject'),
                         isApproved(claim.status) && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(claim) }),
-                        isApproved(claim.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(claim) })
+                        isApproved(claim.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(claim) }),
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleDelete(claim),
+                          className: "btn-danger btn-sm"
+                        }, 'Delete')
                       )
                     )
                   )
@@ -11574,6 +11684,17 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
       });
       if (!response.ok) throw new Error('Rejection failed');
       showToast('EFT requisition rejected');
+      fetchEFTRequisitions();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (req) => {
+    if (!confirm(`Permanently delete EFT requisition ${req.id}? This cannot be undone.`)) return;
+    try {
+      await api.deleteEFTRequisition(req._id || req.id);
+      showToast('EFT requisition deleted');
       fetchEFTRequisitions();
     } catch (error) {
       showToast('Error: ' + error.message);
@@ -11679,7 +11800,11 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                           className: "btn-danger btn-sm"
                         }, 'Reject'),
                         isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(req) }),
-                        isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(req) })
+                        isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(req) }),
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleDelete(req),
+                          className: "btn-danger btn-sm"
+                        }, 'Delete')
                       )
                     )
                   )
@@ -15314,6 +15439,17 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handleDelete = async (slip) => {
+    if (!confirm(`Permanently delete issue slip ${slip.id}? This cannot be undone.`)) return;
+    try {
+      await api.deleteIssueSlip(slip._id || slip.id);
+      showToast('Issue slip deleted');
+      fetchIssueSlips();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusColors = {
       'pending_hod':     'badge-pending',
@@ -15382,7 +15518,11 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
                           className: "btn-primary btn-sm"
                         }, 'Approve'),
                         slip.status === 'approved' && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(slip) }),
-                        slip.status === 'approved' && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(slip) })
+                        slip.status === 'approved' && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(slip) }),
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleDelete(slip),
+                          className: "btn-danger btn-sm"
+                        }, 'Delete')
                       )
                     )
                   )
@@ -15737,6 +15877,17 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
     }
   };
 
+  const handleDelete = async (slip) => {
+    if (!confirm(`Permanently delete picking slip ${slip.id}? This cannot be undone.`)) return;
+    try {
+      await api.deletePickingSlip(slip._id || slip.id);
+      showToast('Picking slip deleted');
+      fetchPickingSlips();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   if (loading) return React.createElement(SkeletonList);
 
   return React.createElement('div', { className: "space-y-6" },
@@ -15784,7 +15935,11 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
                         React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(slip) }),
-                        React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(slip) })
+                        React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(slip) }),
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleDelete(slip),
+                          className: "btn-danger btn-sm"
+                        }, 'Delete')
                       )
                     )
                   )
@@ -15852,6 +16007,17 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (grn) => {
+    if (!confirm(`Permanently delete GRN ${grn.id}? This cannot be undone.`)) return;
+    try {
+      await api.deleteGRN(grn._id || grn.id);
+      showToast('GRN deleted');
+      fetchGRNs();
     } catch (error) {
       showToast('Error: ' + error.message);
     }
@@ -15945,7 +16111,11 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                           onClick: () => handleView(grn),
                           className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 text-center"
                         }, 'Approve'),
-                        React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(grn) })
+                        React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(grn) }),
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleDelete(grn),
+                          className: "px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 text-center"
+                        }, 'Delete')
                       )
                     )
                   );
