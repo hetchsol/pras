@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   full_name: { type: String, required: true },
   email: { type: String, required: true },
   role: { type: String, required: true },
+  secondary_role: { type: String },
   department: { type: String, required: true },
   employee_number: { type: String },
   is_hod: { type: Number, default: 0 },

@@ -41,18 +41,31 @@ const clearAuthToken = () => {
   localStorage.removeItem('userData');
 };
 
-// Helper for case-insensitive role comparison
-const hasRole = (userRole, ...allowedRoles) => {
-  if (!userRole) return false;
-  const normalizedUserRole = userRole.toLowerCase();
-  return allowedRoles.some(role => role.toLowerCase() === normalizedUserRole);
+// A user can hold a primary role plus one optional secondary role (e.g. a
+// small team where one person is both HR and IT). Returns every role the
+// user holds so the check helpers below can treat them as an OR match.
+const getUserRoles = (user) => {
+  if (!user) return [];
+  return [user.role, user.secondary_role].filter(Boolean);
 };
 
-// Helper to check if user has any of the specified roles
+// Helper for case-insensitive role comparison. `userRole` may be a single
+// role string (legacy call sites) or an array of roles (dual-role users) —
+// matches if ANY of the subject's roles is in the allowed list.
+const hasRole = (userRole, ...allowedRoles) => {
+  const subjectRoles = (Array.isArray(userRole) ? userRole : [userRole]).filter(Boolean);
+  if (subjectRoles.length === 0) return false;
+  const normalized = subjectRoles.map(r => r.toLowerCase());
+  return allowedRoles.some(role => normalized.includes(role.toLowerCase()));
+};
+
+// Helper to check if user has any of the specified roles. `userRole` may be
+// a single role string or an array of roles (dual-role users).
 const hasAnyRole = (userRole, roles) => {
-  if (!userRole || !Array.isArray(roles)) return false;
-  const normalizedUserRole = userRole.toLowerCase();
-  return roles.some(role => role.toLowerCase() === normalizedUserRole);
+  const subjectRoles = (Array.isArray(userRole) ? userRole : [userRole]).filter(Boolean);
+  if (subjectRoles.length === 0 || !Array.isArray(roles)) return false;
+  const normalized = subjectRoles.map(r => r.toLowerCase());
+  return roles.some(role => normalized.includes(role.toLowerCase()));
 };
 
 // Helper to get headers with auth
@@ -3013,13 +3026,13 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
       isGroup: true,
       children: [
         { id: 'requisitions', label: 'My Submissions', show: true },
-        { id: 'create', label: 'Create Requisition', show: hasRole(user.role, 'initiator', 'procurement', 'admin') },
-        { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(user.role, 'procurement', 'admin') },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) },
-        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
-        { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(user.role, ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
+        { id: 'create', label: 'Create Requisition', show: hasRole(getUserRoles(user), 'initiator', 'procurement', 'admin') },
+        { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(getUserRoles(user), 'procurement', 'admin') },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(getUserRoles(user), ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) },
+        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
+        { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
-        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(user.role, 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
+        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
       ]
     },
     // Financial Forms Group — mirrors the Dashboard's Quick Actions.
@@ -3043,14 +3056,14 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
           onPickerCancel: () => setBypassPickerOpen(false),
           untilLabel: bypassEnabled ? fmtBypassTime(bypassUntil) : '' },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(user.role, ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) }
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(getUserRoles(user), ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) }
       ]
     },
     // Stores Management Group - Issue Slips & Picking Slips
     {
       id: 'stores-group',
       label: 'Stores',
-      show: user.can_access_stores || hasAnyRole(user.role, ['admin', 'hod', 'finance', 'finance_manager']),
+      show: user.can_access_stores || hasAnyRole(getUserRoles(user), ['admin', 'hod', 'finance', 'finance_manager']),
       isGroup: true,
       children: [
         { id: 'grns', label: 'Goods Receipt Notes', show: true },
@@ -3067,27 +3080,27 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
     {
       id: 'fin-planning-group',
       label: 'Financial Planning',
-      show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') || user.is_hod,
+      show: hasRole(getUserRoles(user), 'finance', 'finance_manager', 'md', 'admin') || user.is_hod,
       isGroup: true,
       children: [
         { id: 'dept-budget', label: 'Department Budget', show: !!user.is_hod },
-        { id: 'budget', label: 'Budgets', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') },
-        { id: 'fx-rates', label: 'FX Rates', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'procurement', 'admin') }
+        { id: 'budget', label: 'Budgets', show: hasRole(getUserRoles(user), 'finance', 'finance_manager', 'md', 'admin') },
+        { id: 'fx-rates', label: 'FX Rates', show: hasRole(getUserRoles(user), 'finance', 'finance_manager', 'md', 'procurement', 'admin') }
       ]
     },
     // Reports & Analytics Group
     {
       id: 'insights-group',
       label: 'Reports & Analytics',
-      show: !hasRole(user.role, 'initiator'), // Hide entire group from initiators
+      show: !hasRole(getUserRoles(user), 'initiator'), // Hide entire group from initiators
       isGroup: true,
       children: [
         { id: 'reports', label: 'Reports', show: true },
-        { id: 'analytics', label: 'Analytics', show: hasRole(user.role, 'finance', 'finance_manager', 'md', 'admin') }
+        { id: 'analytics', label: 'Analytics', show: hasRole(getUserRoles(user), 'finance', 'finance_manager', 'md', 'admin') }
       ]
     },
     // Admin Panel
-    { id: 'admin', label: 'Administration', show: hasRole(user.role, 'admin') }
+    { id: 'admin', label: 'Administration', show: hasRole(getUserRoles(user), 'admin') }
   ];
 
   const mobileDrawerStyle = isMobile ? {
@@ -3770,7 +3783,7 @@ function Header({ user, logout, setView, view }) {
             onClick: () => setView('dashboard'),
             className: `px-4 py-2 rounded-lg font-medium transition-colors ${view === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`
           }, "Dashboard"),
-          hasRole(user.role, 'initiator') && React.createElement('button', {
+          hasRole(getUserRoles(user), 'initiator') && React.createElement('button', {
             onClick: () => setView('create'),
             className: `px-4 py-2 rounded-lg font-medium transition-colors ${view === 'create' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`
           }, "Create Requisition"),
@@ -3891,28 +3904,27 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   // Combine ALL requisitions (Purchase + EFT + Petty Cash + Expense Claims)
   const allRequisitions = [...requisitions, ...allForms];
 
-  // Role-aware pending filter: only count items pending for THIS user's role
+  // Role-aware pending filter: only count items pending for THIS user's
+  // role(s). A user can hold a primary + secondary role (e.g. HR and IT),
+  // so this ORs across every role they hold rather than a single branch.
   const isPendingForRole = (status) => {
-    const role = user.role;
-    if (role === 'hod') {
-      return status === 'pending_hod';
-    } else if (role === 'finance' || role === 'finance_manager') {
-      return status === 'pending_finance' || status === 'hod_approved';
-    } else if (role === 'md') {
-      return status === 'pending_md' || status === 'finance_approved';
-    } else if (role === 'procurement') {
-      return status === 'pending_finance' || status === 'pending_md';
-    } else if (role === 'hr') {
-      return status === 'pending_hr';
-    } else if (role === 'it') {
-      return status === 'pending_issuance';
-    } else if (role === 'admin') {
+    const roles = getUserRoles(user);
+    if (roles.includes('admin')) {
       // Admin sees all pending items
       return status.includes('pending') || status === 'hod_approved' || status === 'finance_approved';
-    } else {
-      // Initiators see all their pending items
+    }
+    const checks = [];
+    if (roles.includes('hod')) checks.push(status === 'pending_hod');
+    if (roles.includes('finance') || roles.includes('finance_manager')) checks.push(status === 'pending_finance' || status === 'hod_approved');
+    if (roles.includes('md')) checks.push(status === 'pending_md' || status === 'finance_approved');
+    if (roles.includes('procurement')) checks.push(status === 'pending_finance' || status === 'pending_md');
+    if (roles.includes('hr')) checks.push(status === 'pending_hr');
+    if (roles.includes('it')) checks.push(status === 'pending_issuance');
+    if (checks.length === 0) {
+      // No recognized approver role (e.g. plain initiator) — show all their own pending items
       return status.includes('pending');
     }
+    return checks.some(Boolean);
   };
 
   // Pending: items pending for THIS user's role
@@ -4035,10 +4047,20 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           endpoint = `${API_URL}/forms/it-equipment-requests/${form._id || form.id}/approve`;
         }
 
-        // Forms use unified approve format
+        // Forms use unified approve format. For a dual-role user (e.g. one
+        // person holds both HR and IT), the role they're acting AS is
+        // whichever of their roles the item's current stage expects, not
+        // just their primary role.
+        let approverRole = user.role;
+        if (form.formType === 'it_equipment') {
+          const roles = getUserRoles(user);
+          if (form.status === 'pending_hr' && roles.includes('hr')) approverRole = 'hr';
+          else if (form.status === 'pending_md' && roles.includes('md')) approverRole = 'md';
+          else if (form.status === 'pending_issuance' && roles.includes('it')) approverRole = 'it';
+        }
         requestBody = {
           approved: action === 'approve',
-          approver_role: user.role,
+          approver_role: approverRole,
           approver_name: user.full_name || user.name,
           comments: comment
         };
@@ -4412,7 +4434,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         metricCard('Approved', approvedRequisitions.length, () => setShowBreakdown('approved')),
         metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'))
       ];
-      if (!hasRole(user.role, 'initiator')) cards.push(metricCard('Total Value', totalValue, null));
+      if (!hasRole(getUserRoles(user), 'initiator')) cards.push(metricCard('Total Value', totalValue, null));
       return React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-5" }, cards);
     })(),
 
@@ -4467,7 +4489,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             attrs: { href: 'it-equipment-request.html' }
           })
         ];
-        if (hasRole(user.role, 'initiator', 'procurement')) {
+        if (hasRole(getUserRoles(user), 'initiator', 'procurement')) {
           cards.push(actionCard('pr', 'Purchase Requisition', 'Create new purchase requisition for goods or services', {
             attrs: { onClick: (e) => { e.preventDefault(); setView('create'); } }
           }));
@@ -4696,11 +4718,11 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               ),
               // Quick Approval Buttons for HOD, Finance, and MD (NOT Procurement)
               showBreakdown === 'pending' && (
-                (user.role === 'hod' && req.status === 'pending_hod') ||
-                (['finance', 'finance_manager'].includes(user.role) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
-                (user.role === 'md' && (req.status === 'pending_md' || req.status === 'finance_approved')) ||
-                (user.role === 'hr' && req.status === 'pending_hr') ||
-                (user.role === 'it' && req.status === 'pending_issuance')
+                (getUserRoles(user).includes('hod') && req.status === 'pending_hod') ||
+                (getUserRoles(user).some(r => ['finance', 'finance_manager'].includes(r)) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
+                (getUserRoles(user).includes('md') && (req.status === 'pending_md' || req.status === 'finance_approved')) ||
+                (getUserRoles(user).includes('hr') && req.status === 'pending_hr') ||
+                (getUserRoles(user).includes('it') && req.status === 'pending_issuance')
               ) &&
               React.createElement('div', { className: "flex items-center gap-2 mt-3" },
                 React.createElement('button', {
@@ -4713,7 +4735,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     backgroundColor: 'var(--color-success)',
                     color: '#FFFFFF'
                   }
-                }, (user.role === 'it' && req.status === 'pending_issuance') ? 'Issue' : 'Approve'),
+                }, (getUserRoles(user).includes('it') && req.status === 'pending_issuance') ? 'Issue' : 'Approve'),
                 React.createElement('button', {
                   onClick: async (e) => {
                     e.stopPropagation();
@@ -4784,7 +4806,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
     React.createElement('div', { className: "bg-white rounded-lg shadow-sm border" },
       React.createElement('div', { className: "px-6 py-4 border-b" },
         React.createElement('h2', { className: "text-xl font-semibold text-gray-800" },
-          hasRole(user.role, 'initiator') ? 'My Requisitions' : 'Requisitions for Review'
+          hasRole(getUserRoles(user), 'initiator') ? 'My Requisitions' : 'Requisitions for Review'
         )
       ),
       React.createElement('div', { className: "overflow-x-auto" },
@@ -4822,7 +4844,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                         React.createElement('button', {
                           onClick: () => handleViewReq(req),
                           className: "text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        }, hasRole(user.role, 'initiator') ? 'View' : 'Review'),
+                        }, hasRole(getUserRoles(user), 'initiator') ? 'View' : 'Review'),
                         // Show PDF preview + download buttons for approved/completed requisitions only - Available to ALL roles
                         (req.status === 'approved' || req.status === 'completed') &&
                         React.createElement(React.Fragment, null,
@@ -5479,7 +5501,7 @@ function CreateRequisition({ user, setView, loadData }) {
                   ),
                   React.createElement('div', { className: "col-span-2" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
-                      hasRole(user.role, 'initiator') ? "Unit Price (ZMW)" : "Unit Price (ZMW) *"
+                      hasRole(getUserRoles(user), 'initiator') ? "Unit Price (ZMW)" : "Unit Price (ZMW) *"
                     ),
                     React.createElement('input', {
                       type: "number",
@@ -5487,10 +5509,10 @@ function CreateRequisition({ user, setView, loadData }) {
                       step: "0.01",
                       value: item.unit_price,
                       onChange: (e) => updateLineItem(index, 'unit_price', e.target.value),
-                      disabled: hasRole(user.role, 'initiator'),
-                      className: `w-full px-3 py-2 border rounded-lg ${hasRole(user.role, 'initiator') ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-500'}`,
-                      placeholder: hasRole(user.role, 'initiator') ? 'To be filled by Procurement' : '0.00',
-                      title: hasRole(user.role, 'initiator') ? 'Unit price will be filled by Procurement' : 'Enter unit price'
+                      disabled: hasRole(getUserRoles(user), 'initiator'),
+                      className: `w-full px-3 py-2 border rounded-lg ${hasRole(getUserRoles(user), 'initiator') ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-500'}`,
+                      placeholder: hasRole(getUserRoles(user), 'initiator') ? 'To be filled by Procurement' : '0.00',
+                      title: hasRole(getUserRoles(user), 'initiator') ? 'Unit price will be filled by Procurement' : 'Enter unit price'
                     })
                   )
                 ),
@@ -5506,7 +5528,7 @@ function CreateRequisition({ user, setView, loadData }) {
           // Totals Summary (only show for procurement or if there are prices)
           (user.role === 'procurement' || calculateTotals().subtotal > 0) && React.createElement('div', { className: "mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" },
             React.createElement('h4', { className: "text-sm font-semibold text-blue-900 mb-3" }, "Requisition Totals"),
-            hasRole(user.role, 'initiator') && calculateTotals().subtotal === 0 ?
+            hasRole(getUserRoles(user), 'initiator') && calculateTotals().subtotal === 0 ?
               React.createElement('p', { className: "text-sm text-gray-600 italic" },
                 "Unit prices will be filled by Procurement"
               ) :
@@ -5530,13 +5552,13 @@ function CreateRequisition({ user, setView, loadData }) {
                   React.createElement('span', { className: "font-semibold text-gray-600 italic" }, "TOT - No Tax Applied")
                 ),
                 // Show note for initiators that tax will be determined by procurement
-                hasRole(user.role, 'initiator') && calculateTotals().subtotal > 0 && React.createElement('div', { className: "flex justify-between text-sm" },
+                hasRole(getUserRoles(user), 'initiator') && calculateTotals().subtotal > 0 && React.createElement('div', { className: "flex justify-between text-sm" },
                   React.createElement('span', { className: "text-gray-700 italic" }, "Tax:"),
                   React.createElement('span', { className: "font-semibold text-gray-600 italic text-xs" }, "Will be determined by Procurement")
                 ),
                 React.createElement('div', { className: "flex justify-between text-base pt-2 border-t border-blue-300" },
                   React.createElement('span', { className: "font-bold text-blue-900" },
-                    hasRole(user.role, 'initiator') ? "Subtotal:" : "Grand Total:"
+                    hasRole(getUserRoles(user), 'initiator') ? "Subtotal:" : "Grand Total:"
                   ),
                   React.createElement('span', { className: "font-bold text-blue-900 text-lg" },
                     `ZMW ${calculateTotals().grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -5950,8 +5972,8 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
   };
 
   const canApprove = req.status === `pending_${user.role}` || (user.role === 'admin');
-  const isDraftEditable = hasRole(user.role, 'initiator') && req.status === 'draft' && req.created_by === user.id;
-  const isInitiatorViewingApproved = hasRole(user.role, 'initiator') && (req.status === 'approved' || req.status === 'completed');
+  const isDraftEditable = hasRole(getUserRoles(user), 'initiator') && req.status === 'draft' && req.created_by === user.id;
+  const isInitiatorViewingApproved = hasRole(getUserRoles(user), 'initiator') && (req.status === 'approved' || req.status === 'completed');
 
   const handleUpdateDraft = async () => {
     if (!description || !quantity) {
@@ -6430,6 +6452,7 @@ function AdminPanel({ data, loadData }) {
     full_name: '',
     email: '',
     role: 'initiator',
+    secondary_role: '',
     department: 'IT',
     is_hod: 0,
     can_access_stores: false,
@@ -6620,6 +6643,7 @@ function AdminPanel({ data, loadData }) {
         full_name: '',
         email: '',
         role: 'initiator',
+        secondary_role: '',
         department: 'IT',
         is_hod: 0,
         can_access_stores: false,
@@ -7074,6 +7098,7 @@ function AdminPanel({ data, loadData }) {
               full_name: '',
               email: '',
               role: 'initiator',
+              secondary_role: '',
               department: 'IT',
               is_hod: 0
             });
@@ -7126,6 +7151,26 @@ function AdminPanel({ data, loadData }) {
             React.createElement('option', { value: "hr" }, "HR"),
             React.createElement('option', { value: "it" }, "IT"),
             React.createElement('option', { value: "admin" }, "Admin")
+          ),
+          React.createElement('select', {
+            value: userForm.secondary_role || '',
+            onChange: (e) => setUserForm({ ...userForm, secondary_role: e.target.value }),
+            className: "form-input",
+            title: "Optional — for someone who wears two hats, e.g. HR and IT"
+          },
+            React.createElement('option', { value: "" }, "— No Secondary Role —"),
+            [
+              { value: "initiator", label: "Initiator" },
+              { value: "hod", label: "HOD" },
+              { value: "procurement", label: "Procurement" },
+              { value: "finance", label: "Finance" },
+              { value: "finance_manager", label: "Finance Manager" },
+              { value: "md", label: "MD" },
+              { value: "hr", label: "HR" },
+              { value: "it", label: "IT" },
+              { value: "admin", label: "Admin" }
+            ].filter(r => r.value !== userForm.role)
+             .map(r => React.createElement('option', { key: r.value, value: r.value }, r.label))
           ),
           React.createElement('select', {
             value: userForm.department,
@@ -7198,7 +7243,8 @@ function AdminPanel({ data, loadData }) {
               React.createElement('td', { className: "py-2 px-4" }, user.full_name),
               React.createElement('td', { className: "tbl-td tbl-td-sm" }, user.email),
               React.createElement('td', { className: "py-2 px-4" },
-                React.createElement('span', { className: "badge badge-info" }, user.role)
+                React.createElement('span', { className: "badge badge-info" }, user.role),
+                user.secondary_role && React.createElement('span', { className: "badge badge-info", style: { marginLeft: '4px' } }, user.secondary_role)
               ),
               React.createElement('td', { className: "py-2 px-4" }, user.department),
               React.createElement('td', { className: "py-2 px-4" },
@@ -7212,6 +7258,7 @@ function AdminPanel({ data, loadData }) {
                         full_name: user.full_name,
                         email: user.email,
                         role: user.role,
+                        secondary_role: user.secondary_role || '',
                         department: user.department,
                         is_hod: user.is_hod,
                         can_access_stores: user.can_access_stores || false,
@@ -8814,26 +8861,12 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       // to purchase requisitions — petty cash, EFT, and expense claims must
       // follow the strict HOD → Finance → MD chain.
       const isPR = item => item.formType === 'purchase_requisition';
+      // A user can hold a primary + secondary role (e.g. one person is
+      // both HR and IT) — union the matches for every role they hold
+      // rather than picking a single exclusive branch.
+      const roles = getUserRoles(user);
       let filtered = [];
-      if (user.role === 'hod') {
-        filtered = combinedItems.filter(item => item.status === 'pending_hod');
-      } else if (user.role === 'finance' || user.role === 'finance_manager') {
-        filtered = combinedItems.filter(item =>
-          item.status === 'pending_finance' ||
-          item.status === 'hod_approved' ||
-          (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
-        );
-      } else if (user.role === 'md') {
-        filtered = combinedItems.filter(item =>
-          item.status === 'pending_md' ||
-          item.status === 'finance_approved' ||
-          (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
-        );
-      } else if (user.role === 'hr') {
-        filtered = combinedItems.filter(item => item.status === 'pending_hr');
-      } else if (user.role === 'it') {
-        filtered = combinedItems.filter(item => item.status === 'pending_issuance');
-      } else if (user.role === 'admin') {
+      if (roles.includes('admin')) {
         filtered = combinedItems.filter(item =>
           item.status === 'pending_hod' ||
           item.status === 'pending_finance' ||
@@ -8843,6 +8876,22 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
           item.status === 'pending_hr' ||
           item.status === 'pending_issuance'
         );
+      } else {
+        const matchers = [];
+        if (roles.includes('hod')) matchers.push(item => item.status === 'pending_hod');
+        if (roles.includes('finance') || roles.includes('finance_manager')) matchers.push(item =>
+          item.status === 'pending_finance' ||
+          item.status === 'hod_approved' ||
+          (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
+        );
+        if (roles.includes('md')) matchers.push(item =>
+          item.status === 'pending_md' ||
+          item.status === 'finance_approved' ||
+          (isPR(item) && item.status === 'pending_hod' && !item.has_adjudication)
+        );
+        if (roles.includes('hr')) matchers.push(item => item.status === 'pending_hr');
+        if (roles.includes('it')) matchers.push(item => item.status === 'pending_issuance');
+        filtered = combinedItems.filter(item => matchers.some(m => m(item)));
       }
 
       // Sort by created date, newest first
@@ -8926,7 +8975,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" },
-          `Approval Console - ${user.role.toUpperCase()}`
+          `Approval Console - ${getUserRoles(user).map(r => r.toUpperCase()).join(' / ')}`
         ),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('select', {
@@ -9743,6 +9792,15 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
     );
   }
 
+  // A dual-role user (e.g. one person holds both HR and IT) is acting AS
+  // whichever of their roles the item's current stage expects.
+  const userRoles = getUserRoles(user);
+  const actingRole =
+    requisition.status === 'pending_hr' && userRoles.includes('hr') ? 'hr' :
+    requisition.status === 'pending_md' && userRoles.includes('md') ? 'md' :
+    requisition.status === 'pending_issuance' && userRoles.includes('it') ? 'it' :
+    user.role;
+
   const submitDecision = async (approved) => {
     if (!approved && !comment.trim()) {
       showToast('Please provide a reason for rejection');
@@ -9755,7 +9813,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approved,
-          approver_role: user.role,
+          approver_role: actingRole,
           approver_name: user.full_name || user.name,
           comments: comment || (approved ? 'Approved' : '')
         })
@@ -9766,7 +9824,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
         throw new Error(error.error || (approved ? 'Approval failed' : 'Rejection failed'));
       }
 
-      showToast(`IT equipment request ${approved ? (user.role === 'it' ? 'issued' : 'approved') : 'rejected'} successfully!`);
+      showToast(`IT equipment request ${approved ? (actingRole === 'it' ? 'issued' : 'approved') : 'rejected'} successfully!`);
       setView('approval-console');
     } catch (error) {
       console.error('Error updating IT equipment request:', error);
@@ -9777,10 +9835,10 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
   };
 
   // The approve action reads differently at each stage of the chain.
-  const approveLabel = user.role === 'it' ? 'Issue Equipment' : 'Approve';
-  const roleHint = user.role === 'hr'
+  const approveLabel = actingRole === 'it' ? 'Issue Equipment' : 'Approve';
+  const roleHint = actingRole === 'hr'
     ? 'Verify that the requester is entitled to receive this equipment before approving.'
-    : user.role === 'it'
+    : actingRole === 'it'
       ? 'Confirm the equipment has been issued to the requester.'
       : '';
 
@@ -10537,11 +10595,22 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
     setView('approve-it-equipment');
   };
 
+  // A dual-role user (e.g. one person holds both HR and IT) is acting AS
+  // whichever of their roles the item's current stage expects.
+  const resolveActingRole = (req) => {
+    const roles = getUserRoles(user);
+    if (req.status === 'pending_hr' && roles.includes('hr')) return 'hr';
+    if (req.status === 'pending_md' && roles.includes('md')) return 'md';
+    if (req.status === 'pending_issuance' && roles.includes('it')) return 'it';
+    return user.role;
+  };
+
   const canApprove = (req) => {
-    if (user.role === 'hr' && req.status === 'pending_hr') return true;
-    if (user.role === 'md' && req.status === 'pending_md') return true;
-    if (user.role === 'it' && req.status === 'pending_issuance') return true;
-    if (user.role === 'admin') return true;
+    const roles = getUserRoles(user);
+    if (roles.includes('hr') && req.status === 'pending_hr') return true;
+    if (roles.includes('md') && req.status === 'pending_md') return true;
+    if (roles.includes('it') && req.status === 'pending_issuance') return true;
+    if (roles.includes('admin')) return true;
     return false;
   };
 
@@ -10554,7 +10623,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approved: true,
-          approver_role: user.role,
+          approver_role: resolveActingRole(req),
           approver_name: user.full_name || user.name,
           comments: 'Approved'
         })
@@ -10576,7 +10645,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approved: false,
-          approver_role: user.role,
+          approver_role: resolveActingRole(req),
           approver_name: user.full_name || user.name,
           comments: reason
         })
@@ -11984,7 +12053,7 @@ function PurchaseOrders({ user }) {
       pos.length === 0
         ? React.createElement(EmptyState, {
             heading: 'No purchase orders yet',
-            sub: hasRole(user.role, 'initiator')
+            sub: hasRole(getUserRoles(user), 'initiator')
               ? "Your purchase orders will appear here once your requisitions are fully approved."
               : "Purchase orders are generated automatically when an MD-approved requisition is processed."
           })
@@ -14703,9 +14772,9 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
   };
 
   const canApprove = (slip) => {
-    if (hasRole(user.role, 'hod') && slip.status === 'pending_hod') return true;
-    if (hasRole(user.role, 'finance', 'finance_manager') && slip.status === 'pending_finance') return true;
-    if (hasRole(user.role, 'admin')) return true;
+    if (hasRole(getUserRoles(user), 'hod') && slip.status === 'pending_hod') return true;
+    if (hasRole(getUserRoles(user), 'finance', 'finance_manager') && slip.status === 'pending_finance') return true;
+    if (hasRole(getUserRoles(user), 'admin')) return true;
     return false;
   };
 
@@ -14871,9 +14940,9 @@ function ApproveIssueSlip({ slip, user, setView }) {
   };
 
   const canTakeAction = () => {
-    if (hasRole(user.role, 'hod') && slipData.status === 'pending_hod') return true;
-    if (hasRole(user.role, 'finance', 'finance_manager') && slipData.status === 'pending_finance') return true;
-    if (hasRole(user.role, 'admin')) return true;
+    if (hasRole(getUserRoles(user), 'hod') && slipData.status === 'pending_hod') return true;
+    if (hasRole(getUserRoles(user), 'finance', 'finance_manager') && slipData.status === 'pending_finance') return true;
+    if (hasRole(getUserRoles(user), 'admin')) return true;
     return false;
   };
 

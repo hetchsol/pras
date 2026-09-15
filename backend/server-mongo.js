@@ -520,7 +520,7 @@ app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id || user.id, username: user.username, role: user.role, full_name: user.full_name, department: user.department },
+      { id: user._id || user.id, username: user.username, role: user.role, secondary_role: user.secondary_role || null, full_name: user.full_name, department: user.department },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -538,6 +538,7 @@ app.post('/api/auth/login', loginLimiter, validateLogin, async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        secondary_role: user.secondary_role || null,
         department: user.department,
         employee_number: user.employee_number || '',
         is_hod: user.is_hod,
@@ -577,6 +578,7 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
       full_name: user.full_name,
       email: user.email,
       role: user.role,
+      secondary_role: user.secondary_role || null,
       department: user.department,
       is_hod: user.is_hod,
       employee_number: user.employee_number,
@@ -888,7 +890,7 @@ app.get('/api/admin/users', authenticate, authorize('admin'), async (req, res) =
 
 app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { username, password, full_name, email, role, department, is_hod, can_access_stores, can_override_budget } = req.body;
+    const { username, password, full_name, email, role, secondary_role, department, is_hod, can_access_stores, can_override_budget } = req.body;
     const hashedPassword = await bcrypt.hash(password || 'password123', 10);
 
     const user = await db.User.create({
@@ -897,6 +899,7 @@ app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) 
       full_name,
       email,
       role,
+      secondary_role: secondary_role || null,
       department,
       is_hod: is_hod || 0,
       can_access_stores: !!can_access_stores,
@@ -912,9 +915,10 @@ app.post('/api/admin/users', authenticate, authorize('admin'), async (req, res) 
 
 app.put('/api/admin/users/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { username, full_name, email, role, department, is_hod, assigned_hod, can_access_stores, can_override_budget, password } = req.body;
+    const { username, full_name, email, role, secondary_role, department, is_hod, assigned_hod, can_access_stores, can_override_budget, password } = req.body;
     const updateData = { full_name, email, role, department, is_hod };
 
+    if (secondary_role !== undefined) updateData.secondary_role = secondary_role || null;
     if (username) updateData.username = username;
     if (assigned_hod !== undefined) updateData.assigned_hod = assigned_hod || null;
     if (can_access_stores !== undefined) updateData.can_access_stores = can_access_stores ? true : false;
@@ -2312,8 +2316,10 @@ app.get('/api/forms/petty-cash-requisitions', authenticate, async (req, res) => 
 // usual HOD chain, so HR/MD/IT need global visibility while everyone else
 // only sees their own requests.
 const getITEquipmentFilter = async (user) => {
-  const role = (user.role || '').toLowerCase();
-  if (['hr', 'md', 'admin', 'it'].includes(role)) {
+  // A user can hold a primary + secondary role (e.g. one person is both
+  // HR and IT), so check both when deciding global vs own-requests-only visibility.
+  const roles = [user.role, user.secondary_role].filter(Boolean).map(r => r.toLowerCase());
+  if (roles.some(r => ['hr', 'md', 'admin', 'it'].includes(r))) {
     return {};
   }
   const fullUser = await db.getUserById(user.id);
