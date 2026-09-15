@@ -4729,13 +4729,14 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   }, getStatusText(req.status))
                 )
               ),
-              // Quick Approval Buttons for HOD, Finance, and MD (NOT Procurement)
+              // Quick Approval Buttons for HOD, Finance, MD and HR (NOT Procurement).
+              // IT issuance is excluded here — it needs make/model/serial
+              // captured on the detail screen, not a one-click quick action.
               showBreakdown === 'pending' && (
                 (getUserRoles(user).includes('hod') && req.status === 'pending_hod') ||
                 (getUserRoles(user).some(r => ['finance', 'finance_manager'].includes(r)) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
                 (getUserRoles(user).includes('md') && (req.status === 'pending_md' || req.status === 'finance_approved')) ||
-                (getUserRoles(user).includes('hr') && req.status === 'pending_hr') ||
-                (getUserRoles(user).includes('it') && req.status === 'pending_issuance')
+                (getUserRoles(user).includes('hr') && req.status === 'pending_hr')
               ) &&
               React.createElement('div', { className: "flex items-center gap-2 mt-3" },
                 React.createElement('button', {
@@ -4748,7 +4749,39 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     backgroundColor: 'var(--color-success)',
                     color: '#FFFFFF'
                   }
-                }, (getUserRoles(user).includes('it') && req.status === 'pending_issuance') ? 'Issue' : 'Approve'),
+                }, 'Approve'),
+                React.createElement('button', {
+                  onClick: async (e) => {
+                    e.stopPropagation();
+                    await handleQuickAction(req, 'reject');
+                  },
+                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded border transition-all",
+                  style: {
+                    backgroundColor: 'transparent',
+                    borderColor: 'var(--color-danger)',
+                    color: 'var(--color-danger)'
+                  }
+                }, 'Reject')
+              ),
+              // IT issuance step — route to the full review screen to capture
+              // make/model/serial number rather than issuing blind.
+              showBreakdown === 'pending' &&
+              getUserRoles(user).includes('it') &&
+              req.formType === 'it_equipment' &&
+              req.status === 'pending_issuance' &&
+              React.createElement('div', { className: "flex items-center gap-2 mt-3" },
+                React.createElement('button', {
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    setSelectedReq(req);
+                    setView('approve-it-equipment');
+                  },
+                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: {
+                    backgroundColor: 'var(--color-success)',
+                    color: '#FFFFFF'
+                  }
+                }, 'Review to Issue'),
                 React.createElement('button', {
                   onClick: async (e) => {
                     e.stopPropagation();
@@ -9794,6 +9827,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
 function ApproveITEquipmentRequest({ requisition, user, setView }) {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [issuance, setIssuance] = useState({ make: '', model: '', serial_number: '', asset_tag: '' });
 
   if (!requisition) {
     return React.createElement('div', { className: "text-center py-12" },
@@ -9814,9 +9848,15 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
     requisition.status === 'pending_issuance' && userRoles.includes('it') ? 'it' :
     user.role;
 
+  const isIssuanceStep = actingRole === 'it' && requisition.status === 'pending_issuance';
+
   const submitDecision = async (approved) => {
     if (!approved && !comment.trim()) {
       showToast('Please provide a reason for rejection');
+      return;
+    }
+    if (approved && isIssuanceStep && (!issuance.make.trim() || !issuance.model.trim() || !issuance.serial_number.trim())) {
+      showToast('Make, model, and serial number are required to issue this equipment');
       return;
     }
     setLoading(true);
@@ -9828,7 +9868,8 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
           approved,
           approver_role: actingRole,
           approver_name: user.full_name || user.name,
-          comments: comment || (approved ? 'Approved' : '')
+          comments: comment || (approved ? 'Approved' : ''),
+          ...(approved && isIssuanceStep ? issuance : {})
         })
       });
 
@@ -9902,6 +9943,59 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
 
         roleHint && React.createElement('div', { className: "p-4 bg-purple-50 rounded-lg" },
           React.createElement('p', { className: "text-sm text-purple-900" }, roleHint)
+        ),
+
+        // IT fills these in when actually handing the equipment over
+        isIssuanceStep && React.createElement('div', { className: "card-section" },
+          React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Issued Equipment Details"),
+          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+            React.createElement('div', null,
+              React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Make *"),
+              React.createElement('input', {
+                type: 'text', className: "form-input w-full", placeholder: "e.g. Dell",
+                value: issuance.make,
+                onChange: (e) => setIssuance({ ...issuance, make: e.target.value })
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Model *"),
+              React.createElement('input', {
+                type: 'text', className: "form-input w-full", placeholder: "e.g. Latitude 5440",
+                value: issuance.model,
+                onChange: (e) => setIssuance({ ...issuance, model: e.target.value })
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Serial Number *"),
+              React.createElement('input', {
+                type: 'text', className: "form-input w-full", placeholder: "Device serial number",
+                value: issuance.serial_number,
+                onChange: (e) => setIssuance({ ...issuance, serial_number: e.target.value })
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Asset Tag"),
+              React.createElement('input', {
+                type: 'text', className: "form-input w-full", placeholder: "Internal asset tag (optional)",
+                value: issuance.asset_tag,
+                onChange: (e) => setIssuance({ ...issuance, asset_tag: e.target.value })
+              })
+            )
+          )
+        ),
+
+        // Already issued — show what was recorded
+        requisition.status === 'issued' && requisition.issuance_details && React.createElement('div', { className: "card-section bg-green-50" },
+          React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Issued Equipment Details"),
+          React.createElement('div', { className: "grid grid-cols-2 gap-4 text-sm" },
+            React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Make: "), requisition.issuance_details.make || 'N/A'),
+            React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Model: "), requisition.issuance_details.model || 'N/A'),
+            React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Serial Number: "), requisition.issuance_details.serial_number || 'N/A'),
+            React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Asset Tag: "), requisition.issuance_details.asset_tag || 'N/A')
+          ),
+          requisition.issuance_details.issued_by && React.createElement('p', { className: "text-xs text-gray-500 mt-2" },
+            `Issued by ${requisition.issuance_details.issued_by}${requisition.issuance_details.issued_at ? ' on ' + new Date(requisition.issuance_details.issued_at).toLocaleDateString() : ''}`
+          )
         ),
 
         // Comments Section
@@ -10767,10 +10861,16 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
                           onClick: () => handleView(req),
                           className: "btn-primary btn-sm"
                         }, 'View'),
-                        canApprove(req) && req.status.includes('pending') && React.createElement('button', {
+                        // Issuance needs make/model/serial captured on the detail screen, so
+                        // route there instead of quick-approving with no equipment data.
+                        canApprove(req) && req.status === 'pending_issuance' && React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "btn-primary btn-sm"
+                        }, 'Issue'),
+                        canApprove(req) && req.status.includes('pending') && req.status !== 'pending_issuance' && React.createElement('button', {
                           onClick: () => handleApprove(req),
                           className: "btn-primary btn-sm"
-                        }, req.status === 'pending_issuance' ? 'Issue' : 'Approve'),
+                        }, 'Approve'),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleReject(req),
                           className: "btn-danger btn-sm"

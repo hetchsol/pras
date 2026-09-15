@@ -2908,7 +2908,7 @@ app.put('/api/forms/petty-cash-requisitions/:id/approve', authenticate, async (r
 // Workflow: User Request -> HR Verification -> MD Approval -> IT Issuance
 app.put('/api/forms/it-equipment-requests/:id/approve', authenticate, async (req, res) => {
   try {
-    const { approved, approver_role, approver_name, comments } = req.body;
+    const { approved, approver_role, approver_name, comments, make, model, serial_number, asset_tag } = req.body;
     const reqId = req.params.id;
 
     let itReq = null;
@@ -2950,6 +2950,17 @@ app.put('/api/forms/it-equipment-requests/:id/approve', authenticate, async (req
     if (!itReq.approvals) itReq.approvals = [];
     itReq.approvals.push(approvalRecord);
     itReq.updated_at = new Date();
+
+    if (newStatus === 'issued') {
+      itReq.issuance_details = {
+        make: make || '',
+        model: model || '',
+        serial_number: serial_number || '',
+        asset_tag: asset_tag || '',
+        issued_by: approver_name,
+        issued_at: new Date()
+      };
+    }
 
     await itReq.save();
 

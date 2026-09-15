@@ -46,6 +46,46 @@
             width: 36px;
             height: 36px;
         }
+
+        /* Searchable equipment combobox */
+        .combobox-wrapper { position: relative; }
+        .equipment-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-top: 4px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 20;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .equipment-option {
+            padding: 9px 11px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .equipment-option:hover,
+        .equipment-option.active {
+            background: var(--bg-surface, #f0f4f8);
+        }
+        .equipment-category {
+            padding: 6px 11px 2px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+        }
+        .equipment-empty {
+            padding: 9px 11px;
+            font-size: 13px;
+            font-style: italic;
+            color: var(--text-tertiary);
+        }
     </style>
 </head>
 <body>
@@ -87,9 +127,13 @@
                         <label for="department">Department <span class="required">*</span></label>
                         <input type="text" id="department" required readonly>
                     </div>
-                    <div class="form-group full-width">
-                        <label for="equipment_description">Equipment Description <span class="required">*</span></label>
-                        <textarea id="equipment_description" required placeholder="Describe the equipment being requested (e.g. Dell Latitude laptop, HP LaserJet printer)"></textarea>
+                    <div class="form-group full-width combobox-wrapper">
+                        <label for="equipment_description">Equipment Requested <span class="required">*</span></label>
+                        <input type="text" id="equipment_description" required autocomplete="off"
+                               placeholder="Start typing to search (e.g. laptop, monitor, printer)..."
+                               oninput="filterEquipmentOptions()" onfocus="filterEquipmentOptions()">
+                        <div id="equipmentDropdown" class="equipment-dropdown" style="display:none;"></div>
+                        <p class="help-text">Can't find what you need? Just type your own description instead.</p>
                     </div>
                     <div class="form-group">
                         <label for="quantity">Quantity <span class="required">*</span></label>
@@ -113,6 +157,89 @@
     <script src="config.js"></script>
     <script>
         const API_URL = window.API_URL || 'http://localhost:3001/api';
+
+        // Catalog of equipment IT can issue, grouped for readability in the
+        // dropdown. Not exhaustive by design — the field stays free text so
+        // anyone can type something that isn't listed.
+        const EQUIPMENT_CATALOG = [
+            { category: 'Computers', items: [
+                'Laptop - Dell Latitude', 'Laptop - Dell Precision', 'Laptop - HP EliteBook',
+                'Laptop - HP ProBook', 'Laptop - Lenovo ThinkPad', 'Laptop - MacBook Air',
+                'Laptop - MacBook Pro', 'Desktop - Dell OptiPlex', 'Desktop - HP EliteDesk',
+                'Desktop - HP ProDesk', 'Desktop - Lenovo ThinkCentre', 'Mini PC'
+            ]},
+            { category: 'Displays & Printing', items: [
+                'Monitor - 24"', 'Monitor - 27"', 'Monitor - Dual Monitor Stand',
+                'Printer - HP LaserJet', 'Printer - HP OfficeJet', 'Printer - Canon',
+                'Printer - Epson', 'Multifunction Printer/Scanner', 'Scanner',
+                'Toner Cartridge', 'Ink Cartridge'
+            ]},
+            { category: 'Peripherals & Accessories', items: [
+                'Wireless Mouse', 'Wired Mouse', 'Wireless Keyboard', 'Wired Keyboard',
+                'Laptop Docking Station', 'USB Hub', 'Webcam', 'Headset - Wired',
+                'Headset - Wireless/Bluetooth', 'External Hard Drive', 'External SSD',
+                'USB Flash Drive', 'Laptop Bag', 'Laptop Charger/Power Adapter',
+                'HDMI Cable', 'VGA Cable', 'Ethernet Cable', 'Surge Protector'
+            ]},
+            { category: 'Networking & Power', items: [
+                'Wireless Router', 'Network Switch', 'Wireless Access Point', 'Modem',
+                'UPS (Uninterruptible Power Supply)', 'Power Bank'
+            ]},
+            { category: 'Mobile & Communication', items: [
+                'Smartphone', 'Tablet', 'SIM Card', 'Desk Phone', 'Conference Speakerphone'
+            ]},
+            { category: 'Audio/Visual', items: [
+                'Projector', 'Video Conferencing Camera', 'Portable Speaker'
+            ]},
+            { category: 'Software & Licenses', items: [
+                'Microsoft Office License', 'Windows OS License', 'Antivirus License',
+                'Other Software License'
+            ]},
+            { category: 'Storage', items: [
+                'NAS Storage Device'
+            ]}
+        ];
+
+        let equipmentActiveIndex = -1;
+
+        function filterEquipmentOptions() {
+            const input = document.getElementById('equipment_description');
+            const dropdown = document.getElementById('equipmentDropdown');
+            const query = input.value.trim().toLowerCase();
+
+            let html = '';
+            let matchCount = 0;
+            EQUIPMENT_CATALOG.forEach(group => {
+                const matches = group.items.filter(item => !query || item.toLowerCase().includes(query));
+                if (matches.length === 0) return;
+                html += `<div class="equipment-category">${group.category}</div>`;
+                matches.forEach(item => {
+                    html += `<div class="equipment-option" onmousedown="selectEquipmentOption(event, '${item.replace(/'/g, "\\'")}')">${item}</div>`;
+                    matchCount++;
+                });
+            });
+
+            if (matchCount === 0) {
+                html = `<div class="equipment-empty">No matches — your typed description will be used as-is.</div>`;
+            }
+
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+            equipmentActiveIndex = -1;
+        }
+
+        function selectEquipmentOption(event, value) {
+            event.preventDefault();
+            document.getElementById('equipment_description').value = value;
+            document.getElementById('equipmentDropdown').style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            const wrapper = document.querySelector('.combobox-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('equipmentDropdown').style.display = 'none';
+            }
+        });
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', function() {

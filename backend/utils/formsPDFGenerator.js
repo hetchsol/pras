@@ -1027,7 +1027,44 @@ async function generateITEquipmentRequestPDF(itReq, approvals, outputPath) {
       const hrH = drawBox(hrApproval, 'HR VERIFICATION', LX, y, false);
       const mdH = drawBox(mdApproval, 'MD APPROVAL', BOX2_X, y, false);
       y += Math.max(hrH, mdH) + 10;
-      drawBox(itApproval, 'IT ISSUANCE', LX, y, true);
+      const itH = drawBox(itApproval, 'IT ISSUANCE', LX, y, true);
+      y += itH + 10;
+
+      // ── ISSUED EQUIPMENT DETAILS ─────────────────────────────────
+      const iss = itReq.issuance_details;
+      if (iss && (iss.make || iss.model || iss.serial_number || iss.asset_tag)) {
+        if (y > 700) { doc.addPage({ size: 'A4' }); y = 50; }
+        doc.rect(LX, y, PW, 20).fill(ACC_LT);
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ACC)
+           .text('ISSUED EQUIPMENT DETAILS', LX + 8, y + 5, { width: PW - 16, lineBreak: false });
+        y += 24;
+
+        const issRows = [
+          ['Make:', iss.make || 'N/A', 'Model:', iss.model || 'N/A'],
+          ['Serial Number:', iss.serial_number || 'N/A', 'Asset Tag:', iss.asset_tag || 'N/A']
+        ];
+        doc.font('Helvetica').fontSize(9);
+        const issRowH = 22;
+        doc.rect(LX, y, PW, issRowH * issRows.length).stroke('#CCCCCC');
+        doc.moveTo(305, y).lineTo(305, y + issRowH * issRows.length).stroke('#CCCCCC');
+        issRows.forEach(([l1, v1, l2, v2], row) => {
+          const ry = y + row * issRowH;
+          if (row > 0) doc.moveTo(LX, ry).lineTo(RX, ry).stroke('#EEEEEE');
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+             .text(l1, LX + 5, ry + 6, { width: 110, lineBreak: false });
+          doc.font('Helvetica').fontSize(9).fillColor('#111111')
+             .text(v1, LX + 118, ry + 6, { width: 138, lineBreak: false });
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444')
+             .text(l2, 312, ry + 6, { width: 110, lineBreak: false });
+          doc.font('Helvetica').fontSize(9).fillColor('#111111')
+             .text(v2, 425, ry + 6, { width: 115, lineBreak: false });
+        });
+        y += issRowH * issRows.length + 6;
+        if (iss.issued_by) {
+          doc.font('Helvetica').fontSize(8).fillColor('#777777')
+             .text(`Issued by ${iss.issued_by}${iss.issued_at ? ' on ' + formatDate(iss.issued_at) : ''}`, LX, y, { lineBreak: false });
+        }
+      }
 
       // ── FOOTER ───────────────────────────────────────────────────
       doc.moveTo(LX, 775).lineTo(RX, 775).lineWidth(0.5).strokeColor('#CCCCCC').stroke();

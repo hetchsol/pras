@@ -17,6 +17,15 @@ const itEquipmentRequestSchema = new mongoose.Schema({
     comments: String,
     date: { type: Date, default: Date.now }
   }],
+  // Filled in by IT at the issuance step, once the equipment is actually handed over.
+  issuance_details: {
+    make: String,
+    model: String,
+    serial_number: String,
+    asset_tag: String,
+    issued_by: String,
+    issued_at: Date
+  },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
