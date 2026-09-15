@@ -9396,6 +9396,36 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
                           onClick: () => handleQuickReject(item),
                           className: "px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
                         }, 'Reject'),
+                        item.formType === 'it_equipment' && React.createElement(RowIconBtn, {
+                          icon: 'eye', label: 'Preview PDF',
+                          onClick: async () => {
+                            try {
+                              const blob = await api.downloadITEquipmentRequestPDF(item._id || item.id);
+                              const file = new File([blob], `ITEquipmentRequest_${item.id}.pdf`, { type: 'application/pdf' });
+                              window.open(window.URL.createObjectURL(file), '_blank');
+                            } catch (error) {
+                              showToast('Error: ' + error.message);
+                            }
+                          }
+                        }),
+                        item.formType === 'it_equipment' && React.createElement(RowIconBtn, {
+                          icon: 'download', label: 'Download PDF',
+                          onClick: async () => {
+                            try {
+                              const blob = await api.downloadITEquipmentRequestPDF(item._id || item.id);
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `ITEquipmentRequest_${item.id}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              window.URL.revokeObjectURL(url);
+                            } catch (error) {
+                              showToast('Error: ' + error.message);
+                            }
+                          }
+                        }),
                         item.formType === 'it_equipment' && getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
                           onClick: () => handleReview(item),
                           className: "px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors"
