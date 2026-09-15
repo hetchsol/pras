@@ -199,6 +199,27 @@ function Icon({ name, size = 16, color = 'currentColor', strokeWidth = 1.8, styl
   }));
 }
 
+// Icon-only row action button — the standard "View/Preview/Download" row
+// action across list tables, in place of a run of text links/buttons.
+function RowIconBtn({ icon, label, onClick, size = 14 }) {
+  return React.createElement('button', {
+    onClick,
+    className: 'row-icon-btn',
+    title: label
+  }, React.createElement(Icon, { name: icon, size }));
+}
+
+// Icon chip + title, for the header of a list screen's card — matches the
+// stat-card/quick-action icon-chip treatment on the Dashboard.
+function PageHeaderTitle({ icon, iconBg, iconColor, title }) {
+  return React.createElement('div', { className: "flex items-center gap-3" },
+    React.createElement('div', { className: "icon-chip", style: { backgroundColor: iconBg, color: iconColor, width: 34, height: 34, borderRadius: 8 } },
+      React.createElement(Icon, { name: icon, size: 16 })
+    ),
+    React.createElement('h2', { className: "text-2xl font-bold", style: { color: 'var(--text-primary)' } }, title)
+  );
+}
+
 // Helper to get headers with auth
 const getHeaders = () => {
   const headers = { 'Content-Type': 'application/json' };
@@ -9275,9 +9296,10 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
     // Header
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" },
-          `Approval Console - ${getUserRoles(user).map(r => r.toUpperCase()).join(' / ')}`
-        ),
+        React.createElement(PageHeaderTitle, {
+          icon: 'clipboardCheck', iconBg: 'var(--color-primary-light)', iconColor: 'var(--color-primary)',
+          title: `Approval Console - ${getUserRoles(user).map(r => r.toUpperCase()).join(' / ')}`
+        }),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('select', {
             value: filter,
@@ -9885,10 +9907,7 @@ function PettyCashReceiptsPanel({ pcId, user }) {
             )
           ),
           React.createElement('div', { style: { display: 'flex', gap: '6px' } },
-            !expired && React.createElement('button', {
-              onClick: () => api.downloadPettyCashReceipt(pcId, r._id, r.filename),
-              className: 'btn-primary btn-sm'
-            }, 'Download'),
+            !expired && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => api.downloadPettyCashReceipt(pcId, r._id, r.filename) }),
             (['admin', 'finance', 'finance_manager'].includes(user.role) || r.uploaded_by === (user.full_name || user.username)) &&
               React.createElement('button', {
                 onClick: () => handleDelete(r._id),
@@ -10590,10 +10609,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-sm)' }
     },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', {
-          className: "text-2xl font-bold",
-          style: { color: 'var(--text-primary)' }
-        }, title),
+        React.createElement(PageHeaderTitle, { icon: 'inbox', iconBg: 'var(--color-primary-light)', iconColor: 'var(--color-primary)', title }),
         React.createElement('button', {
           onClick: fetchAll,
           className: "px-4 py-2 rounded-lg text-sm font-medium",
@@ -10674,23 +10690,8 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
                 ),
                 React.createElement('td', { className: "px-3 py-3" },
                   React.createElement('div', { className: "flex gap-2 flex-wrap" },
-                    React.createElement('button', {
-                      onClick: () => handleView(row),
-                      className: "text-xs px-2 py-1 rounded",
-                      style: {
-                        backgroundColor: 'var(--color-primary)',
-                        color: '#FFFFFF'
-                      }
-                    }, 'View'),
-                    React.createElement('button', {
-                      onClick: () => handlePreviewPDF(row),
-                      className: "text-xs px-2 py-1 rounded border",
-                      style: {
-                        backgroundColor: 'transparent',
-                        borderColor: 'var(--color-primary)',
-                        color: 'var(--color-primary)'
-                      }
-                    }, 'PDF'),
+                    React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(row) }),
+                    React.createElement(RowIconBtn, { icon: 'fileText', label: 'PDF', onClick: () => handlePreviewPDF(row) }),
                     canEditResubmit(row) && React.createElement('button', {
                       onClick: () => openEdit(row),
                       className: "text-xs px-2 py-1 rounded border",
@@ -10920,7 +10921,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Petty Cash Requisitions"),
+        React.createElement(PageHeaderTitle, { icon: 'coins', iconBg: 'var(--color-success-bg)', iconColor: 'var(--color-success-dark)', title: 'Petty Cash Requisitions' }),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'petty-cash-requisition.html',
@@ -10970,10 +10971,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                       ),
                       React.createElement('td', { className: "px-4 py-3" },
                         React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                          React.createElement('button', {
-                            onClick: () => handleView(req),
-                            className: "btn-primary btn-sm"
-                          }, 'View'),
+                          React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(req) }),
                           canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                             onClick: () => handleApprove(req),
                             className: "btn-primary btn-sm"
@@ -10982,14 +10980,8 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
                             onClick: () => handleReject(req),
                             className: "btn-danger btn-sm"
                           }, 'Reject'),
-                          isApproved(req.status) && React.createElement('button', {
-                            onClick: () => handlePreviewPDF(req),
-                            className: "btn-primary btn-sm"
-                          }, 'Preview'),
-                          isApproved(req.status) && React.createElement('button', {
-                            onClick: () => handleDownloadPDF(req),
-                            className: "btn-primary btn-sm"
-                          }, 'Download'),
+                          isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(req) }),
+                          isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(req) }),
                           React.createElement('button', {
                             onClick: () => setExpandedReceipts(expandedReceipts === req.id ? null : req.id),
                             className: "btn-secondary btn-sm"
@@ -11159,7 +11151,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "IT Equipment Requests"),
+        React.createElement(PageHeaderTitle, { icon: 'laptop', iconBg: '#EDE9FE', iconColor: '#6D28D9', title: 'IT Equipment Requests' }),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'it-equipment-request.html',
@@ -11211,10 +11203,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                        React.createElement('button', {
-                          onClick: () => handleView(req),
-                          className: "btn-primary btn-sm"
-                        }, 'View'),
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(req) }),
                         // Issuance needs make/model/serial captured on the detail screen, so
                         // route there instead of quick-approving with no equipment data.
                         canApprove(req) && req.status === 'pending_issuance' && React.createElement('button', {
@@ -11235,14 +11224,8 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
                           onClick: () => handleReject(req),
                           className: "btn-danger btn-sm"
                         }, 'Reject'),
-                        isApproved(req.status) && React.createElement('button', {
-                          onClick: () => handlePreviewPDF(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Preview'),
-                        isApproved(req.status) && React.createElement('button', {
-                          onClick: () => handleDownloadPDF(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Download'),
+                        isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(req) }),
+                        isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(req) }),
                         // Admin/IT can reroute a ticket to any stage regardless
                         // of its current status — opens the review screen's
                         // stage-picker rather than duplicating that UI here.
@@ -11386,7 +11369,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Expense Claims"),
+        React.createElement(PageHeaderTitle, { icon: 'receipt', iconBg: 'var(--color-warning-bg)', iconColor: 'var(--color-warning-dark)', title: 'Expense Claims' }),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'expense-claim.html',
@@ -11435,10 +11418,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                        React.createElement('button', {
-                          onClick: () => handleView(claim),
-                          className: "btn-primary btn-sm"
-                        }, 'View'),
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(claim) }),
                         canApprove(claim) && claim.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleApprove(claim),
                           className: "btn-primary btn-sm"
@@ -11447,14 +11427,8 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
                           onClick: () => handleReject(claim),
                           className: "btn-danger btn-sm"
                         }, 'Reject'),
-                        isApproved(claim.status) && React.createElement('button', {
-                          onClick: () => handlePreviewPDF(claim),
-                          className: "btn-primary btn-sm"
-                        }, 'Preview'),
-                        isApproved(claim.status) && React.createElement('button', {
-                          onClick: () => handleDownloadPDF(claim),
-                          className: "btn-primary btn-sm"
-                        }, 'Download')
+                        isApproved(claim.status) && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(claim) }),
+                        isApproved(claim.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(claim) })
                       )
                     )
                   )
@@ -11587,7 +11561,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "EFT Requisitions"),
+        React.createElement(PageHeaderTitle, { icon: 'banknote', iconBg: 'var(--color-primary-light)', iconColor: 'var(--color-primary)', title: 'EFT Requisitions' }),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'eft-requisition.html',
@@ -11636,10 +11610,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                        React.createElement('button', {
-                          onClick: () => handleView(req),
-                          className: "btn-primary btn-sm"
-                        }, 'View'),
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(req) }),
                         canApprove(req) && req.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleApprove(req),
                           className: "btn-primary btn-sm"
@@ -11648,14 +11619,8 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
                           onClick: () => handleReject(req),
                           className: "btn-danger btn-sm"
                         }, 'Reject'),
-                        isApproved(req.status) && React.createElement('button', {
-                          onClick: () => handlePreviewPDF(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Preview'),
-                        isApproved(req.status) && React.createElement('button', {
-                          onClick: () => handleDownloadPDF(req),
-                          className: "btn-primary btn-sm"
-                        }, 'Download')
+                        isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(req) }),
+                        isApproved(req.status) && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(req) })
                       )
                     )
                   )
@@ -12477,10 +12442,7 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
                     r.currency ? `${r.currency} ${fmt(totalValue(r))}` : (totalValue(r) > 0 ? `ZMW ${fmt(totalValue(r))}` : '—')
                   ),
                   React.createElement('td', { style: { padding: '10px 12px' } },
-                    React.createElement('button', {
-                      onClick: () => { setSelectedReq(r); setView('approve'); },
-                      style: { padding: '5px 14px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 5, cursor: 'pointer', fontSize: 13 }
-                    }, 'View')
+                    React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => { setSelectedReq(r); setView('approve'); } })
                   )
                 )
               )
@@ -15308,7 +15270,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Issue Slips"),
+        React.createElement(PageHeaderTitle, { icon: 'inbox', iconBg: 'var(--color-success-bg)', iconColor: 'var(--color-success-dark)', title: 'Issue Slips' }),
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'issue-slip.html',
@@ -15355,22 +15317,13 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                        React.createElement('button', {
-                          onClick: () => handleView(slip),
-                          className: "btn-primary btn-sm"
-                        }, 'View'),
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(slip) }),
                         canApprove(slip) && slip.status.includes('pending') && React.createElement('button', {
                           onClick: () => handleView(slip),
                           className: "btn-primary btn-sm"
                         }, 'Approve'),
-                        slip.status === 'approved' && React.createElement('button', {
-                          onClick: () => handlePreviewPDF(slip),
-                          className: "btn-primary btn-sm"
-                        }, 'Preview'),
-                        slip.status === 'approved' && React.createElement('button', {
-                          onClick: () => handleDownloadPDF(slip),
-                          className: "btn-primary btn-sm"
-                        }, 'Download')
+                        slip.status === 'approved' && React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(slip) }),
+                        slip.status === 'approved' && React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(slip) })
                       )
                     )
                   )
@@ -15730,7 +15683,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Picking Slips"),
+        React.createElement(PageHeaderTitle, { icon: 'clipboardCheck', iconBg: '#E0E7FF', iconColor: '#4338CA', title: 'Picking Slips' }),
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'picking-slip.html',
@@ -15771,14 +15724,8 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex gap-1 flex-wrap" },
-                        React.createElement('button', {
-                          onClick: () => handlePreviewPDF(slip),
-                          className: "btn-primary btn-sm"
-                        }, 'Preview'),
-                        React.createElement('button', {
-                          onClick: () => handleDownloadPDF(slip),
-                          className: "btn-primary btn-sm"
-                        }, 'Download')
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(slip) }),
+                        React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(slip) })
                       )
                     )
                   )
@@ -15856,7 +15803,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Goods Receipt Notes"),
+        React.createElement(PageHeaderTitle, { icon: 'box', iconBg: 'var(--color-warning-bg)', iconColor: 'var(--color-warning-dark)', title: 'Goods Receipt Notes' }),
         React.createElement('div', { className: "flex gap-3" },
           user.can_access_stores && React.createElement('a', {
             href: 'grn.html',
@@ -15933,22 +15880,13 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
                     ),
                     React.createElement('td', { className: "px-4 py-3" },
                       React.createElement('div', { className: "flex flex-col gap-1" },
-                        React.createElement('button', {
-                          onClick: () => handleView(grn),
-                          className: "px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700 text-center"
-                        }, 'View'),
-                        React.createElement('button', {
-                          onClick: () => handlePreviewPDF(grn),
-                          className: "btn-primary btn-sm text-center"
-                        }, 'Preview'),
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(grn) }),
+                        React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview', onClick: () => handlePreviewPDF(grn) }),
                         canApprove && React.createElement('button', {
                           onClick: () => handleView(grn),
                           className: "px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 text-center"
                         }, 'Approve'),
-                        React.createElement('button', {
-                          onClick: () => handleDownloadPDF(grn),
-                          className: "btn-primary btn-sm text-center"
-                        }, 'Download')
+                        React.createElement(RowIconBtn, { icon: 'download', label: 'Download', onClick: () => handleDownloadPDF(grn) })
                       )
                     )
                   );
