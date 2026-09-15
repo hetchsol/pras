@@ -458,7 +458,7 @@
 
         .card {
             background-color: var(--bg-primary);
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
             padding: 1.5rem;
@@ -466,6 +466,40 @@
 
         .card-lg {
             padding: 2rem;
+        }
+
+        /* Icon chip — small tinted square housing a stroke icon, used on
+           stat cards and quick-action tiles. Pair a semantic bg/color pair
+           (e.g. var(--color-primary-light) / var(--color-primary)). */
+        .icon-chip {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Icon-only row action button — table rows (View/Preview/Download,
+           etc.) instead of a run of text links. */
+        .row-icon-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            background: transparent;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+        }
+        .row-icon-btn:hover {
+            color: var(--color-primary);
+            border-color: var(--color-primary-light);
+            background: var(--color-primary-light);
         }
 
         .card-header {
@@ -973,7 +1007,7 @@
             'use strict';
 
             // Version control - increment this when making changes
-            const APP_VERSION = '7.2.1';
+            const APP_VERSION = '8.0.0';
 
             console.log('Initializing Internal Approvals System v' + APP_VERSION);
 
@@ -1097,7 +1131,7 @@
     <!-- Load configuration -->
     <script src="config.js?v=1.0.0"></script>
     <!-- Load the application JavaScript -->
-    <script src="app.js?v=7.6.1"></script>
+    <script src="app.js?v=8.0.0"></script>
 
     <script>
         // Verify app loaded

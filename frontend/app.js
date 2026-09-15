@@ -70,6 +70,135 @@ const hasAnyRole = (userRole, roles) => {
   return roles.some(role => normalized.includes(role.toLowerCase()));
 };
 
+// ============================================
+// ICON SYSTEM — small stroke-based SVG icon set (Lucide-style), used in
+// place of emoji/plain text across the sidebar and dashboard. Each entry
+// is a list of SVG child element specs; Icon() renders them into a
+// consistently-sized, currentColor-stroked <svg>.
+// ============================================
+const ICON_DEFS = {
+  home: [
+    { t: 'path', d: 'M3 11.5 12 4l9 7.5' },
+    { t: 'path', d: 'M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9' }
+  ],
+  search: [
+    { t: 'circle', cx: 11, cy: 11, r: 7 },
+    { t: 'path', d: 'm21 21-4.3-4.3' }
+  ],
+  folder: [
+    { t: 'path', d: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z' }
+  ],
+  wallet: [
+    { t: 'rect', x: 2, y: 6, width: 20, height: 12, rx: 2 },
+    { t: 'circle', cx: 12, cy: 12, r: 3 }
+  ],
+  box: [
+    { t: 'path', d: 'M21 8 12 3 3 8v8l9 5 9-5Z' },
+    { t: 'path', d: 'M3 8l9 5 9-5' },
+    { t: 'path', d: 'M12 13v8' }
+  ],
+  settings: [
+    { t: 'circle', cx: 12, cy: 12, r: 3 },
+    { t: 'path', d: 'M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z' }
+  ],
+  inbox: [
+    { t: 'path', d: 'M22 12h-6l-2 3h-4l-2-3H2' },
+    { t: 'path', d: 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z' }
+  ],
+  plusCircle: [
+    { t: 'circle', cx: 12, cy: 12, r: 9 },
+    { t: 'path', d: 'M12 8v8M8 12h8' }
+  ],
+  clipboardCheck: [
+    { t: 'rect', x: 6, y: 4, width: 12, height: 16, rx: 2 },
+    { t: 'path', d: 'M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1' },
+    { t: 'path', d: 'm9.5 13 2 2 4-4' }
+  ],
+  checkCircle: [
+    { t: 'circle', cx: 12, cy: 12, r: 9 },
+    { t: 'path', d: 'm8.5 12.5 2.3 2.3L16 10' }
+  ],
+  xCircle: [
+    { t: 'circle', cx: 12, cy: 12, r: 9 },
+    { t: 'path', d: 'm9.5 9.5 5 5m0-5-5 5' }
+  ],
+  clock: [
+    { t: 'circle', cx: 12, cy: 12, r: 9 },
+    { t: 'path', d: 'M12 7v5l3.5 2' }
+  ],
+  fileText: [
+    { t: 'path', d: 'M8 3h6l4 4v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z' },
+    { t: 'path', d: 'M14 3v4h4' },
+    { t: 'path', d: 'M9 13h6M9 17h6' }
+  ],
+  receipt: [
+    { t: 'path', d: 'M6 3h12v18l-3-2-3 2-3-2-3 2Z' },
+    { t: 'path', d: 'M9 8h6M9 12h6' }
+  ],
+  banknote: [
+    { t: 'rect', x: 2, y: 6, width: 20, height: 12, rx: 2 },
+    { t: 'circle', cx: 12, cy: 12, r: 3 }
+  ],
+  coins: [
+    { t: 'circle', cx: 8, cy: 9, r: 5 },
+    { t: 'circle', cx: 15, cy: 15, r: 5 }
+  ],
+  laptop: [
+    { t: 'rect', x: 4, y: 5, width: 16, height: 10, rx: 1.5 },
+    { t: 'path', d: 'M2 19h20' }
+  ],
+  eye: [
+    { t: 'path', d: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z' },
+    { t: 'circle', cx: 12, cy: 12, r: 3 }
+  ],
+  download: [
+    { t: 'path', d: 'M12 3v12m0 0 4-4m-4 4-4-4' },
+    { t: 'path', d: 'M4 19h16' }
+  ],
+  chevronRight: [{ t: 'path', d: 'm9 6 6 6-6 6' }],
+  sun: [
+    { t: 'circle', cx: 12, cy: 12, r: 4 },
+    { t: 'path', d: 'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' }
+  ],
+  moon: [{ t: 'path', d: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z' }],
+  logout: [
+    { t: 'path', d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' },
+    { t: 'path', d: 'M16 17l5-5-5-5' },
+    { t: 'path', d: 'M21 12H9' }
+  ],
+  lock: [
+    { t: 'rect', x: 4, y: 10, width: 16, height: 10, rx: 2 },
+    { t: 'path', d: 'M7 10V7a5 5 0 0 1 10 0v3' }
+  ],
+  barChart: [
+    { t: 'path', d: 'M4 20V10' },
+    { t: 'path', d: 'M12 20V4' },
+    { t: 'path', d: 'M20 20v-6' }
+  ]
+};
+
+// Maps sidebar group/top-level item ids to an icon name, purely presentational.
+const SIDEBAR_ICON_BY_ID = {
+  'procurement-group': 'folder',
+  'forms-group': 'wallet',
+  'stores-group': 'box',
+  'fin-planning-group': 'banknote',
+  'insights-group': 'barChart',
+  admin: 'settings'
+};
+
+function Icon({ name, size = 16, color = 'currentColor', strokeWidth = 1.8, style }) {
+  const defs = ICON_DEFS[name];
+  if (!defs) return null;
+  return React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+    stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style
+  }, defs.map((d, i) => {
+    const { t, ...props } = d;
+    return React.createElement(t, { key: i, ...props });
+  }));
+}
+
 // Helper to get headers with auth
 const getHeaders = () => {
   const headers = { 'Content-Type': 'application/json' };
@@ -3207,13 +3336,13 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
     React.createElement('div', { className: "px-4 pt-4" },
       React.createElement('button', {
         onClick: () => nav('dashboard'),
-        className: "w-full px-4 py-3 rounded-lg font-semibold transition-all text-left",
+        className: "w-full px-4 py-3 rounded-lg font-semibold transition-all text-left flex items-center gap-2",
         style: {
           color: view === 'dashboard' ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
           backgroundColor: view === 'dashboard' ? 'var(--sidebar-active-bg)' : 'transparent',
           border: view === 'dashboard' ? 'none' : '1px solid var(--sidebar-border)'
         }
-      }, 'Home')
+      }, React.createElement(Icon, { name: 'home', size: 16 }), 'Home')
     ),
 
     // Global Search Bar
@@ -3243,7 +3372,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
                 e.currentTarget.style.backgroundColor = 'var(--sidebar-group-bg)';
               }
             },
-              React.createElement('span', null, item.label),
+              React.createElement('span', { className: "flex items-center gap-2" },
+                SIDEBAR_ICON_BY_ID[item.id] && React.createElement(Icon, { name: SIDEBAR_ICON_BY_ID[item.id], size: 15 }),
+                item.label
+              ),
               React.createElement('span', {
                 className: "text-xs transition-transform",
                 style: { transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', opacity: 0.5 }
@@ -3386,7 +3518,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
           return React.createElement('button', {
             key: item.id,
             onClick: () => !item.disabled && nav(item.id),
-            className: "block w-full text-left px-4 py-3 mb-2 rounded-lg font-medium transition-all",
+            className: "flex items-center gap-2 w-full text-left px-4 py-3 mb-2 rounded-lg font-medium transition-all",
             style: item.disabled ? {
               color: 'var(--sidebar-text-subtle)',
               backgroundColor: 'transparent',
@@ -3410,7 +3542,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
               }
             },
             disabled: item.disabled
-          }, item.label);
+          }, SIDEBAR_ICON_BY_ID[item.id] && React.createElement(Icon, { name: SIDEBAR_ICON_BY_ID[item.id], size: 15 }), item.label);
         }
       })
     ),
@@ -4437,39 +4569,43 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         onMouseLeave: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary)'; }
       }, "Initiate Purchase Requisition")
     ),
-    // Summary metric cards — white surfaces with a single brand-blue accent
-    // strip on the left. Status communicated via inline label only; no icons,
-    // no coloured backgrounds, no decorative shadows.
+    // Summary metric cards — icon chip + big number, elevated on hover for
+    // the clickable ones.
     (function renderSummaryCards() {
-      const metricCard = (label, value, onClick) => React.createElement('div', {
+      const metricCard = (label, value, onClick, icon, iconBg, iconColor) => React.createElement('div', {
         key: label,
         onClick: onClick,
-        className: "rounded-lg p-6 transition-all" + (onClick ? " cursor-pointer hover:shadow-md" : ""),
+        className: "rounded-lg p-6 transition-all flex items-start gap-4" + (onClick ? " cursor-pointer hover:shadow-md" : ""),
         style: {
           backgroundColor: 'var(--bg-primary)',
           boxShadow: 'var(--shadow-sm)',
-          borderLeft: '3px solid var(--color-primary)'
+          border: '1px solid var(--border-color)'
         }
       },
-        React.createElement('p', {
-          className: "text-xs uppercase tracking-wide mb-2",
-          style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
-        }, label),
-        React.createElement('p', {
-          className: "text-3xl font-semibold",
-          style: { color: 'var(--text-primary)' }
-        }, value)
+        React.createElement('div', { className: "icon-chip", style: { backgroundColor: iconBg, color: iconColor } },
+          React.createElement(Icon, { name: icon, size: 19 })
+        ),
+        React.createElement('div', null,
+          React.createElement('p', {
+            className: "text-xs uppercase tracking-wide mb-1",
+            style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
+          }, label),
+          React.createElement('p', {
+            className: "text-3xl font-semibold",
+            style: { color: 'var(--text-primary)' }
+          }, value)
+        )
       );
       const totalValue = `ZMW ${requisitions.reduce((sum, r) => sum + (r.amount || r.total_amount || 0), 0).toLocaleString()}`;
       const cards = [
-        metricCard('Total Requisitions', allRequisitions.length, () => setShowBreakdown('total')),
+        metricCard('Total Requisitions', allRequisitions.length, () => setShowBreakdown('total'), 'fileText', 'var(--color-primary-light)', 'var(--color-primary)'),
         user.role === 'procurement'
-          ? metricCard('PRs In Pipeline', pendingApprovals, () => setView('incoming-prs'))
-          : metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending')),
-        metricCard('Approved', approvedRequisitions.length, () => setShowBreakdown('approved')),
-        metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'))
+          ? metricCard('PRs In Pipeline', pendingApprovals, () => setView('incoming-prs'), 'clock', 'var(--color-warning-bg)', 'var(--color-warning-dark)')
+          : metricCard('Pending Approvals', pendingApprovals, () => setShowBreakdown('pending'), 'clock', 'var(--color-warning-bg)', 'var(--color-warning-dark)'),
+        metricCard('Approved', approvedRequisitions.length, () => setShowBreakdown('approved'), 'checkCircle', 'var(--color-success-bg)', 'var(--color-success-dark)'),
+        metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'), 'xCircle', 'var(--color-danger-bg)', 'var(--color-danger-dark)')
       ];
-      if (!hasRole(getUserRoles(user), 'initiator')) cards.push(metricCard('Total Value', totalValue, null));
+      if (!hasRole(getUserRoles(user), 'initiator')) cards.push(metricCard('Total Value', totalValue, null, 'banknote', 'var(--color-primary-light)', 'var(--color-primary)'));
       return React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-5" }, cards);
     })(),
 
@@ -4479,35 +4615,52 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         className: "text-lg font-semibold mb-5 uppercase tracking-wide",
         style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
       }, "Quick Actions"),
-      // Quick-action cards — title + description only. No icons, no chips.
-      // Borders dropped; subtle shadow does the lifting (option 8A).
+      // Quick-action cards — icon chip + title + description, elevated on hover.
       (function renderQuickActions() {
         const actionCard = (key, title, description, props) => React.createElement(
           props.tag || 'a',
           Object.assign({
             key,
-            className: "block rounded-lg p-5 transition-all " + (props.disabled ? "cursor-not-allowed" : "hover:shadow-md cursor-pointer"),
+            className: "rounded-lg p-5 transition-all flex flex-col gap-3 " + (props.disabled ? "cursor-not-allowed" : "hover:shadow-md cursor-pointer"),
             style: Object.assign({
               backgroundColor: 'var(--bg-primary)',
               boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-color)',
               textDecoration: 'none',
+              display: 'flex',
               opacity: props.disabled ? 0.55 : 1
             }, props.style || {})
           }, props.attrs || {}),
-            React.createElement('h3', {
-              className: "text-base font-semibold mb-1",
-              style: { color: 'var(--text-primary)' }
-            }, title),
-            React.createElement('p', {
-              className: "text-sm",
-              style: { color: 'var(--text-secondary)' }
-            }, props.disabled && props.disabledText ? props.disabledText : description)
+            React.createElement('div', { className: "icon-chip", style: { backgroundColor: props.iconBg, color: props.iconColor } },
+              React.createElement(Icon, { name: props.icon, size: 18 })
+            ),
+            React.createElement('div', null,
+              React.createElement('h3', {
+                className: "text-base font-semibold mb-1",
+                style: { color: 'var(--text-primary)' }
+              }, title),
+              React.createElement('p', {
+                className: "text-sm",
+                style: { color: 'var(--text-secondary)' }
+              }, props.disabled && props.disabledText ? props.disabledText : description)
+            )
         );
-        const cards = [
+        // Purchase Requisition leads the row (initiators/procurement only);
+        // the financial/stores forms follow in their usual order.
+        const cards = [];
+        if (hasRole(getUserRoles(user), 'initiator', 'procurement')) {
+          cards.push(actionCard('pr', 'Purchase Requisition', 'Create new purchase requisition for goods or services', {
+            icon: 'fileText', iconBg: 'var(--color-primary-light)', iconColor: 'var(--color-primary)',
+            attrs: { onClick: (e) => { e.preventDefault(); setView('create'); } }
+          }));
+        }
+        cards.push(
           actionCard('expense', 'Expense Claim', 'Submit travel and expense claims for reimbursement', {
+            icon: 'receipt', iconBg: 'var(--color-warning-bg)', iconColor: 'var(--color-warning-dark)',
             attrs: { href: 'expense-claim.html' }
           }),
           actionCard('eft', 'EFT Requisition', 'Request electronic funds transfer', {
+            icon: 'banknote', iconBg: 'var(--color-primary-light)', iconColor: 'var(--color-primary)',
             tag: eftAccess.canCreate ? 'a' : 'div',
             disabled: !eftAccess.canCreate,
             disabledText: `Closed — opens ${eftFormatNextOpen(eftAccess.nextCreateOpen)}`,
@@ -4518,18 +4671,18 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             }
           }),
           actionCard('petty', 'Petty Cash Requisition', 'Request petty cash for minor expenses', {
+            icon: 'coins', iconBg: 'var(--color-success-bg)', iconColor: 'var(--color-success-dark)',
             attrs: { href: 'petty-cash-requisition.html' }
           }),
           actionCard('itEquipment', 'IT Equipment Request', 'Request laptops, printers, or other IT equipment', {
+            icon: 'laptop', iconBg: '#EDE9FE', iconColor: '#6D28D9',
             attrs: { href: 'it-equipment-request.html' }
           })
-        ];
-        if (hasRole(getUserRoles(user), 'initiator', 'procurement')) {
-          cards.push(actionCard('pr', 'Purchase Requisition', 'Create new purchase requisition for goods or services', {
-            attrs: { onClick: (e) => { e.preventDefault(); setView('create'); } }
-          }));
-        }
-        return React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-5" }, cards);
+        );
+        return React.createElement('div', {
+          className: "grid gap-5",
+          style: { gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }
+        }, cards);
       })()
     ),
 
@@ -4923,15 +5076,18 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         )
       )
     ),
-    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border" },
-      React.createElement('div', { className: "px-6 py-4 border-b" },
-        React.createElement('h2', { className: "text-xl font-semibold text-gray-800" },
+    React.createElement('div', {
+      className: "rounded-lg",
+      style: { backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }
+    },
+      React.createElement('div', { className: "px-6 py-4", style: { borderBottom: '1px solid var(--border-color)' } },
+        React.createElement('h2', { className: "text-xl font-semibold", style: { color: 'var(--text-primary)' } },
           hasRole(getUserRoles(user), 'initiator') ? 'My Requisitions' : 'Requisitions for Review'
         )
       ),
       React.createElement('div', { className: "overflow-x-auto" },
         React.createElement('table', { className: "w-full" },
-          React.createElement('thead', { className: "bg-gray-50" },
+          React.createElement('thead', { style: { backgroundColor: 'var(--bg-secondary)' } },
             React.createElement('tr', null,
               React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Req Number"),
               React.createElement('th', { className: "tbl-th tbl-th-lg" }, "Description"),
@@ -4960,35 +5116,25 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                       )
                     ),
                     React.createElement('td', { className: "px-6 py-4" },
-                      React.createElement('div', { className: "flex items-center gap-3" },
+                      React.createElement('div', { className: "flex items-center gap-2" },
                         React.createElement('button', {
                           onClick: () => handleViewReq(req),
-                          className: "text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        }, hasRole(getUserRoles(user), 'initiator') ? 'View' : 'Review'),
+                          className: "row-icon-btn",
+                          title: hasRole(getUserRoles(user), 'initiator') ? 'View' : 'Review'
+                        }, React.createElement(Icon, { name: 'eye', size: 14 })),
                         // Show PDF preview + download buttons for approved/completed requisitions only - Available to ALL roles
                         (req.status === 'approved' || req.status === 'completed') &&
                         React.createElement(React.Fragment, null,
                           React.createElement('button', {
                             onClick: () => previewRequisitionPDF(req.id, req.req_number),
-                            className: "text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1",
+                            className: "row-icon-btn",
                             title: "Preview Approved Requisition PDF"
-                          },
-                            React.createElement('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                              React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }),
-                              React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" })
-                            ),
-                            'Preview'
-                          ),
+                          }, React.createElement(Icon, { name: 'eye', size: 14 })),
                           React.createElement('button', {
                             onClick: () => downloadRequisitionPDF(req.id, req.req_number),
-                            className: "text-green-600 hover:text-green-800 text-sm font-medium flex items-center gap-1",
+                            className: "row-icon-btn",
                             title: "Download Approved Requisition PDF"
-                          },
-                            React.createElement('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                              React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
-                            ),
-                            'PDF'
-                          )
+                          }, React.createElement(Icon, { name: 'download', size: 14 }))
                         )
                       )
                     )
