@@ -186,6 +186,18 @@ const authorize = (...roles) => {
   };
 };
 
+// Like authorize(), but also matches a dual-role user's secondary_role
+// (e.g. someone whose primary role is 'initiator' but secondary is 'it').
+const authorizeAny = (...roles) => {
+  return (req, res, next) => {
+    const userRoles = [req.user.role, req.user.secondary_role].filter(Boolean);
+    if (!userRoles.some(r => roles.includes(r))) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
+};
+
 // Map MongoDB requisition fields to frontend-expected field names
 const mapRequisitionFields = (req) => {
   if (!req) return req;
@@ -2971,8 +2983,8 @@ app.put('/api/forms/it-equipment-requests/:id/approve', authenticate, async (req
   }
 });
 
-// Delete IT Equipment Request (admin only)
-app.delete('/api/forms/it-equipment-requests/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete IT Equipment Request (admin or IT — hard delete, not a status flag)
+app.delete('/api/forms/it-equipment-requests/:id', authenticate, authorizeAny('admin', 'it'), async (req, res) => {
   try {
     const reqId = req.params.id;
     let result = null;
@@ -2990,6 +3002,54 @@ app.delete('/api/forms/it-equipment-requests/:id', authenticate, authorize('admi
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting IT equipment request:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Redirect an IT Equipment Request to any stage (admin or IT). Lets a stuck
+// or mis-routed ticket be sent back to HR/MD/IT (or resolved directly)
+// without walking the normal linear approval chain.
+const IT_EQUIPMENT_REDIRECT_STATUSES = ['pending_hr', 'pending_md', 'pending_issuance', 'issued', 'rejected'];
+app.put('/api/forms/it-equipment-requests/:id/admin-override', authenticate, authorizeAny('admin', 'it'), async (req, res) => {
+  try {
+    const { new_status, comment } = req.body;
+    if (!new_status || !IT_EQUIPMENT_REDIRECT_STATUSES.includes(new_status)) {
+      return res.status(400).json({ error: `new_status must be one of: ${IT_EQUIPMENT_REDIRECT_STATUSES.join(', ')}` });
+    }
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({ error: 'A reason is required' });
+    }
+
+    const reqId = req.params.id;
+    let itReq = null;
+    try {
+      itReq = await db.ITEquipmentRequest.findById(reqId);
+    } catch (e) {
+      // Not a valid ObjectId, try finding by custom id
+    }
+    if (!itReq) {
+      itReq = await db.ITEquipmentRequest.findOne({ id: reqId });
+    }
+    if (!itReq) {
+      return res.status(404).json({ error: 'IT equipment request not found' });
+    }
+
+    const actingRole = req.user.role === 'admin' ? 'admin' : 'it';
+    itReq.status = new_status;
+    if (!itReq.approvals) itReq.approvals = [];
+    itReq.approvals.push({
+      role: actingRole,
+      name: req.user.full_name,
+      action: 'redirected',
+      comments: `Redirected to ${new_status}: ${comment}`,
+      date: new Date()
+    });
+    itReq.updated_at = new Date();
+    await itReq.save();
+
+    res.json({ success: true, message: `Redirected to ${new_status}`, requisition: itReq });
+  } catch (error) {
+    console.error('Error redirecting IT equipment request:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

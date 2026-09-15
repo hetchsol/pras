@@ -404,6 +404,19 @@ const api = {
     return res.json();
   },
 
+  redirectITEquipmentRequest: async (requestId, new_status, comment) => {
+    const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requestId}/admin-override`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_status, comment })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to redirect IT equipment request');
+    }
+    return res.json();
+  },
+
   // ============================================
   // FX RATES API - COMPLETE
   // ============================================
@@ -2230,8 +2243,8 @@ function App() {
         view === 'approve-eft-requisition' && React.createElement(ApproveEFTRequisition, { requisition: selectedReq, user: currentUser, setView }),
         view === 'approve-petty-cash' && React.createElement(ApprovePettyCash, { requisition: selectedReq, user: currentUser, setView }),
         view === 'petty-cash-requisitions' && React.createElement(PettyCashRequisitionsList, { user: currentUser, setView, setSelectedReq }),
-        view === 'approve-it-equipment' && React.createElement(ApproveITEquipmentRequest, { requisition: selectedReq, user: currentUser, setView }),
-        view === 'it-equipment-requests' && React.createElement(ITEquipmentRequestsList, { user: currentUser, setView, setSelectedReq }),
+        view === 'approve-it-equipment' && React.createElement(ApproveITEquipmentRequest, { requisition: selectedReq, user: currentUser, setView, loadData }),
+        view === 'it-equipment-requests' && React.createElement(ITEquipmentRequestsList, { user: currentUser, setView, setSelectedReq, loadData }),
         // Stores Module Views
         view === 'grns' && React.createElement(GoodsReceiptNotesList, { user: currentUser, setView, setSelectedReq }),
         view === 'view-grn' && React.createElement(ViewGoodsReceiptNote, { grn: selectedReq, user: currentUser, setView }),
@@ -3052,9 +3065,9 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
         { id: 'rejected', label: 'Rejected Submissions', show: true },
         { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') },
-        // Admin-only management view — lists every IT Equipment Request
-        // (any status) with the ability to delete entries.
-        { id: 'it-equipment-requests', label: 'Manage IT Equipment Requests', show: hasRole(getUserRoles(user), 'admin') }
+        // Admin/IT management view — lists every IT Equipment Request at
+        // any stage, with the ability to redirect or delete entries.
+        { id: 'it-equipment-requests', label: 'Manage IT Equipment Requests', show: hasRole(getUserRoles(user), 'admin', 'it') }
       ]
     },
     // Financial Forms Group — mirrors the Dashboard's Quick Actions.
@@ -9041,6 +9054,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
       if (!response.ok) throw new Error('Rejection failed');
       showToast('IT equipment request rejected');
       fetchAllPendingItems();
+      if (loadData) loadData();
     } catch (error) {
       showToast('Error: ' + error.message);
     }
@@ -9906,10 +9920,13 @@ function ApprovePettyCash({ requisition, user, setView }) {
   );
 }
 
-function ApproveITEquipmentRequest({ requisition, user, setView }) {
+function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [issuance, setIssuance] = useState({ make: '', model: '', serial_number: '', asset_tag: '' });
+  const [redirectStatus, setRedirectStatus] = useState('');
+  const [redirectReason, setRedirectReason] = useState('');
+  const [redirecting, setRedirecting] = useState(false);
 
   if (!requisition) {
     return React.createElement('div', { className: "text-center py-12" },
@@ -9962,11 +9979,43 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
 
       showToast(`IT equipment request ${approved ? (actingRole === 'it' ? 'issued' : 'approved') : 'rejected'} successfully!`);
       setView('approval-console');
+      if (loadData) loadData();
     } catch (error) {
       console.error('Error updating IT equipment request:', error);
       showToast(error.message || 'Error updating IT equipment request');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const canRedirectOrDelete = getUserRoles(user).some(r => ['admin', 'it'].includes(r));
+  const REDIRECT_STAGES = [
+    { value: 'pending_hr', label: 'HR Verification' },
+    { value: 'pending_md', label: 'MD Approval' },
+    { value: 'pending_issuance', label: 'IT Issuance' },
+    { value: 'issued', label: 'Issued' },
+    { value: 'rejected', label: 'Rejected' }
+  ];
+
+  const handleRedirect = async () => {
+    if (!redirectStatus) {
+      showToast('Choose a stage to redirect to');
+      return;
+    }
+    if (!redirectReason.trim()) {
+      showToast('Please provide a reason for redirecting');
+      return;
+    }
+    setRedirecting(true);
+    try {
+      await api.redirectITEquipmentRequest(requisition._id || requisition.id, redirectStatus, redirectReason);
+      showToast('IT equipment request redirected');
+      setView('approval-console');
+      if (loadData) loadData();
+    } catch (error) {
+      showToast(error.message || 'Error redirecting IT equipment request');
+    } finally {
+      setRedirecting(false);
     }
   };
 
@@ -10080,6 +10129,32 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
           )
         ),
 
+        // Admin/IT can redirect a stuck or mis-routed ticket to any stage,
+        // bypassing the normal linear approval chain.
+        canRedirectOrDelete && React.createElement('div', { className: "card-section bg-gray-50" },
+          React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Redirect (Admin/IT)"),
+          React.createElement('div', { className: "grid grid-cols-2 gap-4 mb-3" },
+            React.createElement('select', {
+              className: "form-input w-full",
+              value: redirectStatus,
+              onChange: (e) => setRedirectStatus(e.target.value)
+            },
+              React.createElement('option', { value: '' }, '-- Select stage --'),
+              REDIRECT_STAGES.map(s => React.createElement('option', { key: s.value, value: s.value }, s.label))
+            ),
+            React.createElement('input', {
+              type: 'text', className: "form-input w-full", placeholder: "Reason for redirecting",
+              value: redirectReason,
+              onChange: (e) => setRedirectReason(e.target.value)
+            })
+          ),
+          React.createElement('button', {
+            onClick: handleRedirect,
+            disabled: redirecting,
+            className: "btn-secondary btn-sm"
+          }, redirecting ? 'Redirecting...' : 'Redirect')
+        ),
+
         // Comments Section
         React.createElement('div', null,
           React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Comments"),
@@ -10108,13 +10183,14 @@ function ApproveITEquipmentRequest({ requisition, user, setView }) {
             onClick: () => setView('approval-console'),
             className: "btn-secondary btn-lg"
           }, 'Cancel'),
-          getUserRoles(user).includes('admin') && React.createElement('button', {
+          canRedirectOrDelete && React.createElement('button', {
             onClick: async () => {
               if (!confirm(`Permanently delete IT equipment request ${requisition.id}? This cannot be undone.`)) return;
               try {
                 await api.deleteITEquipmentRequest(requisition._id || requisition.id);
                 showToast('IT equipment request deleted');
                 setView('approval-console');
+                if (loadData) loadData();
               } catch (error) {
                 showToast('Error: ' + error.message);
               }
@@ -10770,7 +10846,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
 // ============================================
 // IT EQUIPMENT REQUESTS LIST COMPONENT
 // ============================================
-function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
+function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
   const [requisitions, setRequisitions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -10833,6 +10909,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
       if (!response.ok) throw new Error('Approval failed');
       showToast(`IT equipment request ${verb === 'issue' ? 'issued' : 'approved'}!`);
       fetchITEquipmentRequests();
+      if (loadData) loadData();
     } catch (error) {
       showToast('Error: ' + error.message);
     }
@@ -10855,6 +10932,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
       if (!response.ok) throw new Error('Rejection failed');
       showToast('IT equipment request rejected');
       fetchITEquipmentRequests();
+      if (loadData) loadData();
     } catch (error) {
       showToast('Error: ' + error.message);
     }
@@ -10879,6 +10957,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
       await api.deleteITEquipmentRequest(req._id || req.id);
       showToast('IT equipment request deleted');
       fetchITEquipmentRequests();
+      if (loadData) loadData();
     } catch (error) {
       showToast('Error: ' + error.message);
     }
@@ -10995,7 +11074,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq }) {
                           onClick: () => handleDownloadPDF(req),
                           className: "btn-primary btn-sm"
                         }, 'Download'),
-                        getUserRoles(user).includes('admin') && React.createElement('button', {
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
                           onClick: () => handleDelete(req),
                           className: "btn-danger btn-sm"
                         }, 'Delete')
