@@ -404,7 +404,7 @@ const api = {
     return res.json();
   },
 
-  redirectITEquipmentRequest: async (requestId, new_status, comment) => {
+  rerouteITEquipmentRequest: async (requestId, new_status, comment) => {
     const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requestId}/admin-override`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -412,7 +412,7 @@ const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to redirect IT equipment request');
+      throw new Error(err.error || 'Failed to reroute IT equipment request');
     }
     return res.json();
   },
@@ -4885,6 +4885,25 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   }
                 }, 'Admin Reroute')
               ),
+              // Reroute Button for IT Equipment Requests (admin or IT, any
+              // stage/status — not just pending). Opens the review screen,
+              // which has the actual stage-picker + reason form.
+              req.formType === 'it_equipment' &&
+              getUserRoles(user).some(r => ['admin', 'it'].includes(r)) &&
+              React.createElement('div', { className: "mt-3" },
+                React.createElement('button', {
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    setSelectedReq(req);
+                    setView('approve-it-equipment');
+                  },
+                  className: "w-full px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: {
+                    backgroundColor: 'var(--color-primary)',
+                    color: '#FFFFFF'
+                  }
+                }, 'Reroute')
+              ),
               React.createElement('p', {
                 className: "text-sm mb-2 transition-colors",
                 style: { color: 'var(--text-secondary)' }
@@ -9208,7 +9227,11 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
                         item.formType === 'it_equipment' && React.createElement('button', {
                           onClick: () => handleQuickReject(item),
                           className: "px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                        }, 'Reject')
+                        }, 'Reject'),
+                        item.formType === 'it_equipment' && getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleReview(item),
+                          className: "px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors"
+                        }, 'Reroute')
                       )
                     )
                   )
@@ -9924,9 +9947,9 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [issuance, setIssuance] = useState({ make: '', model: '', serial_number: '', asset_tag: '' });
-  const [redirectStatus, setRedirectStatus] = useState('');
-  const [redirectReason, setRedirectReason] = useState('');
-  const [redirecting, setRedirecting] = useState(false);
+  const [rerouteStatus, setRerouteStatus] = useState('');
+  const [rerouteReason, setRerouteReason] = useState('');
+  const [rerouting, setRerouting] = useState(false);
 
   if (!requisition) {
     return React.createElement('div', { className: "text-center py-12" },
@@ -9988,8 +10011,8 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
     }
   };
 
-  const canRedirectOrDelete = getUserRoles(user).some(r => ['admin', 'it'].includes(r));
-  const REDIRECT_STAGES = [
+  const canRerouteOrDelete = getUserRoles(user).some(r => ['admin', 'it'].includes(r));
+  const REROUTE_STAGES = [
     { value: 'pending_hr', label: 'HR Verification' },
     { value: 'pending_md', label: 'MD Approval' },
     { value: 'pending_issuance', label: 'IT Issuance' },
@@ -9997,25 +10020,25 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
     { value: 'rejected', label: 'Rejected' }
   ];
 
-  const handleRedirect = async () => {
-    if (!redirectStatus) {
-      showToast('Choose a stage to redirect to');
+  const handleReroute = async () => {
+    if (!rerouteStatus) {
+      showToast('Choose a stage to reroute to');
       return;
     }
-    if (!redirectReason.trim()) {
-      showToast('Please provide a reason for redirecting');
+    if (!rerouteReason.trim()) {
+      showToast('Please provide a reason for rerouting');
       return;
     }
-    setRedirecting(true);
+    setRerouting(true);
     try {
-      await api.redirectITEquipmentRequest(requisition._id || requisition.id, redirectStatus, redirectReason);
-      showToast('IT equipment request redirected');
+      await api.rerouteITEquipmentRequest(requisition._id || requisition.id, rerouteStatus, rerouteReason);
+      showToast('IT equipment request rerouted');
       setView('approval-console');
       if (loadData) loadData();
     } catch (error) {
-      showToast(error.message || 'Error redirecting IT equipment request');
+      showToast(error.message || 'Error rerouting IT equipment request');
     } finally {
-      setRedirecting(false);
+      setRerouting(false);
     }
   };
 
@@ -10131,28 +10154,28 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
 
         // Admin/IT can redirect a stuck or mis-routed ticket to any stage,
         // bypassing the normal linear approval chain.
-        canRedirectOrDelete && React.createElement('div', { className: "card-section bg-gray-50" },
-          React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Redirect (Admin/IT)"),
+        canRerouteOrDelete && React.createElement('div', { className: "card-section bg-gray-50" },
+          React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Reroute (Admin/IT)"),
           React.createElement('div', { className: "grid grid-cols-2 gap-4 mb-3" },
             React.createElement('select', {
               className: "form-input w-full",
-              value: redirectStatus,
-              onChange: (e) => setRedirectStatus(e.target.value)
+              value: rerouteStatus,
+              onChange: (e) => setRerouteStatus(e.target.value)
             },
               React.createElement('option', { value: '' }, '-- Select stage --'),
-              REDIRECT_STAGES.map(s => React.createElement('option', { key: s.value, value: s.value }, s.label))
+              REROUTE_STAGES.map(s => React.createElement('option', { key: s.value, value: s.value }, s.label))
             ),
             React.createElement('input', {
-              type: 'text', className: "form-input w-full", placeholder: "Reason for redirecting",
-              value: redirectReason,
-              onChange: (e) => setRedirectReason(e.target.value)
+              type: 'text', className: "form-input w-full", placeholder: "Reason for rerouting",
+              value: rerouteReason,
+              onChange: (e) => setRerouteReason(e.target.value)
             })
           ),
           React.createElement('button', {
-            onClick: handleRedirect,
-            disabled: redirecting,
+            onClick: handleReroute,
+            disabled: rerouting,
             className: "btn-secondary btn-sm"
-          }, redirecting ? 'Redirecting...' : 'Redirect')
+          }, rerouting ? 'Rerouting...' : 'Reroute')
         ),
 
         // Comments Section
@@ -10183,7 +10206,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
             onClick: () => setView('approval-console'),
             className: "btn-secondary btn-lg"
           }, 'Cancel'),
-          canRedirectOrDelete && React.createElement('button', {
+          canRerouteOrDelete && React.createElement('button', {
             onClick: async () => {
               if (!confirm(`Permanently delete IT equipment request ${requisition.id}? This cannot be undone.`)) return;
               try {
@@ -11074,6 +11097,13 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
                           onClick: () => handleDownloadPDF(req),
                           className: "btn-primary btn-sm"
                         }, 'Download'),
+                        // Admin/IT can reroute a ticket to any stage regardless
+                        // of its current status — opens the review screen's
+                        // stage-picker rather than duplicating that UI here.
+                        getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
+                          onClick: () => handleView(req),
+                          className: "btn-secondary btn-sm"
+                        }, 'Reroute'),
                         getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
                           onClick: () => handleDelete(req),
                           className: "btn-danger btn-sm"
