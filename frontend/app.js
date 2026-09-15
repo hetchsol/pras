@@ -16,8 +16,9 @@ const getUserData = () => {
   const userData = localStorage.getItem('userData');
   if (!userData) return null;
   const user = JSON.parse(userData);
-  // Normalize role to lowercase for consistent frontend checks
+  // Normalize role(s) to lowercase for consistent frontend checks
   if (user && user.role) user.role = user.role.toLowerCase();
+  if (user && user.secondary_role) user.secondary_role = user.secondary_role.toLowerCase();
   return user;
 };
 
@@ -29,8 +30,9 @@ const setRefreshToken = (token) => localStorage.setItem('refreshToken', token);
 
 // Helper to set user data
 const setUserData = (user) => {
-  // Normalize role to lowercase for consistent frontend checks
+  // Normalize role(s) to lowercase for consistent frontend checks
   if (user && user.role) user = { ...user, role: user.role.toLowerCase() };
+  if (user && user.secondary_role) user = { ...user, secondary_role: user.secondary_role.toLowerCase() };
   localStorage.setItem('userData', JSON.stringify(user));
 };
 
@@ -2047,6 +2049,17 @@ function App() {
             setData(prevData => ({ ...prevData, requisitions }));
             setCurrentUser(savedUser);  // Restore full user data
             setView('dashboard');
+
+            // Refresh the cached profile in the background so fields added
+            // to the user record after this person's last login (e.g. a
+            // newly-assigned role) take effect without forcing a re-login.
+            fetchWithAuth(`${API_URL}/auth/me`).then(async (meRes) => {
+              if (!meRes.ok) return;
+              const fresh = await meRes.json();
+              const merged = { ...savedUser, ...fresh };
+              setUserData(merged);
+              setCurrentUser(merged);
+            }).catch(() => {});
           } else if (res.status === 401 || res.status === 403) {
             // Token is explicitly invalid/expired, clear it
             console.log('Token expired or invalid, clearing auth');
@@ -7237,7 +7250,7 @@ function AdminPanel({ data, loadData }) {
           )
         ),
         React.createElement('tbody', null,
-          users.map(user =>
+          [...users].sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '')).map(user =>
             React.createElement('tr', { key: user.id, className: "border-b hover:bg-gray-50" },
               React.createElement('td', { className: "py-2 px-4" }, user.username),
               React.createElement('td', { className: "py-2 px-4" }, user.full_name),
