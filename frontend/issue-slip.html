@@ -136,14 +136,6 @@
                         <label for="department">Department</label>
                         <select id="department">
                             <option value="">Select Department</option>
-                            <option value="IT">IT</option>
-                            <option value="HR">HR</option>
-                            <option value="Finance">Finance</option>
-                            <option value="Operations">Operations</option>
-                            <option value="Procurement">Procurement</option>
-                            <option value="Executive">Executive</option>
-                            <option value="Sales">Sales</option>
-                            <option value="Marketing">Marketing</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -230,6 +222,8 @@
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', async function() {
+            await loadDepartments();
+
             // Load user data for default department
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             if (userData.department) {
@@ -247,6 +241,27 @@
                 addItemRow();
             }
         });
+
+        async function loadDepartments() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/departments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const departments = await response.json();
+                    const select = document.getElementById('department');
+                    departments.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.name;
+                        opt.textContent = d.name;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load departments:', e);
+            }
+        }
 
         async function loadGRNs() {
             try {
