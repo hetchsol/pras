@@ -10207,6 +10207,32 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
     }
   };
 
+  // PDF preview/download is available at any stage, not just once issued.
+  const handlePreviewPDF = async () => {
+    try {
+      const blob = await api.downloadITEquipmentRequestPDF(requisition._id || requisition.id);
+      const file = new File([blob], `ITEquipmentRequest_${requisition.id}.pdf`, { type: 'application/pdf' });
+      window.open(window.URL.createObjectURL(file), '_blank');
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+  const handleDownloadPDF = async () => {
+    try {
+      const blob = await api.downloadITEquipmentRequestPDF(requisition._id || requisition.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ITEquipmentRequest_${requisition.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    }
+  };
+
   // The approve action reads differently at each stage of the chain.
   const approveLabel = actingRole === 'it' ? 'Issue Equipment' : 'Approve';
   const roleHint = actingRole === 'hr'
@@ -10219,9 +10245,13 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
     React.createElement('div', { className: "card card-lg" },
       React.createElement('div', { className: "card-header mb-6" },
         React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, "Review IT Equipment Request"),
-        React.createElement('span', {
-          className: `px-4 py-2 rounded-full text-sm font-medium border border-purple-400 text-purple-700 bg-transparent`
-        }, requisition.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
+        React.createElement('div', { className: "flex items-center gap-3" },
+          React.createElement(RowIconBtn, { icon: 'eye', label: 'Preview PDF', onClick: handlePreviewPDF }),
+          React.createElement(RowIconBtn, { icon: 'download', label: 'Download PDF', onClick: handleDownloadPDF }),
+          React.createElement('span', {
+            className: `px-4 py-2 rounded-full text-sm font-medium border border-purple-400 text-purple-700 bg-transparent`
+          }, requisition.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING')
+        )
       ),
 
       React.createElement('div', { className: "space-y-6" },
@@ -11142,9 +11172,8 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
     }
   };
 
-  const isApproved = (status) => {
-    return status === 'issued' || status === 'pending_issuance';
-  };
+  // PDF preview/download is useful at any stage, not just once issued.
+  const isApproved = () => true;
 
   if (loading) return React.createElement(SkeletonList);
 
