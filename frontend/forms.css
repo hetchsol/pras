@@ -11,8 +11,11 @@
 :root {
     --color-primary:       #0070AF;
     --color-primary-dark:  #005A8C;
+    --color-primary-light: #D0E3F2;
     --color-danger:        #EF4444;
     --color-danger-dark:   #DC2626;
+    --color-success:       #10B981;
+    --color-success-dark:  #059669;
     --text-primary:        #0B1220;
     --text-secondary:      #2A3441;
     --text-tertiary:       #5A6573;
@@ -20,6 +23,7 @@
     --bg-page:             #0070AF;
     --bg-card:             #FFFFFF;
     --bg-surface:          #F4F7FB;
+    --shadow-card: 0 24px 60px -16px rgba(11, 18, 32, 0.35), 0 8px 24px -8px rgba(11, 18, 32, 0.15);
 }
 
 /* ---- Reset ---- */
@@ -37,7 +41,8 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background: var(--bg-page);
+    background: radial-gradient(circle at 15% -10%, #1E8AC9 0%, transparent 45%), linear-gradient(160deg, var(--color-primary) 0%, var(--color-primary-dark) 55%, #003C5C 100%);
+    background-attachment: fixed;
     color: var(--text-primary);
     min-height: 100vh;
     padding: 20px;
@@ -56,19 +61,20 @@ body {
     gap: 8px;
     padding: 9px 18px;
     border: 2px solid transparent;
-    border-radius: 8px;
+    border-radius: 10px;
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
+.nav-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
 
 .nav-btn-home {
     background: #fff;
     color: var(--color-primary);
-    border-color: var(--color-primary);
+    border-color: transparent;
 }
 .nav-btn-home:hover {
     background: var(--color-primary);
@@ -76,33 +82,46 @@ body {
 }
 
 .nav-btn-back {
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--text-secondary);
-    border-color: var(--border-color);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.35);
 }
 .nav-btn-back:hover {
-    background: #fff;
-    border-color: #bbb;
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.6);
 }
 
 /* ---- Card container ---- */
 .container {
+    position: relative;
     margin: 0 auto;
     background: var(--bg-card);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-    padding: 36px 40px;
+    border-radius: 18px;
+    box-shadow: var(--shadow-card);
+    padding: 40px 44px;
+    overflow: hidden;
+}
+
+/* Top accent bar — a small signature touch instead of a flat white card. */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, #58A6D0 100%);
 }
 
 /* ---- Page title ---- */
 h1 {
     font-family: inherit;
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 800;
     color: var(--text-primary);
-    text-align: center;
-    margin-bottom: 28px;
+    text-align: left;
+    margin-bottom: 30px;
     letter-spacing: -0.02em;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 /* ---- Form sections ---- */
@@ -118,8 +137,18 @@ h1 {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 14px;
-    padding-bottom: 6px;
+    padding-bottom: 8px;
+    padding-left: 12px;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+.form-section h2::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 1px;
+    width: 4px; height: 12px;
+    border-radius: 2px;
+    background: var(--color-primary);
 }
 
 /* ---- Form layout ---- */
@@ -169,23 +198,24 @@ input[type="date"],
 input[type="email"],
 textarea,
 select {
-    padding: 9px 11px;
-    background: #fff;
+    padding: 10px 12px;
+    background: var(--bg-surface);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     font-family: inherit;
     font-size: 14px;
     line-height: 1.5;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
     outline: none;
+    background: #fff;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 112, 175, 0.12);
+    box-shadow: 0 0 0 3px rgba(0, 112, 175, 0.14);
 }
 
 input::placeholder,
@@ -210,6 +240,8 @@ textarea {
 .table-container {
     overflow-x: auto;
     margin: 16px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
 }
 
 table {
@@ -218,8 +250,8 @@ table {
 }
 
 th {
-    background: var(--color-primary);
-    color: #fff;
+    background: var(--bg-surface);
+    color: var(--text-tertiary);
     padding: 10px 12px;
     text-align: left;
     font-family: inherit;
@@ -227,15 +259,17 @@ th {
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
 }
 
 td {
-    padding: 9px 10px;
+    padding: 10px 10px;
     border-bottom: 1px solid var(--border-color);
     font-size: 13px;
     color: var(--text-primary);
 }
 
+tbody tr:hover td { background: var(--bg-surface); }
 tr:last-child td { border-bottom: none; }
 
 td input[type="text"],
@@ -263,23 +297,24 @@ td input[type="checkbox"] {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 22px;
+    padding: 11px 24px;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 9px;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
     background: var(--color-primary);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 112, 175, 0.35);
 }
-.btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 112, 175, 0.4); }
 
 .btn-secondary {
     background: var(--bg-surface);
@@ -293,7 +328,7 @@ td input[type="checkbox"] {
     color: #fff;
     padding: 7px 16px;
     font-size: 13px;
-    border-radius: 5px;
+    border-radius: 7px;
     margin-bottom: 10px;
 }
 .btn-add:hover { background: var(--color-primary-dark); }
@@ -303,7 +338,7 @@ td input[type="checkbox"] {
     color: #fff;
     padding: 4px 10px;
     font-size: 12px;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 .btn-danger:hover { background: var(--color-danger-dark); }
 
@@ -319,22 +354,24 @@ td input[type="checkbox"] {
 
 /* ---- Alerts ---- */
 .alert {
-    padding: 12px 16px;
-    border-radius: 6px;
+    padding: 13px 16px;
+    border-radius: 8px;
     margin-bottom: 16px;
     font-size: 14px;
     font-weight: 500;
     display: none;
+    border-left-width: 4px;
+    border-left-style: solid;
 }
 .alert-success {
-    background: #D1FAE5;
+    background: #ECFDF5;
     color: #065F46;
-    border: 1px solid #6EE7B7;
+    border-left-color: var(--color-success);
 }
 .alert-error {
-    background: #FEE2E2;
+    background: #FEF2F2;
     color: #991B1B;
-    border: 1px solid #FCA5A5;
+    border-left-color: var(--color-danger);
 }
 
 /* ---- Loading overlay (used by issue-slip, grn, picking-slip) ---- */
@@ -389,7 +426,7 @@ td input[type="checkbox"] {
 .totals-section {
     background: var(--bg-surface);
     padding: 18px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid var(--border-color);
     margin-top: 16px;
 }
@@ -433,13 +470,13 @@ td input[type="checkbox"] {
 
 /* ---- EFT amount display ---- */
 .amount-display {
-    background: #fff;
-    padding: 14px;
-    border-radius: 6px;
+    background: var(--color-primary-light);
+    padding: 16px;
+    border-radius: 10px;
     border: 1px solid var(--color-primary);
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--color-primary);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--color-primary-dark);
     text-align: center;
     margin: 12px 0;
     font-variant-numeric: tabular-nums;
@@ -447,9 +484,9 @@ td input[type="checkbox"] {
 
 .amount-words-display,
 .amount-words {
-    background: #fff;
+    background: var(--bg-surface);
     padding: 10px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
     min-height: 44px;
     font-style: italic;
@@ -467,7 +504,7 @@ td input[type="checkbox"] {
     border-left: 4px solid #D97706;
     background: #FEF3C7;
     color: var(--text-primary);
-    border-radius: 0 6px 6px 0;
+    border-radius: 0 8px 8px 0;
     font-size: 14px;
 }
 
@@ -482,7 +519,7 @@ td input[type="checkbox"] {
 /* Mobile (≤ 640px) */
 @media (max-width: 640px) {
     body { padding: 10px; }
-    .container { padding: 18px 14px; border-radius: 8px; }
+    .container { padding: 18px 14px; border-radius: 12px; }
     h1 { font-size: 17px; margin-bottom: 20px; }
     .form-grid { grid-template-columns: 1fr; gap: 12px; }
     .form-section { margin-bottom: 20px; }

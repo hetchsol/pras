@@ -82,6 +82,9 @@
             --color-warning-bg: #FEF3C7;
             --color-info: #0070AF;
             --color-info-bg: #D0E3F2;
+            --color-violet: #7C3AED;
+            --color-violet-dark: #6D28D9;
+            --color-violet-bg: #EDE9FE;
 
             /* Light Mode — white card on blue-tinted neutral page,
                near-black text with a slight blue undertone. */
@@ -133,6 +136,9 @@
             --color-warning-bg: rgba(245, 158, 11, 0.1);
             --color-info: #0070AF;
             --color-info-bg: rgba(0, 112, 175, 0.1);
+            --color-violet: #A78BFA;
+            --color-violet-dark: #C4B5FD;
+            --color-violet-bg: rgba(124, 58, 237, 0.15);
 
             /* Cards (--bg-primary) sit a step lighter than the page
                (--bg-secondary) so shadows lift them visibly off the surface.
@@ -1007,7 +1013,7 @@
             'use strict';
 
             // Version control - increment this when making changes
-            const APP_VERSION = '8.10.0';
+            const APP_VERSION = '8.13.0';
 
             console.log('Initializing Internal Approvals System v' + APP_VERSION);
 
@@ -1131,7 +1137,7 @@
     <!-- Load configuration -->
     <script src="config.js?v=1.0.0"></script>
     <!-- Load the application JavaScript -->
-    <script src="app.js?v=8.10.0"></script>
+    <script src="app.js?v=8.13.0"></script>
 
     <script>
         // Verify app loaded

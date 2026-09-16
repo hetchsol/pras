@@ -157,6 +157,16 @@ const ICON_DEFS = {
   ],
   chevronRight: [{ t: 'path', d: 'm9 6 6 6-6 6' }],
   chevronDown: [{ t: 'path', d: 'm6 9 6 6 6-6' }],
+  list: [
+    { t: 'path', d: 'M8 6h13M8 12h13M8 18h13' },
+    { t: 'path', d: 'M3 6h.01M3 12h.01M3 18h.01' }
+  ],
+  grid: [
+    { t: 'rect', x: 3, y: 3, width: 7, height: 7, rx: 1 },
+    { t: 'rect', x: 14, y: 3, width: 7, height: 7, rx: 1 },
+    { t: 'rect', x: 3, y: 14, width: 7, height: 7, rx: 1 },
+    { t: 'rect', x: 14, y: 14, width: 7, height: 7, rx: 1 }
+  ],
   chevronUp: [{ t: 'path', d: 'm18 15-6-6-6 6' }],
   sun: [
     { t: 'circle', cx: 12, cy: 12, r: 4 },
@@ -4086,6 +4096,13 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   const [showDeptSelection, setShowDeptSelection] = useState(false);
   const [selectedDept, setSelectedDept] = useState('');
   const [expandedReqKey, setExpandedReqKey] = useState(null);
+  const [breakdownViewMode, setBreakdownViewModeState] = useState(() => {
+    try { return localStorage.getItem('breakdownViewMode') || 'table'; } catch (e) { return 'table'; }
+  });
+  const setBreakdownViewMode = (mode) => {
+    setBreakdownViewModeState(mode);
+    try { localStorage.setItem('breakdownViewMode', mode); } catch (e) { /* private browsing etc — non-fatal */ }
+  };
   const eftAccess = useEFTAccess(user && user.role);
 
   const getRequisitionsForUser = () => {
@@ -4826,7 +4843,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             attrs: { href: 'petty-cash-requisition.html' }
           }),
           actionCard('itEquipment', 'IT Equipment Request', 'Request laptops, printers, or other IT equipment', {
-            icon: 'laptop', iconBg: '#EDE9FE', iconColor: '#6D28D9',
+            icon: 'laptop', iconBg: 'var(--color-violet-bg)', iconColor: 'var(--color-violet-dark)',
             attrs: { href: 'it-equipment-request.html' }
           })
         );
@@ -4843,7 +4860,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       onClick: () => setShowBreakdown(null)
     },
       React.createElement('div', {
-        className: "rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto",
+        className: "rounded-lg p-6 max-w-5xl w-full max-h-[80vh] overflow-auto",
         style: {
           backgroundColor: 'var(--bg-primary)',
           boxShadow: 'var(--shadow-lg)'
@@ -4864,11 +4881,29 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             showBreakdown === 'rejected' ? `Rejected Requisitions (${rejectedRequisitions.length})` :
             `Approved Requisitions (${approvedRequisitions.length})`
           ),
-          React.createElement('button', {
-            onClick: () => setShowBreakdown(null),
-            className: "text-2xl font-bold hover:opacity-70 transition-colors",
-            style: { color: 'var(--text-secondary)' }
-          }, '×')
+          React.createElement('div', { className: "flex items-center gap-3" },
+            React.createElement('div', {
+              className: "flex items-center rounded-lg p-0.5",
+              style: { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }
+            },
+              ['table', 'cards'].map(mode =>
+                React.createElement('button', {
+                  key: mode,
+                  onClick: () => setBreakdownViewMode(mode),
+                  title: mode === 'table' ? 'Table view' : 'Card view',
+                  className: "px-2.5 py-1.5 rounded-md transition-all",
+                  style: breakdownViewMode === mode
+                    ? { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' }
+                    : { backgroundColor: 'transparent', color: 'var(--text-tertiary)' }
+                }, React.createElement(Icon, { name: mode === 'table' ? 'list' : 'grid', size: 16 }))
+              )
+            ),
+            React.createElement('button', {
+              onClick: () => setShowBreakdown(null),
+              className: "text-2xl font-bold hover:opacity-70 transition-colors",
+              style: { color: 'var(--text-secondary)' }
+            }, '×')
+          )
         ),
 
         // Summary Section for Approved Forms (show breakdown by type)
@@ -4908,7 +4943,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, "EFT Requisitions:"),
               React.createElement('span', {
                 className: "text-sm font-bold",
-                style: { color: '#1E40AF' }
+                style: { color: 'var(--color-primary)' }
               }, approvedForms.filter(f => f.formType === 'eft').length)
             ),
             React.createElement('div', {
@@ -4921,7 +4956,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, "Petty Cash:"),
               React.createElement('span', {
                 className: "text-sm font-bold",
-                style: { color: '#059669' }
+                style: { color: 'var(--color-success-dark)' }
               }, approvedForms.filter(f => f.formType === 'petty_cash').length)
             ),
             React.createElement('div', {
@@ -4934,7 +4969,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, "Expense Claims:"),
               React.createElement('span', {
                 className: "text-sm font-bold",
-                style: { color: '#D97706' }
+                style: { color: 'var(--color-warning-dark)' }
               }, approvedForms.filter(f => f.formType === 'expense_claim').length)
             ),
             React.createElement('div', {
@@ -4947,7 +4982,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, "IT Equipment Requests:"),
               React.createElement('span', {
                 className: "text-sm font-bold",
-                style: { color: '#6D28D9' }
+                style: { color: 'var(--color-violet-dark)' }
               }, approvedForms.filter(f => f.formType === 'it_equipment').length)
             )
           ),
@@ -4966,330 +5001,295 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           )
         ),
 
-        // Modal Content - Requisitions and Forms List
-        React.createElement('div', { className: "space-y-3" },
-          (showBreakdown === 'total' ? allRequisitions :
+        // Modal Content - Requisitions and Forms List, table or cards
+        // (user's choice, remembered in localStorage). Click an item to
+        // expand full details below it (view-only); actions that change
+        // something stay as explicit buttons and always stop propagation
+        // so they don't also toggle the expansion.
+        (() => {
+          const isTotalView = showBreakdown === 'total';
+          const list = (showBreakdown === 'total' ? allRequisitions :
            showBreakdown === 'pending' ? pendingRequisitions :
            showBreakdown === 'rejected' ? rejectedRequisitions :
            approvedRequisitions)
             // Oldest first — nothing waiting on approval should be able to
             // quietly sink to the bottom of the list.
             .slice()
-            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-            .map(req => {
-            const reqKey = `${req.formType || 'req'}-${req.id}`;
-            const isTotalView = showBreakdown === 'total';
-            const isExpanded = isTotalView && expandedReqKey === reqKey;
-            return React.createElement('div', {
-              key: reqKey,
-              onClick: isTotalView ? () => setExpandedReqKey(isExpanded ? null : reqKey) : undefined,
-              className: "rounded-lg p-4 transition-all" + (isTotalView ? " cursor-pointer hover:shadow-md" : ""),
-              style: {
-                backgroundColor: 'var(--bg-secondary)',
-                borderWidth: '1px',
-                borderColor: isExpanded ? 'var(--color-primary)' : 'var(--border-color)'
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+          const getTypeBadgeStyle = (formType) => ({
+            backgroundColor: formType === 'expense_claim' ? 'var(--color-warning-bg)' :
+                            formType === 'eft' ? 'var(--color-primary-light)' :
+                            formType === 'it_equipment' ? 'var(--color-violet-bg)' : 'var(--color-success-bg)',
+            color: formType === 'expense_claim' ? 'var(--color-warning-dark)' :
+                   formType === 'eft' ? 'var(--color-primary)' :
+                   formType === 'it_equipment' ? 'var(--color-violet-dark)' : 'var(--color-success-dark)'
+          });
+
+          // Every action button a row/card can show, deduplicated across
+          // both view modes. Every button stops propagation so clicking it
+          // doesn't also toggle the expand state.
+          const getRowActions = (req) => {
+            const actions = [];
+            const roles = getUserRoles(user);
+            if (isApproved(req.status)) {
+              actions.push(React.createElement('button', {
+                key: 'preview',
+                onClick: (e) => { e.stopPropagation(); if (req.formType) previewFormPDF(req); else previewRequisitionPDF(req.id, req.req_number); },
+                className: "px-2 py-1 text-xs font-medium rounded hover:opacity-80 transition-all",
+                style: { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' },
+                title: `Preview ${req.displayType || 'Requisition'} PDF`
+              }, 'Preview'));
+              actions.push(React.createElement('button', {
+                key: 'download',
+                onClick: (e) => { e.stopPropagation(); if (req.formType) downloadFormPDF(req); else downloadRequisitionPDF(req.id, req.req_number); },
+                className: "px-2 py-1 text-xs font-medium rounded hover:opacity-80 transition-all",
+                style: { backgroundColor: 'var(--color-success)', color: '#FFFFFF' },
+                title: `Download ${req.displayType || 'Requisition'} PDF`
+              }, 'Download'));
+            }
+            if (showBreakdown === 'pending') {
+              // Quick Approve/Reject for HOD, Finance, and MD (NOT Procurement).
+              // HR and IT issuance route to the full review screen instead.
+              if ((roles.includes('hod') && req.status === 'pending_hod') ||
+                  (roles.some(r => ['finance', 'finance_manager'].includes(r)) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
+                  (roles.includes('md') && (req.status === 'pending_md' || req.status === 'finance_approved'))) {
+                actions.push(React.createElement('button', {
+                  key: 'approve', onClick: async (e) => { e.stopPropagation(); await handleQuickAction(req, 'approve'); },
+                  className: "px-2 py-1 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: { backgroundColor: 'var(--color-success)', color: '#FFFFFF' }
+                }, 'Approve'));
+                actions.push(React.createElement('button', {
+                  key: 'reject', onClick: async (e) => { e.stopPropagation(); await handleQuickAction(req, 'reject'); },
+                  className: "px-2 py-1 text-xs font-medium rounded border transition-all",
+                  style: { backgroundColor: 'transparent', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }
+                }, 'Reject'));
               }
-            },
-              React.createElement('div', { className: "flex items-center justify-between mb-2" },
-                React.createElement('div', { className: "flex items-center gap-2" },
-                  // Type leads and is the pronounced element here — the req
-                  // number is secondary, quieter reference text underneath it.
-                  req.formType && React.createElement('span', {
-                    className: "px-2.5 py-1 text-sm font-bold rounded",
-                    style: {
-                      backgroundColor: req.formType === 'expense_claim' ? '#FEF3C7' :
-                                      req.formType === 'eft' ? '#DBEAFE' :
-                                      req.formType === 'it_equipment' ? '#EDE9FE' : '#D1FAE5',
-                      color: req.formType === 'expense_claim' ? '#D97706' :
-                             req.formType === 'eft' ? '#1E40AF' :
-                             req.formType === 'it_equipment' ? '#6D28D9' : '#059669'
-                    }
-                  }, req.displayType),
-                  React.createElement('h3', {
-                    className: "text-xs font-medium transition-colors",
-                    style: { color: 'var(--text-tertiary)' }
-                  }, req.req_number || req.id)
-                ),
-                React.createElement('div', { className: "flex items-center gap-2" },
-                  // Show preview and download buttons for approved items (any approval status) - Available to ALL roles.
-                  // Suppressed in the Total Requisitions view — that list is expand-to-view only, no actions.
-                  !isTotalView && isApproved(req.status) &&
-                  React.createElement(React.Fragment, null,
-                    // Preview Button
-                    React.createElement('button', {
-                      onClick: (e) => {
-                        e.stopPropagation();
-                        if (req.formType) {
-                          previewFormPDF(req);
-                        } else {
-                          previewRequisitionPDF(req.id, req.req_number);
-                        }
-                      },
-                      className: "px-2 py-1 text-xs font-medium rounded hover:opacity-80 transition-all flex items-center gap-1",
-                      style: {
-                        backgroundColor: 'var(--color-primary)',
-                        color: '#FFFFFF'
-                      },
-                      title: `Preview ${req.displayType || 'Requisition'} PDF`
-                    },
-                      React.createElement('svg', { className: "w-3 h-3", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }),
-                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" })
-                      ),
-                      'Preview'
-                    ),
-                    // Download Button
-                    React.createElement('button', {
-                      onClick: (e) => {
-                        e.stopPropagation();
-                        if (req.formType) {
-                          downloadFormPDF(req);
-                        } else {
-                          downloadRequisitionPDF(req.id, req.req_number);
-                        }
-                      },
-                      className: "px-2 py-1 text-xs font-medium rounded hover:opacity-80 transition-all flex items-center gap-1",
-                      style: {
-                        backgroundColor: 'var(--color-success)',
-                        color: '#FFFFFF'
-                      },
-                      title: `Download ${req.displayType || 'Requisition'} PDF`
-                    },
-                      React.createElement('svg', { className: "w-3 h-3", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
-                      ),
-                      'Download'
-                    )
-                  ),
-                  React.createElement('span', {
-                    className: `badge ${getStatusColor(req.status)}`
-                  }, getStatusText(req.status)),
-                  isTotalView && React.createElement(Icon, {
-                    name: isExpanded ? 'chevronUp' : 'chevronDown',
-                    size: 16
-                  })
-                )
-              ),
-              // Quick Approval Buttons for HOD, Finance, and MD (NOT Procurement).
-              // HR and IT issuance are excluded here — HR must see the
-              // equipment details before approving (Review & Approve, below),
-              // and IT issuance needs make/model/serial on the detail screen.
-              showBreakdown === 'pending' && (
-                (getUserRoles(user).includes('hod') && req.status === 'pending_hod') ||
-                (getUserRoles(user).some(r => ['finance', 'finance_manager'].includes(r)) && (req.status === 'pending_finance' || req.status === 'hod_approved')) ||
-                (getUserRoles(user).includes('md') && (req.status === 'pending_md' || req.status === 'finance_approved'))
-              ) &&
-              React.createElement('div', { className: "flex items-center gap-2 mt-3" },
-                React.createElement('button', {
-                  onClick: async (e) => {
-                    e.stopPropagation();
-                    await handleQuickAction(req, 'approve');
-                  },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
-                  style: {
-                    backgroundColor: 'var(--color-success)',
-                    color: '#FFFFFF'
-                  }
-                }, 'Approve'),
-                React.createElement('button', {
-                  onClick: async (e) => {
-                    e.stopPropagation();
-                    await handleQuickAction(req, 'reject');
-                  },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded border transition-all",
-                  style: {
-                    backgroundColor: 'transparent',
-                    borderColor: 'var(--color-danger)',
-                    color: 'var(--color-danger)'
-                  }
-                }, 'Reject')
-              ),
-              // IT issuance step — route to the full review screen to capture
-              // make/model/serial number rather than issuing blind.
-              showBreakdown === 'pending' &&
-              getUserRoles(user).includes('it') &&
-              req.formType === 'it_equipment' &&
-              req.status === 'pending_issuance' &&
-              React.createElement('div', { className: "flex items-center gap-2 mt-3" },
-                React.createElement('button', {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    setSelectedReq(req);
-                    setView('approve-it-equipment');
-                  },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
-                  style: {
-                    backgroundColor: 'var(--color-success)',
-                    color: '#FFFFFF'
-                  }
-                }, 'Review to Issue'),
-                React.createElement('button', {
-                  onClick: async (e) => {
-                    e.stopPropagation();
-                    await handleQuickAction(req, 'reject');
-                  },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded border transition-all",
-                  style: {
-                    backgroundColor: 'transparent',
-                    borderColor: 'var(--color-danger)',
-                    color: 'var(--color-danger)'
-                  }
-                }, 'Reject')
-              ),
-              // HR verification step — route to the full review screen so the
-              // equipment details are seen before approving, rather than a
-              // blind one-click approve.
-              showBreakdown === 'pending' &&
-              getUserRoles(user).includes('hr') &&
-              req.formType === 'it_equipment' &&
-              req.status === 'pending_hr' &&
-              React.createElement('div', { className: "flex items-center gap-2 mt-3" },
-                React.createElement('button', {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    setSelectedReq(req);
-                    setView('approve-it-equipment');
-                  },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
-                  style: {
-                    backgroundColor: 'var(--color-success)',
-                    color: '#FFFFFF'
-                  }
-                }, 'Review & Approve'),
-                React.createElement('button', {
-                  onClick: async (e) => {
-                    e.stopPropagation();
-                    await handleQuickAction(req, 'reject');
-                  },
-                  className: "flex-1 px-3 py-1.5 text-xs font-medium rounded border transition-all",
-                  style: {
-                    backgroundColor: 'transparent',
-                    borderColor: 'var(--color-danger)',
-                    color: 'var(--color-danger)'
-                  }
-                }, 'Reject')
-              ),
-              // Adjudicate Button for Procurement (only for Purchase Requisitions)
-              showBreakdown === 'pending' &&
-              user.role === 'procurement' &&
-              req.status === 'pending_procurement' &&
-              req.formType === 'purchase_requisition' &&
-              React.createElement('div', { className: "mt-3" },
-                React.createElement('button', {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    setView('quotes-adjudication');
-                  },
-                  className: "w-full px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
-                  style: {
-                    backgroundColor: 'var(--color-primary)',
-                    color: '#FFFFFF'
-                  }
-                }, 'Adjudicate')
-              ),
-              // Admin Reroute Button — Purchase Requisitions and the
-              // HOD->Finance->MD staged forms (EFT, Petty Cash, Expense Claim)
-              // all share the same admin-override endpoints/shape.
-              showBreakdown === 'pending' &&
-              user.role === 'admin' &&
-              (!req.formType || ['purchase_requisition', 'eft', 'petty_cash', 'expense_claim'].includes(req.formType)) &&
-              React.createElement('div', { className: "mt-3" },
-                React.createElement('button', {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    handleAdminReroute(req);
-                  },
-                  className: "w-full px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
-                  style: {
-                    backgroundColor: 'var(--color-primary)',
-                    color: '#FFFFFF'
-                  }
-                }, 'Admin Reroute')
-              ),
-              // Reroute Button for IT Equipment Requests (admin or IT, any
-              // stage/status — not just pending). Opens the review screen,
-              // which has the actual stage-picker + reason form.
-              req.formType === 'it_equipment' &&
-              getUserRoles(user).some(r => ['admin', 'it'].includes(r)) &&
-              React.createElement('div', { className: "mt-3" },
-                React.createElement('button', {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    setSelectedReq(req);
-                    setView('approve-it-equipment');
-                  },
-                  className: "w-full px-3 py-1.5 text-xs font-medium rounded hover:opacity-90 transition-all",
-                  style: {
-                    backgroundColor: 'var(--color-primary)',
-                    color: '#FFFFFF'
-                  }
-                }, 'Reroute')
-              ),
-              React.createElement('p', {
-                className: "text-sm mb-2 transition-colors",
-                style: { color: 'var(--text-secondary)' }
-              }, req.description || req.title || req.purpose || req.employee_name || 'No description'),
-              React.createElement('div', { className: "flex items-center justify-between text-sm" },
-                React.createElement('span', {
-                  className: "transition-colors",
-                  style: { color: 'var(--text-tertiary)' }
-                }, `${req.department || 'N/A'} • Created: ${new Date(req.created_at).toLocaleDateString()}`),
-                React.createElement('span', {
-                  className: "font-bold transition-colors",
-                  style: { color: 'var(--text-primary)' }
-                }, `ZMW ${(req.amount || req.total_amount || req.total_claim || 0).toLocaleString()}`)
-              ),
-              // Expanded, read-only detail view — Total Requisitions modal only.
-              // No action buttons here on purpose; this is just for looking.
-              isExpanded && React.createElement('div', {
-                className: "mt-4 pt-4",
-                style: { borderTop: '1px solid var(--border-color)' }
-              },
-                React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mb-4" },
-                  getReqDetailFields(req).map(([label, value]) =>
-                    React.createElement('div', { key: label },
-                      React.createElement('div', {
-                        className: "text-xs uppercase tracking-wide",
-                        style: { color: 'var(--text-tertiary)' }
-                      }, label),
-                      React.createElement('div', {
-                        className: "text-sm",
-                        style: { color: 'var(--text-primary)' }
-                      }, String(value))
-                    )
-                  )
-                ),
-                Array.isArray(req.approvals) && req.approvals.length > 0 && React.createElement('div', null,
+              // IT issuance step — route to the review screen to capture make/model/serial.
+              if (roles.includes('it') && req.formType === 'it_equipment' && req.status === 'pending_issuance') {
+                actions.push(React.createElement('button', {
+                  key: 'reviewToIssue', onClick: (e) => { e.stopPropagation(); setSelectedReq(req); setView('approve-it-equipment'); },
+                  className: "px-2 py-1 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: { backgroundColor: 'var(--color-success)', color: '#FFFFFF' }
+                }, 'Review to Issue'));
+                actions.push(React.createElement('button', {
+                  key: 'rejectIt', onClick: async (e) => { e.stopPropagation(); await handleQuickAction(req, 'reject'); },
+                  className: "px-2 py-1 text-xs font-medium rounded border transition-all",
+                  style: { backgroundColor: 'transparent', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }
+                }, 'Reject'));
+              }
+              // HR verification step — route to the review screen rather than a blind one-click approve.
+              if (roles.includes('hr') && req.formType === 'it_equipment' && req.status === 'pending_hr') {
+                actions.push(React.createElement('button', {
+                  key: 'reviewApprove', onClick: (e) => { e.stopPropagation(); setSelectedReq(req); setView('approve-it-equipment'); },
+                  className: "px-2 py-1 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: { backgroundColor: 'var(--color-success)', color: '#FFFFFF' }
+                }, 'Review & Approve'));
+                actions.push(React.createElement('button', {
+                  key: 'rejectHr', onClick: async (e) => { e.stopPropagation(); await handleQuickAction(req, 'reject'); },
+                  className: "px-2 py-1 text-xs font-medium rounded border transition-all",
+                  style: { backgroundColor: 'transparent', borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }
+                }, 'Reject'));
+              }
+              // Adjudicate for Procurement (Purchase Requisitions only)
+              if (user.role === 'procurement' && req.status === 'pending_procurement' && req.formType === 'purchase_requisition') {
+                actions.push(React.createElement('button', {
+                  key: 'adjudicate', onClick: (e) => { e.stopPropagation(); setView('quotes-adjudication'); },
+                  className: "px-2 py-1 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' }
+                }, 'Adjudicate'));
+              }
+              // Admin Reroute — Purchase Requisitions and the HOD->Finance->MD staged forms.
+              if (user.role === 'admin' && (!req.formType || ['purchase_requisition', 'eft', 'petty_cash', 'expense_claim'].includes(req.formType))) {
+                actions.push(React.createElement('button', {
+                  key: 'adminReroute', onClick: (e) => { e.stopPropagation(); handleAdminReroute(req); },
+                  className: "px-2 py-1 text-xs font-medium rounded hover:opacity-90 transition-all",
+                  style: { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' }
+                }, 'Admin Reroute'));
+              }
+            }
+            // Reroute for IT Equipment Requests (admin or IT, any stage) — opens the
+            // review screen, which has the actual stage-picker + reason form.
+            if (req.formType === 'it_equipment' && roles.some(r => ['admin', 'it'].includes(r))) {
+              actions.push(React.createElement('button', {
+                key: 'reroute', onClick: (e) => { e.stopPropagation(); setSelectedReq(req); setView('approve-it-equipment'); },
+                className: "px-2 py-1 text-xs font-medium rounded hover:opacity-90 transition-all",
+                style: { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' }
+              }, 'Reroute'));
+            }
+            return actions;
+          };
+
+          const getExpandedPanel = (req) => React.createElement('div', null,
+            React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 mb-4" },
+              getReqDetailFields(req).map(([label, value]) =>
+                React.createElement('div', { key: label },
                   React.createElement('div', {
-                    className: "text-xs uppercase tracking-wide mb-2",
+                    className: "text-xs uppercase tracking-wide",
                     style: { color: 'var(--text-tertiary)' }
-                  }, 'Approval History'),
-                  React.createElement('div', { className: "space-y-2" },
-                    req.approvals.map((a, i) =>
-                      React.createElement('div', {
-                        key: i,
-                        className: "text-sm p-2 rounded",
-                        style: { backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }
-                      },
-                        React.createElement('div', { style: { color: 'var(--text-primary)' } },
-                          `${a.name || a.role || 'Unknown'} — ${a.action || ''}`
-                        ),
-                        a.comments && React.createElement('div', {
-                          className: "text-xs mt-0.5",
-                          style: { color: 'var(--text-secondary)' }
-                        }, a.comments),
-                        a.date && React.createElement('div', {
-                          className: "text-xs mt-0.5",
-                          style: { color: 'var(--text-tertiary)' }
-                        }, new Date(a.date).toLocaleString())
-                      )
-                    )
+                  }, label),
+                  React.createElement('div', {
+                    className: "text-sm",
+                    style: { color: 'var(--text-primary)' }
+                  }, String(value))
+                )
+              )
+            ),
+            Array.isArray(req.approvals) && req.approvals.length > 0 && React.createElement('div', null,
+              React.createElement('div', {
+                className: "text-xs uppercase tracking-wide mb-2",
+                style: { color: 'var(--text-tertiary)' }
+              }, 'Approval History'),
+              React.createElement('div', { className: "space-y-2" },
+                req.approvals.map((a, i) =>
+                  React.createElement('div', {
+                    key: i,
+                    className: "text-sm p-2 rounded",
+                    style: { backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }
+                  },
+                    React.createElement('div', { style: { color: 'var(--text-primary)' } },
+                      `${a.name || a.role || 'Unknown'} — ${a.action || ''}`
+                    ),
+                    a.comments && React.createElement('div', {
+                      className: "text-xs mt-0.5",
+                      style: { color: 'var(--text-secondary)' }
+                    }, a.comments),
+                    a.date && React.createElement('div', {
+                      className: "text-xs mt-0.5",
+                      style: { color: 'var(--text-tertiary)' }
+                    }, new Date(a.date).toLocaleString())
                   )
                 )
               )
+            )
+          );
+
+          if (list.length === 0) {
+            return React.createElement(EmptyState, { heading: `No ${showBreakdown} requisitions`, sub: 'Items will appear here.' });
+          }
+
+          if (breakdownViewMode === 'cards') {
+            return React.createElement('div', { className: "space-y-3" },
+              list.map(req => {
+                const reqKey = `${req.formType || 'req'}-${req.id}`;
+                const isExpanded = expandedReqKey === reqKey;
+                const actions = getRowActions(req);
+                return React.createElement('div', {
+                  key: reqKey,
+                  onClick: () => setExpandedReqKey(isExpanded ? null : reqKey),
+                  className: "rounded-lg p-4 transition-all cursor-pointer hover:shadow-md",
+                  style: { backgroundColor: 'var(--bg-secondary)', border: '1px solid ' + (isExpanded ? 'var(--color-primary)' : 'var(--border-color)') }
+                },
+                  React.createElement('div', { className: "flex items-center justify-between gap-3 mb-2" },
+                    React.createElement('div', { className: "flex items-center gap-2 min-w-0" },
+                      React.createElement(Icon, { name: isExpanded ? 'chevronUp' : 'chevronDown', size: 14 }),
+                      req.formType && React.createElement('span', {
+                        className: "px-2.5 py-1 text-sm font-bold rounded flex-shrink-0",
+                        style: getTypeBadgeStyle(req.formType)
+                      }, req.displayType),
+                      React.createElement('span', {
+                        className: "text-xs font-medium truncate",
+                        style: { color: 'var(--text-tertiary)' }
+                      }, req.req_number || req.id)
+                    ),
+                    React.createElement('span', { className: `badge ${getStatusColor(req.status)} flex-shrink-0` }, getStatusText(req.status))
+                  ),
+                  React.createElement('p', {
+                    className: "text-sm mb-2",
+                    style: { color: 'var(--text-secondary)' }
+                  }, req.description || req.title || req.purpose || req.employee_name || 'No description'),
+                  React.createElement('div', { className: "flex items-center justify-between text-sm" },
+                    React.createElement('span', { style: { color: 'var(--text-tertiary)' } },
+                      `${req.department || 'N/A'} • Created: ${new Date(req.created_at).toLocaleDateString()}`
+                    ),
+                    React.createElement('span', { className: "font-bold", style: { color: 'var(--text-primary)' } },
+                      `ZMW ${(req.amount || req.total_amount || req.total_claim || 0).toLocaleString()}`
+                    )
+                  ),
+                  actions.length > 0 && React.createElement('div', { className: "flex flex-wrap gap-2 mt-3 pt-3", style: { borderTop: '1px solid var(--border-color)' } }, actions),
+                  isExpanded && React.createElement('div', { className: "mt-4 pt-4", style: { borderTop: '1px solid var(--border-color)' } }, getExpandedPanel(req))
+                );
+              })
             );
-          })
-        )
+          }
+
+          // Table view (default)
+          return React.createElement('div', { className: "overflow-x-auto" },
+            React.createElement('table', { className: "w-full" },
+              React.createElement('thead', { style: { backgroundColor: 'var(--bg-secondary)' } },
+                React.createElement('tr', null,
+                  React.createElement('th', { className: "tbl-th" }, "Type"),
+                  React.createElement('th', { className: "tbl-th" }, "Description"),
+                  React.createElement('th', { className: "tbl-th" }, "Department"),
+                  React.createElement('th', { className: "tbl-th" }, "Amount"),
+                  React.createElement('th', { className: "tbl-th" }, "Status"),
+                  !isTotalView && React.createElement('th', { className: "tbl-th" }, "Actions")
+                )
+              ),
+              React.createElement('tbody', null,
+                list.flatMap(req => {
+                  const reqKey = `${req.formType || 'req'}-${req.id}`;
+                  const isExpanded = expandedReqKey === reqKey;
+                  const toggle = () => setExpandedReqKey(isExpanded ? null : reqKey);
+                  const actions = isTotalView ? [] : getRowActions(req);
+
+                  const rows = [
+                    React.createElement('tr', {
+                      key: reqKey,
+                      onClick: toggle,
+                      className: "cursor-pointer hover:bg-gray-50",
+                      style: isExpanded ? { backgroundColor: 'var(--bg-secondary)' } : undefined
+                    },
+                      React.createElement('td', { className: "tbl-td" },
+                        React.createElement('div', { className: "flex items-center gap-2" },
+                          React.createElement(Icon, { name: isExpanded ? 'chevronUp' : 'chevronDown', size: 14 }),
+                          React.createElement('div', null,
+                            req.formType && React.createElement('span', {
+                              className: "inline-block px-2.5 py-1 text-sm font-bold rounded",
+                              style: getTypeBadgeStyle(req.formType)
+                            }, req.displayType),
+                            React.createElement('div', {
+                              className: "text-xs font-medium mt-0.5",
+                              style: { color: 'var(--text-tertiary)' }
+                            }, req.req_number || req.id)
+                          )
+                        )
+                      ),
+                      React.createElement('td', {
+                        className: "tbl-td text-sm max-w-xs truncate",
+                        style: { color: 'var(--text-secondary)' },
+                        title: req.description || req.title || req.purpose || req.employee_name || ''
+                      }, req.description || req.title || req.purpose || req.employee_name || 'No description'),
+                      React.createElement('td', { className: "tbl-td text-sm", style: { color: 'var(--text-tertiary)' } }, req.department || 'N/A'),
+                      React.createElement('td', { className: "tbl-td text-sm font-bold", style: { color: 'var(--text-primary)' } },
+                        `ZMW ${(req.amount || req.total_amount || req.total_claim || 0).toLocaleString()}`
+                      ),
+                      React.createElement('td', { className: "tbl-td" },
+                        React.createElement('span', { className: `badge ${getStatusColor(req.status)}` }, getStatusText(req.status))
+                      ),
+                      // No action buttons in the Total Requisitions view — expand-to-view only, by design.
+                      !isTotalView && React.createElement('td', { className: "tbl-td" },
+                        React.createElement('div', { className: "flex flex-col gap-1 min-w-[130px]" }, actions)
+                      )
+                    )
+                  ];
+
+                  if (isExpanded) {
+                    rows.push(
+                      React.createElement('tr', { key: `${reqKey}-detail` },
+                        React.createElement('td', { colSpan: isTotalView ? 5 : 6, className: "px-6 py-4", style: { backgroundColor: 'var(--bg-secondary)' } },
+                          getExpandedPanel(req)
+                        )
+                      )
+                    );
+                  }
+
+                  return rows;
+                })
+              )
+            )
+          );
+        })()
       )
     ),
     React.createElement('div', {
@@ -11588,7 +11588,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
   return React.createElement('div', { className: "space-y-6" },
     React.createElement('div', { className: "card" },
       React.createElement('div', { className: "card-header mb-6" },
-        React.createElement(PageHeaderTitle, { icon: 'laptop', iconBg: '#EDE9FE', iconColor: '#6D28D9', title: 'IT Equipment Requests' }),
+        React.createElement(PageHeaderTitle, { icon: 'laptop', iconBg: 'var(--color-violet-bg)', iconColor: 'var(--color-violet-dark)', title: 'IT Equipment Requests' }),
         React.createElement('div', { className: "flex gap-3" },
           React.createElement('a', {
             href: 'it-equipment-request.html',
