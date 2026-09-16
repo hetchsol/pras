@@ -4083,6 +4083,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [rerouteReason, setRerouteReason] = useState('');
   const [showUserSelection, setShowUserSelection] = useState(false);
+  const [showDeptSelection, setShowDeptSelection] = useState(false);
+  const [selectedDept, setSelectedDept] = useState('');
   const [expandedReqKey, setExpandedReqKey] = useState(null);
   const eftAccess = useEFTAccess(user && user.role);
 
@@ -4508,10 +4510,15 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           comment
         };
       } else if (action === 'reassign_hod') {
-        // Reassign to different department/HOD
-        const newDept = prompt('Enter new department name:');
+        // Reassign to a different department — pick from the dropdown first.
+        if (!showDeptSelection) {
+          setShowDeptSelection(true);
+          return; // Don't proceed yet, wait for department selection
+        }
+
+        const newDept = selectedDept;
         if (!newDept) {
-          showToast('Department name is required');
+          showToast('Please select a department');
           return;
         }
 
@@ -4554,6 +4561,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       setSelectedUserId('');
       setRerouteReason('');
       setAvailableUsers([]);
+      setShowDeptSelection(false);
+      setSelectedDept('');
       await loadData();
 
     } catch (error) {
@@ -5547,6 +5556,56 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, 'Back')
             )
           ),
+          // Department Selection Interface (shown when reassign_hod is clicked)
+          showDeptSelection && React.createElement('div', {
+            className: "p-4 rounded border-2",
+            style: {
+              borderColor: 'var(--color-primary-dark)',
+              backgroundColor: 'var(--bg-secondary)'
+            }
+          },
+            React.createElement('h4', {
+              className: "font-semibold mb-3",
+              style: { color: 'var(--text-primary)' }
+            }, 'Select Department:'),
+            React.createElement('select', {
+              value: selectedDept,
+              onChange: (e) => setSelectedDept(e.target.value),
+              className: "form-input w-full mb-3",
+              style: {
+                backgroundColor: 'var(--bg-primary)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)'
+              }
+            },
+              React.createElement('option', { value: '' }, '-- Select Department --'),
+              (data.departments || [])
+                .filter(d => d.is_active !== 0)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(d => React.createElement('option', { key: d._id || d.id || d.name, value: d.name }, d.name))
+            ),
+            React.createElement('div', { className: "flex gap-2" },
+              React.createElement('button', {
+                onClick: () => handleRerouteSubmit('reassign_hod'),
+                className: "flex-1 px-4 py-2 rounded font-semibold hover:opacity-90 transition-all",
+                style: {
+                  backgroundColor: 'var(--color-primary)',
+                  color: '#FFFFFF'
+                }
+              }, 'Submit Reassignment'),
+              React.createElement('button', {
+                onClick: () => {
+                  setShowDeptSelection(false);
+                  setSelectedDept('');
+                },
+                className: "flex-1 px-4 py-2 rounded hover:opacity-90 transition-all",
+                style: {
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)'
+                }
+              }, 'Back')
+            )
+          ),
           React.createElement('button', {
             onClick: () => {
               setShowAdminReroute(false);
@@ -5554,6 +5613,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               setSelectedUserId('');
               setRerouteReason('');
               setAvailableUsers([]);
+              setShowDeptSelection(false);
+              setSelectedDept('');
             },
             className: "w-full px-4 py-2 rounded hover:opacity-90 transition-all",
             style: {
