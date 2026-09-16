@@ -1,9 +1,21 @@
 # Admin Reroute Expansion — Plan (drafted 2026-07-02)
 
-Not implemented yet — saved for a future session. Goal: let an admin
-reroute *any* item stuck in an approval workflow to a different
-specific approver, not just Purchase Requisitions (the only entity
-that has this today).
+**Update 2026-09-16**: EFT, Petty Cash and Expense Claim now have
+working "Admin Reroute" (Skip Stage / Reassign Department) from the
+Dashboard's Pending breakdown modal, reusing their pre-existing
+`admin-override` endpoints — those endpoints already supported
+`skip_stage`/`reassign_department` but the UI button that opens the
+reroute modal was gated to Purchase Requisitions only
+(`frontend/app.js`, Dashboard component, ~line 5112). "Assign to
+Specific User" stays Purchase-Requisition-only since that action calls
+the generic `/api/admin/reroute/:id` endpoint, which is hardcoded to
+the `Requisition` model (§3c below is still unresolved for the other
+three). GRN and Issue Slip remain unimplemented (§3a/§3b below).
+
+Originally: not implemented yet — saved for a future session. Goal: let
+an admin reroute *any* item stuck in an approval workflow to a
+different specific approver, not just Purchase Requisitions (the only
+entity that has this today).
 
 ---
 
