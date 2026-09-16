@@ -592,6 +592,20 @@ const api = {
     return res.json();
   },
 
+  getEntryCounts: async () => {
+    const res = await fetchWithAuth(`${API_URL}/admin/entry-counts`);
+    if (!res.ok) throw new Error('Failed to fetch entry counts');
+    return res.json();
+  },
+  emptyEntryType: async (type) => {
+    const res = await fetchWithAuth(`${API_URL}/admin/entries/${type}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to empty collection');
+    }
+    return res.json();
+  },
+
   rerouteITEquipmentRequest: async (requestId, new_status, comment) => {
     const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${requestId}/admin-override`, {
       method: 'PUT',
@@ -2417,6 +2431,7 @@ function App() {
         view === 'purchase-orders-list' && React.createElement(PurchaseOrders, { user: currentUser }),
         view === 'incoming-prs' && React.createElement(IncomingPRsView, { user: currentUser, setView, setSelectedReq }),
         view === 'admin' && React.createElement(AdminPanel, { data, loadData }),
+        view === 'data-management' && React.createElement(DataManagementPanel, { user: currentUser }),
         view === 'dept-budget' && React.createElement(HODBudgetView, { user: currentUser }),
         view === 'budget' && React.createElement(BudgetManagement, { user: currentUser, allDepartments: data.departments }),
         view === 'fx-rates' && React.createElement(FXRatesManagement, { user: currentUser }),
@@ -3323,7 +3338,11 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
       ]
     },
     // Admin Panel
-    { id: 'admin', label: 'Administration', show: hasRole(getUserRoles(user), 'admin') }
+    { id: 'admin', label: 'Administration', show: hasRole(getUserRoles(user), 'admin') },
+    // Full historical reset (live counts + delete-all per collection),
+    // admin or IT — separate from Administration since IT doesn't manage
+    // users/vendors/departments.
+    { id: 'data-management', label: 'Data Management', show: hasRole(getUserRoles(user), 'admin', 'it') }
   ];
 
   const mobileDrawerStyle = isMobile ? {
@@ -6780,6 +6799,87 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
             onClick: () => setView('dashboard'),
             className: "btn-secondary btn-lg"
           }, "Back")
+        )
+      )
+    )
+  );
+}
+
+// Admin/IT tool for a full historical reset: shows a live count per
+// collection and lets each be wiped independently. The backend backs up to
+// JSON before deleting anything, but this is still a real, irreversible
+// production delete from the app's point of view — hence the typed
+// confirmation rather than a plain confirm() dialog.
+function DataManagementPanel({ user }) {
+  const [counts, setCounts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busyKey, setBusyKey] = useState(null);
+
+  const fetchCounts = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getEntryCounts();
+      setCounts(data);
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchCounts(); }, []);
+
+  const handleEmpty = async (entry) => {
+    const typed = prompt(`This will PERMANENTLY delete all ${entry.count} "${entry.label}" entries (a JSON backup is saved on the server first, but they will disappear from the app). Type DELETE to confirm.`);
+    if (typed !== 'DELETE') {
+      if (typed !== null) showToast('Confirmation text did not match — nothing was deleted');
+      return;
+    }
+    setBusyKey(entry.key);
+    try {
+      const result = await api.emptyEntryType(entry.key);
+      showToast(`${entry.label}: deleted ${result.deleted} (backed up first)`);
+      fetchCounts();
+    } catch (error) {
+      showToast('Error: ' + error.message);
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  if (loading) return React.createElement(SkeletonList, { rows: 6 });
+
+  return React.createElement('div', { className: "space-y-6" },
+    React.createElement('div', { className: "card" },
+      React.createElement('div', { className: "card-header mb-6" },
+        React.createElement(PageHeaderTitle, { icon: 'xCircle', iconBg: 'var(--color-danger-bg)', iconColor: 'var(--color-danger)', title: 'Data Management' }),
+        React.createElement('button', { onClick: fetchCounts, className: "btn-primary" }, 'Refresh')
+      ),
+      React.createElement('p', { className: "text-sm mb-6", style: { color: 'var(--text-tertiary)' } },
+        "Every entry is backed up to a JSON file on the server before it's deleted. This can't be undone from inside the app — type DELETE to confirm each one."
+      ),
+      React.createElement('table', { className: "w-full" },
+        React.createElement('thead', { style: { backgroundColor: 'var(--bg-secondary)' } },
+          React.createElement('tr', null,
+            React.createElement('th', { className: "tbl-th" }, "Type"),
+            React.createElement('th', { className: "tbl-th" }, "Current Count"),
+            React.createElement('th', { className: "tbl-th" }, "Action")
+          )
+        ),
+        React.createElement('tbody', { className: "divide-y divide-gray-200" },
+          counts.map(entry =>
+            React.createElement('tr', { key: entry.key },
+              React.createElement('td', { className: "tbl-td font-medium" }, entry.label),
+              React.createElement('td', { className: "tbl-td font-semibold" }, entry.count),
+              React.createElement('td', { className: "tbl-td" },
+                React.createElement('button', {
+                  onClick: () => handleEmpty(entry),
+                  disabled: entry.count === 0 || busyKey === entry.key,
+                  className: "btn-danger btn-sm"
+                }, busyKey === entry.key ? 'Deleting...' : 'Delete All')
+              )
+            )
+          )
         )
       )
     )

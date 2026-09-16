@@ -227,6 +227,57 @@ function registerFormDeleteRoute(path, getModel, label) {
   });
 }
 
+// Data Management: live per-collection counts + "empty this collection",
+// admin/IT only. Same safety model as scripts/archiveEntriesBeforeDate.js
+// (backup to JSON before deleting anything) but reachable from the UI for
+// a full historical reset instead of running a script from the terminal.
+// Model refs are lazy (getModel()) since IssueSlip/PickingSlip/
+// GoodsReceiptNote are required further down this file.
+const DATA_MANAGEMENT_COLLECTIONS = [
+  { key: 'purchase_requisitions', label: 'Purchase Requisitions', getModel: () => db.Requisition },
+  { key: 'eft', label: 'EFT Requisitions', getModel: () => db.EFTRequisition },
+  { key: 'petty_cash', label: 'Petty Cash Requisitions', getModel: () => db.PettyCashRequisition },
+  { key: 'expense_claims', label: 'Expense Claims', getModel: () => db.ExpenseClaim },
+  { key: 'issue_slips', label: 'Issue Slips', getModel: () => IssueSlip },
+  { key: 'picking_slips', label: 'Picking Slips', getModel: () => PickingSlip },
+  { key: 'grns', label: 'GRNs', getModel: () => GoodsReceiptNote },
+  { key: 'it_equipment', label: 'IT Equipment Requests', getModel: () => db.ITEquipmentRequest }
+];
+
+app.get('/api/admin/entry-counts', authenticate, authorizeAny('admin', 'it'), async (req, res) => {
+  try {
+    const counts = await Promise.all(DATA_MANAGEMENT_COLLECTIONS.map(async ({ key, label, getModel }) => ({
+      key, label, count: await getModel().countDocuments()
+    })));
+    res.json(counts);
+  } catch (error) {
+    console.error('Error fetching entry counts:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/entries/:type', authenticate, authorizeAny('admin', 'it'), async (req, res) => {
+  try {
+    const entry = DATA_MANAGEMENT_COLLECTIONS.find(c => c.key === req.params.type);
+    if (!entry) {
+      return res.status(400).json({ error: `Unknown type: ${req.params.type}` });
+    }
+    const Model = entry.getModel();
+    const docs = await Model.find().lean();
+
+    // Back up everything before deleting anything, same as the archive script.
+    const backupDir = path.join(__dirname, 'backups', `empty-${entry.key}-${new Date().toISOString().replace(/[:.]/g, '-')}`);
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, `${entry.key}.json`), JSON.stringify(docs, null, 2));
+
+    const result = await Model.deleteMany({});
+    res.json({ success: true, backedUp: docs.length, deleted: result.deletedCount });
+  } catch (error) {
+    console.error(`Error emptying ${req.params.type}:`, error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Map MongoDB requisition fields to frontend-expected field names
 const mapRequisitionFields = (req) => {
   if (!req) return req;
