@@ -3694,7 +3694,11 @@ function UserAvatar({ name, size = 40, fontSize = 15 }) {
 
 function TopBar({ user, logout, setView, isMobile, setSidebarOpen }) {
   const name = user.full_name || user.name || '';
-  const firstName = name.split(' ')[0] || '';
+  // full_name is entered "Surname Firstname" throughout this org's user
+  // records (e.g. "Mbunda Haggai", "Chabala John") — the word right after
+  // the surname is what someone actually goes by, not the first word.
+  const nameParts = name.trim().split(/\s+/).filter(Boolean);
+  const firstName = (nameParts.length > 1 ? nameParts[1] : nameParts[0]) || '';
   const roleLabel = user.role ? user.role.replace(/_/g, ' ').toUpperCase() : 'USER';
 
   return React.createElement('div', {
@@ -4741,7 +4745,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         metricCard('Rejected', rejectedRequisitions.length, () => setShowBreakdown('rejected'), 'xCircle', 'var(--color-danger-bg)', 'var(--color-danger-dark)')
       ];
       if (!hasRole(getUserRoles(user), 'initiator')) cards.push(metricCard('Total Value', totalValue, null, 'banknote', 'var(--color-primary-light)', 'var(--color-primary)'));
-      return React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-3" }, cards);
+      // 5 cards need 5 columns on desktop, not 4 — otherwise the 5th wraps
+      // to its own row and adds a whole extra row of height for one card.
+      const gridColsClass = cards.length >= 5 ? 'sm:grid-cols-3 md:grid-cols-5' : 'sm:grid-cols-2 md:grid-cols-4';
+      return React.createElement('div', { className: `grid grid-cols-1 ${gridColsClass} gap-3` }, cards);
     })(),
 
     // Quick Actions - Forms Section
