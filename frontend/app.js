@@ -4971,7 +4971,12 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           (showBreakdown === 'total' ? allRequisitions :
            showBreakdown === 'pending' ? pendingRequisitions :
            showBreakdown === 'rejected' ? rejectedRequisitions :
-           approvedRequisitions).map(req => {
+           approvedRequisitions)
+            // Oldest first — nothing waiting on approval should be able to
+            // quietly sink to the bottom of the list.
+            .slice()
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            .map(req => {
             const reqKey = `${req.formType || 'req'}-${req.id}`;
             const isTotalView = showBreakdown === 'total';
             const isExpanded = isTotalView && expandedReqKey === reqKey;
@@ -4987,9 +4992,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             },
               React.createElement('div', { className: "flex items-center justify-between mb-2" },
                 React.createElement('div', { className: "flex items-center gap-2" },
-                  // Show form type badge for forms
+                  // Type leads and is the pronounced element here — the req
+                  // number is secondary, quieter reference text underneath it.
                   req.formType && React.createElement('span', {
-                    className: "px-2 py-1 text-xs font-semibold rounded",
+                    className: "px-2.5 py-1 text-sm font-bold rounded",
                     style: {
                       backgroundColor: req.formType === 'expense_claim' ? '#FEF3C7' :
                                       req.formType === 'eft' ? '#DBEAFE' :
@@ -5000,8 +5006,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                     }
                   }, req.displayType),
                   React.createElement('h3', {
-                    className: "font-bold transition-colors",
-                    style: { color: 'var(--color-primary)' }
+                    className: "text-xs font-medium transition-colors",
+                    style: { color: 'var(--text-tertiary)' }
                   }, req.req_number || req.id)
                 ),
                 React.createElement('div', { className: "flex items-center gap-2" },
