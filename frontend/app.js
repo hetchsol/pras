@@ -3243,6 +3243,15 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
   const [expandedMenus, setExpandedMenus] = useState({});
   const eftAccess = useEFTAccess(user && user.role);
   const canControlBypass = ['admin', 'finance_manager', 'md'].includes(user && user.role) || (user && user.username === 'hetch.mbunda');
+  // Role-agnostic "is the scheduled window naturally open right now" check,
+  // used only to decide whether the bypass toggle is needed. eftAccess
+  // itself can't be used for this: admins always have canApprove === true
+  // regardless of the time window, which would permanently disable the
+  // toggle for the very role most likely to control it.
+  const eftWindowNaturallyOpen = (() => {
+    const generic = getEFTAccessClient('initiator');
+    return generic.canCreate || generic.canApprove;
+  })();
   const [bypassEnabled, setBypassEnabled] = useState(false);
   const [bypassUntil, setBypassUntil] = useState(null);
   const [bypassLoading, setBypassLoading] = useState(false);
@@ -3273,7 +3282,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
 
   const handleBypassToggleClick = () => {
     if (!canControlBypass || bypassLoading) return;
-    if (!bypassEnabled && (eftAccess.canCreate || eftAccess.canApprove)) return; // within window, bypass not needed
+    if (!bypassEnabled && eftWindowNaturallyOpen) return; // within window, bypass not needed
     if (bypassEnabled) {
       // Turn off immediately
       setBypassLoading(true);
@@ -3411,7 +3420,7 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass,
           toggled: bypassEnabled, loading: bypassLoading,
           // Only interactive when locked out (time window not active) OR bypass is already on to allow turning it off
-          disabled: !bypassEnabled && (eftAccess.canCreate || eftAccess.canApprove),
+          disabled: !bypassEnabled && eftWindowNaturallyOpen,
           onToggle: handleBypassToggleClick,
           pickerOpen: bypassPickerOpen, pickerValue: bypassUntilInput,
           onPickerChange: setBypassUntilInput, onPickerConfirm: handleBypassConfirm,
