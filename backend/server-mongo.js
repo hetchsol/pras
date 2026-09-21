@@ -274,8 +274,8 @@ function registerRecallRoutes(basePath, getModel, label, firstStage) {
       if (String(doc.initiator_id) !== String(req.user.id)) {
         return res.status(403).json({ error: `You can only resubmit your own ${label.toLowerCase()}` });
       }
-      if (doc.status !== 'recalled') {
-        return res.status(400).json({ error: `Only a recalled ${label.toLowerCase()} can be resubmitted` });
+      if (!['recalled', 'rejected'].includes(doc.status)) {
+        return res.status(400).json({ error: `Only a recalled or rejected ${label.toLowerCase()} can be resubmitted` });
       }
       doc.status = firstStage;
       logHistory(doc, req.user, 'resubmitted', 'Resubmitted by submitter');
@@ -295,13 +295,45 @@ function registerRecallRoutes(basePath, getModel, label, firstStage) {
       if (String(doc.initiator_id) !== String(req.user.id)) {
         return res.status(403).json({ error: `You can only discard your own ${label.toLowerCase()}` });
       }
-      if (doc.status !== 'recalled') {
-        return res.status(400).json({ error: `Only a recalled ${label.toLowerCase()} can be discarded` });
+      if (!['recalled', 'rejected'].includes(doc.status)) {
+        return res.status(400).json({ error: `Only a recalled or rejected ${label.toLowerCase()} can be discarded` });
       }
       await getModel().deleteOne({ _id: doc._id });
       res.json({ success: true });
     } catch (error) {
       console.error(`Error discarding ${label.toLowerCase()}:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+}
+
+// Edit a rejected or recalled submission's own fields, initiator-only.
+// A plain field patch — no approval history entry (the paired Resubmit
+// action already logs one). editableFields is an explicit whitelist so
+// this can never be used to smuggle in a status/initiator_id/approvals
+// change; only fields the caller lists are ever copied from the body.
+function registerFormEditRoute(basePath, getModel, label, editableFields) {
+  app.put(`${basePath}/:id`, authenticate, async (req, res) => {
+    try {
+      const Model = getModel();
+      let doc = null;
+      try { doc = await Model.findById(req.params.id); } catch (e) { /* not an ObjectId — fall through */ }
+      if (!doc) doc = await Model.findOne({ id: req.params.id });
+      if (!doc) return res.status(404).json({ error: `${label} not found` });
+      if (String(doc.initiator_id) !== String(req.user.id)) {
+        return res.status(403).json({ error: `You can only edit your own ${label.toLowerCase()}` });
+      }
+      if (!['rejected', 'recalled'].includes(String(doc.status || '').toLowerCase())) {
+        return res.status(400).json({ error: `Can only edit a ${label.toLowerCase()} that is rejected or recalled` });
+      }
+      editableFields.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) doc[field] = req.body[field];
+      });
+      doc.updated_at = new Date();
+      await doc.save();
+      res.json({ success: true, message: `${label} updated` });
+    } catch (error) {
+      console.error(`Error editing ${label.toLowerCase()}:`, error);
       res.status(500).json({ error: 'Server error' });
     }
   });
@@ -1190,8 +1222,8 @@ app.put('/api/requisitions/:id/resubmit', authenticate, async (req, res) => {
     if (String(reqDoc.initiator_id) !== String(req.user.id)) {
       return res.status(403).json({ error: 'You can only resubmit your own requisition' });
     }
-    if (reqDoc.status !== 'recalled') {
-      return res.status(400).json({ error: 'Only a recalled requisition can be resubmitted' });
+    if (!['recalled', 'rejected'].includes(reqDoc.status)) {
+      return res.status(400).json({ error: 'Only a recalled or rejected requisition can be resubmitted' });
     }
     reqDoc.status = 'pending_hod';
     reqDoc.updated_at = new Date();
@@ -1217,8 +1249,8 @@ app.delete('/api/requisitions/:id/discard', authenticate, async (req, res) => {
     if (String(reqDoc.initiator_id) !== String(req.user.id)) {
       return res.status(403).json({ error: 'You can only discard your own requisition' });
     }
-    if (reqDoc.status !== 'recalled') {
-      return res.status(400).json({ error: 'Only a recalled requisition can be discarded' });
+    if (!['recalled', 'rejected'].includes(reqDoc.status)) {
+      return res.status(400).json({ error: 'Only a recalled or rejected requisition can be discarded' });
     }
     await db.Requisition.deleteOne({ _id: reqDoc._id });
     res.json({ success: true });
@@ -3244,6 +3276,21 @@ registerRecallRoutes('/api/forms/eft-requisitions', () => db.EFTRequisition, 'EF
 registerRecallRoutes('/api/forms/petty-cash-requisitions', () => db.PettyCashRequisition, 'Petty cash requisition', 'pending_hod');
 registerRecallRoutes('/api/forms/expense-claims', () => db.ExpenseClaim, 'Expense claim', 'pending_hod');
 registerRecallRoutes('/api/forms/it-equipment-requests', () => db.ITEquipmentRequest, 'IT equipment request', 'pending_hr');
+
+// Edit a rejected/recalled submission's own fields before resubmitting.
+// Purchase Requisition never had this route at all (its old My
+// Submissions "Edit" flow called a PUT /api/requisitions/:id that
+// didn't exist — a pre-existing dead end, now fixed here too).
+registerFormEditRoute('/api/requisitions', () => db.Requisition, 'Purchase requisition',
+  ['description', 'delivery_location', 'urgency', 'required_date', 'account_code', 'quantity', 'unit_price', 'total_cost', 'selected_vendor', 'vendor_currency']);
+registerFormEditRoute('/api/forms/eft-requisitions', () => db.EFTRequisition, 'EFT requisition',
+  ['in_favour_of', 'amount', 'amount_in_words', 'bank_name', 'bank_account_number', 'branch', 'purpose', 'description', 'account_code']);
+registerFormEditRoute('/api/forms/petty-cash-requisitions', () => db.PettyCashRequisition, 'Petty cash requisition',
+  ['payee_name', 'department', 'purpose', 'description', 'amount', 'amount_in_words']);
+registerFormEditRoute('/api/forms/expense-claims', () => db.ExpenseClaim, 'Expense claim',
+  ['employee_name', 'employee_number', 'department', 'reason_for_trip', 'total_kilometers', 'km_rate', 'total_claim', 'amount_advanced', 'amount_due']);
+registerFormEditRoute('/api/forms/it-equipment-requests', () => db.ITEquipmentRequest, 'IT equipment request',
+  ['requester_name', 'department', 'equipment_description', 'quantity', 'justification']);
 
 // Redirect an IT Equipment Request to any stage (admin or IT). Lets a stuck
 // or mis-routed ticket be sent back to HR/MD/IT (or resolved directly)

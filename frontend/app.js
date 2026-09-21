@@ -191,6 +191,7 @@ const ICON_DEFS = {
 
 // Maps sidebar group/top-level item ids to an icon name, purely presentational.
 const SIDEBAR_ICON_BY_ID = {
+  'my-work-group': 'inbox',
   'procurement-group': 'folder',
   'forms-group': 'wallet',
   'stores-group': 'box',
@@ -2197,6 +2198,106 @@ function ToastItem({ toast, onDismiss }) {
   );
 }
 
+// ============================================
+// CONFIRM / PROMPT DIALOG SYSTEM
+// Replaces window.confirm()/window.prompt() with an in-app modal that
+// matches the rest of the UI (themed, rounded, dark-mode aware) instead
+// of the browser's unstyled native dialog. Registered the same way as
+// ToastContainer's window.showToast above — mounted once at the app
+// root, exposes global confirmDialog()/promptDialog() functions any
+// code can call and await.
+// ============================================
+function ConfirmDialogHost() {
+  const [state, setState] = useState(null);
+  const resolveRef = React.useRef(null);
+
+  useEffect(() => {
+    window.confirmDialog = (message, opts) => {
+      opts = opts || {};
+      return new Promise((resolve) => {
+        resolveRef.current = resolve;
+        setState({
+          kind: 'confirm',
+          message,
+          title: opts.title || 'Please confirm',
+          confirmText: opts.confirmText || 'Confirm',
+          cancelText: opts.cancelText || 'Cancel',
+          danger: !!opts.danger
+        });
+      });
+    };
+    window.promptDialog = (message, opts) => {
+      opts = opts || {};
+      return new Promise((resolve) => {
+        resolveRef.current = resolve;
+        setState({
+          kind: 'prompt',
+          message,
+          title: opts.title || 'Input needed',
+          confirmText: opts.confirmText || 'OK',
+          cancelText: opts.cancelText || 'Cancel',
+          placeholder: opts.placeholder || '',
+          value: opts.defaultValue || ''
+        });
+      });
+    };
+    return () => { delete window.confirmDialog; delete window.promptDialog; };
+  }, []);
+
+  if (!state) return null;
+
+  const close = (result) => {
+    const resolve = resolveRef.current;
+    resolveRef.current = null;
+    setState(null);
+    if (resolve) resolve(result);
+  };
+  const cancelValue = state.kind === 'confirm' ? false : null;
+
+  return React.createElement('div', {
+    className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4",
+    style: { zIndex: 100000 },
+    onClick: () => close(cancelValue)
+  },
+    React.createElement('div', {
+      className: "rounded-lg p-6 max-w-md w-full",
+      style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' },
+      onClick: (e) => e.stopPropagation()
+    },
+      React.createElement('h3', {
+        className: "text-lg font-bold mb-3",
+        style: { color: 'var(--text-primary)' }
+      }, state.title),
+      React.createElement('p', {
+        className: "text-sm mb-4",
+        style: { color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }
+      }, state.message),
+      state.kind === 'prompt' && React.createElement('input', {
+        type: 'text',
+        autoFocus: true,
+        value: state.value,
+        placeholder: state.placeholder,
+        onChange: (e) => setState({ ...state, value: e.target.value }),
+        onKeyDown: (e) => { if (e.key === 'Enter') close(state.value); },
+        className: "form-input w-full mb-4",
+        style: { backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }
+      }),
+      React.createElement('div', { className: "flex justify-end gap-3" },
+        React.createElement('button', {
+          onClick: () => close(cancelValue),
+          className: "px-4 py-2 rounded-lg text-sm font-medium",
+          style: { backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }
+        }, state.cancelText),
+        React.createElement('button', {
+          onClick: () => close(state.kind === 'confirm' ? true : state.value),
+          className: "px-4 py-2 rounded-lg text-sm font-medium",
+          style: { backgroundColor: state.danger ? 'var(--color-danger)' : 'var(--color-primary)', color: '#FFFFFF' }
+        }, state.confirmText)
+      )
+    )
+  );
+}
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
@@ -2470,7 +2571,8 @@ function App() {
         view === 'picking-slips' && React.createElement(PickingSlipsList, { user: currentUser, setView, setSelectedReq })
       )
     ),
-    React.createElement(ToastContainer, null)
+    React.createElement(ToastContainer, null),
+    React.createElement(ConfirmDialogHost, null)
   );
 }
 
@@ -3265,32 +3367,42 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
   };
 
   const menuItems = [
-    // Procurement Group - All requisition-related items
+    // My Work Group — cross-cutting personal views. These four screens
+    // (My Submissions, Pending Approvals, Approved Submissions, Rejected
+    // Submissions) all show items across every form type, not just
+    // Purchase Requisitions, so they get their own group instead of
+    // living under "Procurement" where they don't really belong.
+    {
+      id: 'my-work-group',
+      label: 'My Work',
+      show: true,
+      isGroup: true,
+      children: [
+        { id: 'requisitions', label: 'My Submissions', show: true },
+        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(getUserRoles(user), ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) },
+        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
+        { id: 'rejected', label: 'Rejected Submissions', show: true }
+      ]
+    },
+    // Procurement Group - Purchase Requisition-specific actions only
     {
       id: 'procurement-group',
       label: 'Procurement',
       show: true,
       isGroup: true,
       children: [
-        { id: 'requisitions', label: 'My Submissions', show: true },
         { id: 'create', label: 'Create Requisition', show: hasRole(getUserRoles(user), 'initiator', 'procurement', 'admin') },
         { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(getUserRoles(user), 'procurement', 'admin') },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(getUserRoles(user), ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) },
-        { id: 'purchase-orders', label: 'Approved Submissions', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
-        { id: 'purchase-orders-list', label: 'Purchase Requisition', show: hasAnyRole(getUserRoles(user), ['initiator', 'hod', 'procurement', 'finance', 'finance_manager', 'md', 'admin']) },
-        { id: 'rejected', label: 'Rejected Submissions', show: true },
-        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') },
-        // Admin/IT management view — lists every IT Equipment Request at
-        // any stage, with the ability to redirect or delete entries.
-        { id: 'it-equipment-requests', label: 'Manage IT Equipment Requests', show: hasRole(getUserRoles(user), 'admin', 'it') }
+        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
       ]
     },
-    // Financial Forms Group — mirrors the Dashboard's Quick Actions.
-    // Each entry links straight to the relevant create form; EFT carries
-    // the same time-gate (greyed out when canCreate is false).
+    // Request Forms Group — every creatable request type (mirrors the
+    // Dashboard's Quick Actions), plus IT's own management view for the
+    // requests it owns. EFT carries the same time-gate (greyed out when
+    // canCreate is false) as the Dashboard card.
     {
       id: 'forms-group',
-      label: 'Financial Forms',
+      label: 'Request Forms',
       show: true,
       isGroup: true,
       children: [
@@ -3306,7 +3418,10 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
           onPickerCancel: () => setBypassPickerOpen(false),
           untilLabel: bypassEnabled ? fmtBypassTime(bypassUntil) : '' },
         { id: 'petty-cash-requisitions', label: 'Petty Cash Requisition', isLink: true, href: 'petty-cash-requisition.html', show: true },
-        { id: 'approval-console', label: 'Pending Approvals', show: hasAnyRole(getUserRoles(user), ['hod', 'finance', 'finance_manager', 'md', 'hr', 'it', 'admin']) }
+        { id: 'it-equipment-requests-create', label: 'IT Equipment Request', isLink: true, href: 'it-equipment-request.html', show: true },
+        // Admin/IT management view — lists every IT Equipment Request at
+        // any stage, with the ability to redirect or delete entries.
+        { id: 'it-equipment-requests', label: 'Manage IT Equipment Requests', show: hasRole(getUserRoles(user), 'admin', 'it') }
       ]
     },
     // Stores Management Group - Issue Slips & Picking Slips
@@ -4321,7 +4436,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   // Handle inline approval/rejection for all form types
   const handleQuickAction = async (form, action) => {
     const comment = action === 'reject'
-      ? prompt('Please provide a reason for rejection:')
+      ? await promptDialog('Please provide a reason for rejection:')
       : 'Approved';
 
     if (action === 'reject' && !comment) {
@@ -4329,7 +4444,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       return;
     }
 
-    if (!confirm(`Are you sure you want to ${action} this ${form.displayType || 'form'}?`)) {
+    if (!(await confirmDialog(`Are you sure you want to ${action} this ${form.displayType || 'form'}?`))) {
       return;
     }
 
@@ -4472,7 +4587,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           newStatus = 'pending_md';
         }
 
-        if (!confirm(`Assign to ${selectedUser.full_name} (${selectedUser.role}) and move to "${newStatus}"?`)) {
+        if (!(await confirmDialog(`Assign to ${selectedUser.full_name} (${selectedUser.role}) and move to "${newStatus}"?`))) {
           return;
         }
 
@@ -4487,7 +4602,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
 
       } else if (action === 'skip_stage') {
         // Skip current approval stage
-        const comment = prompt('Enter reason for skipping approval stage:');
+        const comment = await promptDialog('Enter reason for skipping approval stage:');
         if (!comment) {
           showToast('Reason is required');
           return;
@@ -4510,7 +4625,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           return;
         }
 
-        if (!confirm(`Skip current stage and move to "${newStatus}"?`)) return;
+        if (!(await confirmDialog(`Skip current stage and move to "${newStatus}"?`))) return;
 
         // Use admin override endpoint
         if (rerouteForm.formType === 'purchase_requisition') {
@@ -4541,7 +4656,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
           return;
         }
 
-        if (!confirm(`Reassign to department "${newDept}"?`)) return;
+        if (!(await confirmDialog(`Reassign to department "${newDept}"?`))) return;
 
         if (rerouteForm.formType === 'purchase_requisition') {
           endpoint = `${API_URL}/requisitions/${rerouteForm.id}/admin-override`;
@@ -5356,7 +5471,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                         ),
                         getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
                           onClick: async () => {
-                            if (!confirm(`Permanently delete requisition ${req.req_number || req.id}? This cannot be undone.`)) return;
+                            if (!(await confirmDialog(`Permanently delete requisition ${req.req_number || req.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
                             try {
                               await api.deleteRequisition(req.id);
                               showToast('Requisition deleted');
@@ -7015,7 +7130,7 @@ function DataManagementPanel({ user }) {
   useEffect(() => { fetchCounts(); }, []);
 
   const handleEmpty = async (entry) => {
-    const typed = prompt(`This will PERMANENTLY delete all ${entry.count} "${entry.label}" entries (a JSON backup is saved on the server first, but they will disappear from the app). Type DELETE to confirm.`);
+    const typed = await promptDialog(`This will PERMANENTLY delete all ${entry.count} "${entry.label}" entries (a JSON backup is saved on the server first, but they will disappear from the app). Type DELETE to confirm.`);
     if (typed !== 'DELETE') {
       if (typed !== null) showToast('Confirmation text did not match — nothing was deleted');
       return;
@@ -7252,7 +7367,7 @@ function AdminPanel({ data, loadData }) {
   };
 
   const handleDeleteGRNApprover = async (id) => {
-    if (!confirm('Delete this approver assignment?')) return;
+    if (!(await confirmDialog('Delete this approver assignment?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       const res = await fetchWithAuth(`${API_URL}/admin/grn-approvers/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
@@ -7293,7 +7408,7 @@ function AdminPanel({ data, loadData }) {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    if (!(await confirmDialog('Are you sure you want to delete this user?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteAdminUser(userId);
       showToast('User deleted successfully');
@@ -7324,7 +7439,7 @@ function AdminPanel({ data, loadData }) {
   };
 
   const handleDeleteVendor = async (vendorId) => {
-    if (!confirm('Are you sure you want to delete this vendor?')) return;
+    if (!(await confirmDialog('Are you sure you want to delete this vendor?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteAdminVendor(vendorId);
       showToast('Vendor deleted successfully');
@@ -7550,7 +7665,7 @@ function AdminPanel({ data, loadData }) {
   };
 
   const handleDeleteClient = async (clientId) => {
-    if (!confirm('Are you sure you want to delete this client?')) return;
+    if (!(await confirmDialog('Are you sure you want to delete this client?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteAdminClient(clientId);
       showToast('Client deleted successfully');
@@ -7580,7 +7695,7 @@ function AdminPanel({ data, loadData }) {
   };
 
   const handleDeleteDepartment = async (deptId) => {
-    if (!confirm('Are you sure you want to delete this department?')) return;
+    if (!(await confirmDialog('Are you sure you want to delete this department?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteDepartment(deptId);
       showToast('Department deleted successfully');
@@ -7610,7 +7725,7 @@ function AdminPanel({ data, loadData }) {
   };
 
   const handleDeleteCode = async (codeId) => {
-    if (!confirm('Are you sure you want to delete this code?')) return;
+    if (!(await confirmDialog('Are you sure you want to delete this code?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteDepartmentCode(codeId);
       showToast('Department code deleted successfully');
@@ -9587,7 +9702,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
   // Reject doesn't need the full review screen — HR/MD/IT can decline with
   // just a reason, without pulling up the equipment details form.
   const handleQuickReject = async (item) => {
-    const reason = prompt('Enter rejection reason:');
+    const reason = await promptDialog('Enter rejection reason:');
     if (!reason) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${item._id || item.id}/approve`, {
@@ -9799,7 +9914,7 @@ function ApprovalConsole({ user, setView, setSelectedReq, loadData }) {
                         }, 'Reroute'),
                         item.formType === 'it_equipment' && getUserRoles(user).some(r => ['admin', 'it'].includes(r)) && React.createElement('button', {
                           onClick: async () => {
-                            if (!confirm(`Permanently delete IT equipment request ${item.id}? This cannot be undone.`)) return;
+                            if (!(await confirmDialog(`Permanently delete IT equipment request ${item.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
                             try {
                               await api.deleteITEquipmentRequest(item._id || item.id);
                               showToast('IT equipment request deleted');
@@ -10233,7 +10348,7 @@ function PettyCashReceiptsPanel({ pcId, user }) {
   };
 
   const handleDelete = async (receiptId) => {
-    if (!confirm('Remove this receipt?')) return;
+    if (!(await confirmDialog('Remove this receipt?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       const data = await api.deletePettyCashReceipt(pcId, receiptId);
       setReceipts(data.receipts || []);
@@ -10814,7 +10929,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
           }, 'Cancel'),
           canRerouteOrDelete && React.createElement('button', {
             onClick: async () => {
-              if (!confirm(`Permanently delete IT equipment request ${requisition.id}? This cannot be undone.`)) return;
+              if (!(await confirmDialog(`Permanently delete IT equipment request ${requisition.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
               try {
                 await api.deleteITEquipmentRequest(requisition._id || requisition.id);
                 showToast('IT equipment request deleted');
@@ -10845,25 +10960,74 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  // Edit & Resubmit state — lifted from the old RejectedRequisitions
-  // component. Available only on rows the user owns where status is
-  // rejected and the form is a Purchase Requisition.
-  const [editingPR, setEditingPR] = useState(null);
+  // Edit & Resubmit state. Available on any row the user owns whose
+  // status is rejected or recalled, across all five form types.
+  const [editingRow, setEditingRow] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
   const userIdStr = String(user.id || user._id || '');
   const isOwn = (row) => String(row._row.initiator_id || row._row.created_by || '') === userIdStr;
   const canEditResubmit = (row) =>
-    row._formType === 'purchase' &&
-    ['rejected', 'recalled'].includes(String(row._row.status || '').toLowerCase()) &&
-    isOwn(row);
+    isOwn(row) && ['rejected', 'recalled'].includes(String(row._row.status || '').toLowerCase());
+  const canDiscard = canEditResubmit; // same rule: your own, rejected or recalled
 
-  // Recall / resubmit / discard — an initiator pulling their own
-  // submission back out of the approval queue before anyone has acted on
-  // it (recall), pushing it back in unchanged (resubmit), or deleting it
-  // outright (discard). Purchase Requisitions reuse the existing
-  // edit-and-resubmit flow above once recalled; the other four form
-  // types have no edit form yet, so they only get resubmit-as-is/discard.
+  // Field sets for the Edit modal, one per form type — matches each
+  // backend registerFormEditRoute() whitelist exactly.
+  const EDIT_FIELD_CONFIG = {
+    purchase: [
+      ['description', 'Description', 'text'],
+      ['delivery_location', 'Delivery Location', 'text'],
+      ['urgency', 'Urgency', 'select', ['Standard', 'High', 'Emergency']],
+      ['required_date', 'Required Date', 'date'],
+      ['account_code', 'Account Code', 'text'],
+      ['quantity', 'Quantity', 'number'],
+      ['unit_price', 'Unit Price', 'number'],
+      ['selected_vendor', 'Selected Vendor', 'text']
+    ],
+    eft: [
+      ['in_favour_of', 'In Favour Of', 'text'],
+      ['amount', 'Amount', 'number'],
+      ['amount_in_words', 'Amount In Words', 'text'],
+      ['bank_name', 'Bank Name', 'text'],
+      ['bank_account_number', 'Bank Account Number', 'text'],
+      ['branch', 'Branch', 'text'],
+      ['purpose', 'Purpose', 'text'],
+      ['description', 'Description', 'text'],
+      ['account_code', 'Account Code', 'text']
+    ],
+    pettyCash: [
+      ['payee_name', 'Payee Name', 'text'],
+      ['department', 'Department', 'text'],
+      ['purpose', 'Purpose', 'text'],
+      ['description', 'Description', 'text'],
+      ['amount', 'Amount', 'number'],
+      ['amount_in_words', 'Amount In Words', 'text']
+    ],
+    expense: [
+      ['employee_name', 'Employee Name', 'text'],
+      ['employee_number', 'Employee Number', 'text'],
+      ['department', 'Department', 'text'],
+      ['reason_for_trip', 'Reason For Trip', 'text'],
+      ['total_kilometers', 'Total Kilometers', 'number'],
+      ['km_rate', 'KM Rate', 'number'],
+      ['total_claim', 'Total Claim', 'number'],
+      ['amount_advanced', 'Amount Advanced', 'number'],
+      ['amount_due', 'Amount Due', 'number']
+    ],
+    itEquipment: [
+      ['requester_name', 'Requester Name', 'text'],
+      ['department', 'Department', 'text'],
+      ['equipment_description', 'Equipment Description', 'text'],
+      ['quantity', 'Quantity', 'number'],
+      ['justification', 'Justification', 'text']
+    ]
+  };
+
+  // Recall / resubmit / discard / edit — an initiator managing their own
+  // submission: pulling it back out of the approval queue before anyone
+  // has acted on it (recall), editing it, pushing it back in (resubmit),
+  // or deleting it outright (discard). All five form types work the same
+  // way now.
   const RECALL_BASE_PATH = {
     purchase: `${API_URL}/requisitions`,
     eft: `${API_URL}/forms/eft-requisitions`,
@@ -10876,11 +11040,10 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
     expense: 'pending_hod', itEquipment: 'pending_hr'
   };
   const canRecall = (row) => isOwn(row) && String(row._row.status || '').toLowerCase() === FIRST_STAGE[row._formType];
-  const canResubmitOrDiscard = (row) => isOwn(row) && String(row._row.status || '').toLowerCase() === 'recalled';
 
   const handleRecall = async (row) => {
     const label = row._row.req_number || row._row.id;
-    if (!confirm(`Recall ${label}? This pulls it out of the approval queue and back to you — you can edit, resubmit, or discard it from here.`)) return;
+    if (!(await confirmDialog(`Recall ${label}? This pulls it out of the approval queue and back to you — you can edit, resubmit, or discard it from here.`))) return;
     try {
       const id = row._row.id || row._row._id;
       const res = await fetchWithAuth(`${RECALL_BASE_PATH[row._formType]}/${id}/recall`, { method: 'PUT' });
@@ -10891,9 +11054,9 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       showToast(err.message || 'Failed to recall');
     }
   };
-  const handleResubmitRecalled = async (row) => {
+  const handleResubmit = async (row) => {
     const label = row._row.req_number || row._row.id;
-    if (!confirm(`Resubmit ${label} as-is? This sends it back into the approval queue.`)) return;
+    if (!(await confirmDialog(`Resubmit ${label}? This sends it back into the approval queue.`))) return;
     try {
       const id = row._row.id || row._row._id;
       const res = await fetchWithAuth(`${RECALL_BASE_PATH[row._formType]}/${id}/resubmit`, { method: 'PUT' });
@@ -10906,7 +11069,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
   };
   const handleDiscard = async (row) => {
     const label = row._row.req_number || row._row.id;
-    if (!confirm(`Permanently discard ${label}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently discard ${label}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       const id = row._row.id || row._row._id;
       const res = await fetchWithAuth(`${RECALL_BASE_PATH[row._formType]}/${id}/discard`, { method: 'DELETE' });
@@ -10920,29 +11083,26 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
 
   const openEdit = (row) => {
     const r = row._row;
-    setEditingPR(r);
-    setEditForm({
-      description: r.description || '',
-      delivery_location: r.delivery_location || '',
-      urgency: r.urgency || 'Standard',
-      required_date: r.required_date || '',
-      account_code: r.account_code || '',
-      quantity: r.quantity || 1,
-      unit_price: r.unit_price || '',
-      selected_vendor: r.selected_vendor || '',
-      vendor_currency: r.vendor_currency || 'ZMW'
-    });
+    const fields = EDIT_FIELD_CONFIG[row._formType] || [];
+    const form = {};
+    fields.forEach(([key]) => { form[key] = r[key] ?? (key === 'quantity' ? 1 : ''); });
+    setEditingRow(row);
+    setEditForm(form);
   };
-  const closeEdit = () => { setEditingPR(null); setEditForm({}); };
+  const closeEdit = () => { setEditingRow(null); setEditForm({}); };
   const saveEdit = async () => {
-    if (!editingPR) return;
+    if (!editingRow) return;
     setSavingEdit(true);
     try {
-      const totalCost = (parseFloat(editForm.quantity) || 0) * (parseFloat(editForm.unit_price) || 0);
-      const res = await fetchWithAuth(`${API_URL}/requisitions/${editingPR.id}`, {
+      const body = { ...editForm };
+      if (editingRow._formType === 'purchase') {
+        body.total_cost = (parseFloat(editForm.quantity) || 0) * (parseFloat(editForm.unit_price) || 0);
+      }
+      const id = editingRow._row.id || editingRow._row._id;
+      const res = await fetchWithAuth(`${RECALL_BASE_PATH[editingRow._formType]}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editForm, total_cost: totalCost })
+        body: JSON.stringify(body)
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
@@ -10955,30 +11115,6 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       showToast(err.message || 'Failed to save');
     } finally {
       setSavingEdit(false);
-    }
-  };
-  const resubmit = async (row) => {
-    const r = row._row;
-    if (!confirm(`Resubmit ${r.req_number || r.id}? This sends it back to HOD for approval.`)) return;
-    try {
-      const res = await fetchWithAuth(`${API_URL}/requisitions/${r.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'pending_hod',
-          rejection_reason: null,
-          rejected_by: null,
-          rejected_at: null
-        })
-      });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.error || 'Resubmit failed');
-      }
-      showToast('Requisition resubmitted.');
-      fetchAll();
-    } catch (err) {
-      showToast(err.message || 'Failed to resubmit');
     }
   };
 
@@ -11097,13 +11233,26 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
     }
   };
 
-  const statusPill = (status) => {
+  // Dark-mode-safe status badge — mirrors the Dashboard's badge classes
+  // instead of hardcoded Tailwind colors, so this table looks right in
+  // both themes like the rest of the modernized screens.
+  const getStatusBadgeClass = (status) => {
     const s = String(status || '').toLowerCase();
-    if (s === 'rejected') return 'bg-red-600 text-white';
-    if (s === 'approved' || s === 'completed' || s === 'issued' || s.endsWith('_approved')) return 'border border-green-500 text-green-700 bg-transparent';
-    if (s === 'draft') return 'border border-gray-300 text-gray-600 bg-transparent';
-    if (s === 'recalled') return 'border border-blue-400 text-blue-700 bg-transparent';
-    return 'border border-yellow-400 text-yellow-700 bg-transparent';
+    if (s === 'rejected') return 'badge-danger';
+    if (s === 'approved' || s === 'completed' || s === 'issued' || s.endsWith('_approved')) return 'badge-success';
+    if (s === 'draft') return 'badge-neutral';
+    if (s === 'recalled') return 'badge-info';
+    if (s === 'pending_md' || s === 'pending_issuance') return 'badge-warning';
+    return 'badge-pending';
+  };
+  // Same four-color scheme as the Dashboard's breakdown modal, keyed by
+  // this component's own _formType strings.
+  const TYPE_BADGE_STYLE = {
+    purchase:    { backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success-dark)' },
+    pettyCash:   { backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success-dark)' },
+    eft:         { backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary)' },
+    expense:     { backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-dark)' },
+    itEquipment: { backgroundColor: 'var(--color-violet-bg)', color: 'var(--color-violet-dark)' }
   };
 
   return React.createElement('div', { className: "space-y-6" },
@@ -11147,7 +11296,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       ),
 
       // Table or empty / loading state
-      loading ? React.createElement('p', { className: "text-center py-12", style: { color: 'var(--text-secondary)' } }, 'Loading…')
+      loading ? React.createElement('div', null, [1, 2, 3, 4, 5].map(i => React.createElement(SkeletonRow, { key: i })))
       : filtered.length === 0 ? React.createElement(EmptyState, {
           heading: filter === 'all' ? emptyAll : 'No submissions of this type.',
           sub: filter === 'all'
@@ -11156,45 +11305,43 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         })
       : React.createElement('div', { className: "overflow-x-auto" },
           React.createElement('table', { className: "w-full text-sm" },
-            React.createElement('thead', null,
-              React.createElement('tr', { style: { borderBottom: '1px solid var(--border-color)' } },
+            React.createElement('thead', { style: { backgroundColor: 'var(--bg-secondary)' } },
+              React.createElement('tr', null,
                 ['Type','ID','Description','Amount','Status','Date','Actions'].map(h =>
-                  React.createElement('th', {
-                    key: h,
-                    className: "text-left px-3 py-3 text-xs font-semibold uppercase tracking-wide",
-                    style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
-                  }, h)
+                  React.createElement('th', { key: h, className: "tbl-th" }, h)
                 )
               )
             ),
             React.createElement('tbody', null,
               filtered.map((row, idx) => React.createElement('tr', {
                 key: (row._row.id || row._row._id || idx) + '-' + row._formType,
+                className: "hover:bg-gray-50",
                 style: { borderBottom: '1px solid var(--border-color)' }
               },
-                React.createElement('td', { className: "px-3 py-3" },
+                React.createElement('td', { className: "tbl-td" },
                   React.createElement('span', {
-                    className: "px-2 py-0.5 text-xs font-semibold rounded-full border bg-transparent",
-                    style: { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }
+                    className: "px-2.5 py-1 text-xs font-bold rounded",
+                    style: TYPE_BADGE_STYLE[row._formType] || { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }
                   }, row._formLabel)
                 ),
-                React.createElement('td', { className: "px-3 py-3 font-medium", style: { color: 'var(--text-primary)' } }, row._row.id || '—'),
-                React.createElement('td', { className: "px-3 py-3 max-w-xs truncate", style: { color: 'var(--text-secondary)' } }, row._description),
-                React.createElement('td', { className: "px-3 py-3 font-semibold", style: { color: 'var(--text-primary)' } },
+                React.createElement('td', { className: "tbl-td font-medium", style: { color: 'var(--text-primary)' } }, row._row.id || '—'),
+                React.createElement('td', { className: "tbl-td max-w-xs truncate", style: { color: 'var(--text-secondary)' } }, row._description),
+                React.createElement('td', { className: "tbl-td font-semibold", style: { color: 'var(--text-primary)' } },
                   `K ${parseFloat(row._amount || 0).toLocaleString()}`
                 ),
-                React.createElement('td', { className: "px-3 py-3" },
+                React.createElement('td', { className: "tbl-td" },
                   React.createElement('span', {
-                    className: `px-2 py-0.5 text-xs font-semibold rounded-full ${statusPill(row._row.status)}`
+                    className: `badge ${getStatusBadgeClass(row._row.status)}`
                   }, String(row._row.status || 'pending').replace(/_/g, ' ').toUpperCase())
                 ),
-                React.createElement('td', { className: "px-3 py-3", style: { color: 'var(--text-tertiary)' } },
+                React.createElement('td', { className: "tbl-td", style: { color: 'var(--text-tertiary)' } },
                   row._row.created_at ? new Date(row._row.created_at).toLocaleDateString() : '—'
                 ),
-                React.createElement('td', { className: "px-3 py-3" },
+                React.createElement('td', { className: "tbl-td" },
                   React.createElement('div', { className: "flex gap-2 flex-wrap" },
                     React.createElement(RowIconBtn, { icon: 'eye', label: 'View', onClick: () => handleView(row) }),
                     React.createElement(RowIconBtn, { icon: 'fileText', label: 'PDF', onClick: () => handlePreviewPDF(row) }),
+                    // Edit + Resubmit — any rejected or recalled submission the user owns, any form type.
                     canEditResubmit(row) && React.createElement('button', {
                       onClick: () => openEdit(row),
                       className: "text-xs px-2 py-1 rounded border",
@@ -11203,16 +11350,16 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
                         borderColor: 'var(--color-primary)',
                         color: 'var(--color-primary)'
                       },
-                      title: 'Edit and resubmit this rejected requisition'
+                      title: 'Edit before resubmitting'
                     }, 'Edit'),
                     canEditResubmit(row) && React.createElement('button', {
-                      onClick: () => resubmit(row),
+                      onClick: () => handleResubmit(row),
                       className: "text-xs px-2 py-1 rounded",
                       style: {
                         backgroundColor: 'var(--color-primary)',
                         color: '#FFFFFF'
                       },
-                      title: 'Resubmit this requisition to HOD'
+                      title: 'Resubmit into the approval queue'
                     }, 'Resubmit'),
                     // Recall — only while still at the form's first stage, before anyone has acted on it.
                     canRecall(row) && React.createElement('button', {
@@ -11221,19 +11368,11 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
                       style: { backgroundColor: 'transparent', borderColor: 'var(--color-warning-dark)', color: 'var(--color-warning-dark)' },
                       title: 'Pull this back out of the approval queue'
                     }, 'Recall'),
-                    // Resubmit-as-is — only for the four form types with no edit form yet;
-                    // Purchase Requisitions get Edit+Resubmit above instead.
-                    canResubmitOrDiscard(row) && !canEditResubmit(row) && React.createElement('button', {
-                      onClick: () => handleResubmitRecalled(row),
-                      className: "text-xs px-2 py-1 rounded",
-                      style: { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' },
-                      title: 'Resubmit this into the approval queue, unchanged'
-                    }, 'Resubmit'),
-                    canResubmitOrDiscard(row) && React.createElement('button', {
+                    canDiscard(row) && React.createElement('button', {
                       onClick: () => handleDiscard(row),
                       className: "text-xs px-2 py-1 rounded",
                       style: { backgroundColor: 'var(--color-danger)', color: '#FFFFFF' },
-                      title: 'Permanently discard this recalled submission'
+                      title: 'Permanently discard this submission'
                     }, 'Discard')
                   )
                 )
@@ -11243,8 +11382,8 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         )
     ),
 
-    // Edit modal (only for rejected PRs owned by the user)
-    editingPR && React.createElement('div', {
+    // Edit modal — any rejected or recalled submission the user owns, any form type
+    editingRow && React.createElement('div', {
       className: "fixed inset-0 flex items-center justify-center p-4 z-50",
       style: { backgroundColor: 'rgba(0,0,0,0.5)' },
       onClick: closeEdit
@@ -11256,29 +11395,20 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
       },
         React.createElement('div', { className: "card-header mb-4" },
           React.createElement('h3', { className: "text-xl font-bold", style: { color: 'var(--text-primary)' } },
-            `Edit ${editingPR.req_number || editingPR.id}`
+            `Edit ${editingRow._formLabel}: ${editingRow._row.req_number || editingRow._row.id}`
           ),
           React.createElement('button', { onClick: closeEdit, className: "text-2xl leading-none", style: { color: 'var(--text-secondary)' } }, '×')
         ),
-        editingPR.rejection_reason && React.createElement('div', {
+        editingRow._row.rejection_reason && React.createElement('div', {
           className: "mb-4 p-3 rounded-lg border-l-4",
           style: { backgroundColor: 'rgba(239, 68, 68, 0.06)', borderLeftColor: 'rgb(220, 38, 38)' }
         },
           React.createElement('p', { className: "text-sm font-semibold", style: { color: 'rgb(185, 28, 28)' } }, 'Rejection reason'),
-          React.createElement('p', { className: "text-sm mt-1", style: { color: 'var(--text-primary)' } }, editingPR.rejection_reason)
+          React.createElement('p', { className: "text-sm mt-1", style: { color: 'var(--text-primary)' } }, editingRow._row.rejection_reason)
         ),
 
-        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
-          [
-            ['description', 'Description', 'text'],
-            ['delivery_location', 'Delivery Location', 'text'],
-            ['urgency', 'Urgency', 'select', ['Standard', 'High', 'Emergency']],
-            ['required_date', 'Required Date', 'date'],
-            ['account_code', 'Account Code', 'text'],
-            ['quantity', 'Quantity', 'number'],
-            ['unit_price', 'Unit Price', 'number'],
-            ['selected_vendor', 'Selected Vendor', 'text']
-          ].map(([key, label, type, options]) => React.createElement('div', { key },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
+          (EDIT_FIELD_CONFIG[editingRow._formType] || []).map(([key, label, type, options]) => React.createElement('div', { key },
             React.createElement('label', {
               className: "block text-xs font-medium mb-1 uppercase tracking-wide",
               style: { color: 'var(--text-tertiary)', letterSpacing: '0.05em' }
@@ -11317,7 +11447,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
         React.createElement('p', {
           className: "text-xs mt-3",
           style: { color: 'var(--text-tertiary)' }
-        }, "Tip: save your changes, then click Resubmit on the row to send this back to HOD for approval.")
+        }, "Tip: save your changes, then click Resubmit on the row to send this back into the approval queue.")
       )
     )
   );
@@ -11363,7 +11493,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
   };
 
   const handleApprove = async (req) => {
-    if (!confirm(`Approve petty cash requisition ${req.id}?`)) return;
+    if (!(await confirmDialog(`Approve petty cash requisition ${req.id}?`))) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/approve`, {
         method: 'PUT',
@@ -11384,7 +11514,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
   };
 
   const handleReject = async (req) => {
-    const reason = prompt('Enter rejection reason:');
+    const reason = await promptDialog('Enter rejection reason:');
     if (!reason) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/petty-cash-requisitions/${req._id || req.id}/approve`, {
@@ -11406,7 +11536,7 @@ function PettyCashRequisitionsList({ user, setView, setSelectedReq }) {
   };
 
   const handleDelete = async (req) => {
-    if (!confirm(`Permanently delete petty cash requisition ${req.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete petty cash requisition ${req.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deletePettyCashRequisition(req._id || req.id);
       showToast('Petty cash requisition deleted');
@@ -11594,7 +11724,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
 
   const handleApprove = async (req) => {
     const verb = req.status === 'pending_issuance' ? 'issue' : 'approve';
-    if (!confirm(`Confirm you want to ${verb} IT equipment request ${req.id}?`)) return;
+    if (!(await confirmDialog(`Confirm you want to ${verb} IT equipment request ${req.id}?`))) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/approve`, {
         method: 'PUT',
@@ -11616,7 +11746,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
   };
 
   const handleReject = async (req) => {
-    const reason = prompt('Enter rejection reason:');
+    const reason = await promptDialog('Enter rejection reason:');
     if (!reason) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests/${req._id || req.id}/approve`, {
@@ -11652,7 +11782,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
   };
 
   const handleDelete = async (req) => {
-    if (!confirm(`Permanently delete IT equipment request ${req.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete IT equipment request ${req.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteITEquipmentRequest(req._id || req.id);
       showToast('IT equipment request deleted');
@@ -11825,7 +11955,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
   };
 
   const handleApprove = async (claim) => {
-    if (!confirm(`Approve expense claim ${claim.id}?`)) return;
+    if (!(await confirmDialog(`Approve expense claim ${claim.id}?`))) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/approve`, {
         method: 'PUT',
@@ -11846,7 +11976,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
   };
 
   const handleReject = async (claim) => {
-    const reason = prompt('Enter rejection reason:');
+    const reason = await promptDialog('Enter rejection reason:');
     if (!reason) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/expense-claims/${claim._id || claim.id}/approve`, {
@@ -11868,7 +11998,7 @@ function ExpenseClaimsList({ user, setView, setSelectedReq }) {
   };
 
   const handleDelete = async (claim) => {
-    if (!confirm(`Permanently delete expense claim ${claim.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete expense claim ${claim.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteExpenseClaim(claim._id || claim.id);
       showToast('Expense claim deleted');
@@ -12032,7 +12162,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   };
 
   const handleApprove = async (req) => {
-    if (!confirm(`Approve EFT requisition ${req.id}?`)) return;
+    if (!(await confirmDialog(`Approve EFT requisition ${req.id}?`))) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/approve`, {
         method: 'PUT',
@@ -12053,7 +12183,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   };
 
   const handleReject = async (req) => {
-    const reason = prompt('Enter rejection reason:');
+    const reason = await promptDialog('Enter rejection reason:');
     if (!reason) return;
     try {
       const response = await fetchWithAuth(`${API_URL}/forms/eft-requisitions/${req._id || req.id}/approve`, {
@@ -12075,7 +12205,7 @@ function EFTRequisitionsList({ user, setView, setSelectedReq }) {
   };
 
   const handleDelete = async (req) => {
-    if (!confirm(`Permanently delete EFT requisition ${req.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete EFT requisition ${req.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteEFTRequisition(req._id || req.id);
       showToast('EFT requisition deleted');
@@ -12466,7 +12596,7 @@ function RejectedRequisitions({ user, setView, setSelectedReq, loadData }) {
   };
 
   const handleResubmit = async (req) => {
-    if (!confirm(`Resubmit requisition ${req.req_number}? This will send it back to HOD for approval.`)) {
+    if (!(await confirmDialog(`Resubmit requisition ${req.req_number}? This will send it back to HOD for approval.`))) {
       return;
     }
 
@@ -13546,7 +13676,7 @@ function BudgetManagement({ user, allDepartments = [] }) {
   };
 
   const handleDeletePlan = async (id) => {
-    if (!confirm('Delete this draft budget plan?')) return;
+    if (!(await confirmDialog('Delete this draft budget plan?', { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteBudgetPlan(id);
       showToast('Budget plan deleted');
@@ -14212,7 +14342,7 @@ function BudgetManagement({ user, allDepartments = [] }) {
                           className: 'btn-primary btn-sm'
                         }, 'Submit to MD'),
                         plan.status === 'pending_md' && React.createElement('button', {
-                          onClick: async () => { if (!confirm('Recall this plan from MD review?')) return; try { await api.deleteBudgetPlan(plan._id); showToast('Plan recalled'); loadPlans(); } catch(e) { showToast(e.message); } },
+                          onClick: async () => { if (!(await confirmDialog('Recall this plan from MD review?'))) return; try { await api.deleteBudgetPlan(plan._id); showToast('Plan recalled'); loadPlans(); } catch(e) { showToast(e.message); } },
                           className: 'btn-secondary btn-sm'
                         }, 'Recall'),
                         plan.status === 'draft' && React.createElement('button', {
@@ -14664,7 +14794,7 @@ function FXRatesManagement({ user }) {
   };
 
   const handleDeactivate = async (rateId) => {
-    if (!confirm('Are you sure you want to deactivate this FX rate?')) return;
+    if (!(await confirmDialog('Are you sure you want to deactivate this FX rate?'))) return;
     try {
       await api.deactivateFXRate(rateId);
       showToast('FX rate deactivated successfully');
@@ -15106,7 +15236,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
   };
 
   const handleDeleteQuote = async (quoteId) => {
-    if (!confirm('Are you sure you want to delete this quote?')) return;
+    if (!(await confirmDialog('Are you sure you want to delete this quote?', { danger: true, confirmText: 'Delete' }))) return;
 
     try {
       await api.deleteQuote(quoteId);
@@ -15830,7 +15960,7 @@ function IssueSlipsList({ user, setView, setSelectedReq }) {
   };
 
   const handleDelete = async (slip) => {
-    if (!confirm(`Permanently delete issue slip ${slip.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete issue slip ${slip.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteIssueSlip(slip._id || slip.id);
       showToast('Issue slip deleted');
@@ -16268,7 +16398,7 @@ function PickingSlipsList({ user, setView, setSelectedReq }) {
   };
 
   const handleDelete = async (slip) => {
-    if (!confirm(`Permanently delete picking slip ${slip.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete picking slip ${slip.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deletePickingSlip(slip._id || slip.id);
       showToast('Picking slip deleted');
@@ -16403,7 +16533,7 @@ function GoodsReceiptNotesList({ user, setView, setSelectedReq }) {
   };
 
   const handleDelete = async (grn) => {
-    if (!confirm(`Permanently delete GRN ${grn.id}? This cannot be undone.`)) return;
+    if (!(await confirmDialog(`Permanently delete GRN ${grn.id}? This cannot be undone.`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       await api.deleteGRN(grn._id || grn.id);
       showToast('GRN deleted');
@@ -16545,7 +16675,7 @@ function ViewGoodsReceiptNote({ grn: grnProp, user, setView }) {
   };
 
   const handleApproval = async (action) => {
-    if (!confirm(`Are you sure you want to ${action === 'approved' ? 'approve' : 'reject'} this GRN?`)) return;
+    if (!(await confirmDialog(`Are you sure you want to ${action === 'approved' ? 'approve' : 'reject'} this GRN?`))) return;
     setApproving(true);
     try {
       const res = await fetchWithAuth(`${API_URL}/stores/grns/${grnProp.id}/approve`, {
@@ -17008,7 +17138,7 @@ function StockItems({ user }) {
   };
 
   const handleDelete = async (item) => {
-    if (!confirm(`Delete "${item.item_description}"?`)) return;
+    if (!(await confirmDialog(`Delete "${item.item_description}"?`, { danger: true, confirmText: 'Delete' }))) return;
     try {
       const res = await fetchWithAuth(`${API_URL}/stores/stock-items/${item._id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
