@@ -2718,7 +2718,7 @@ function ForgotPasswordModal({ onClose }) {
     style: { backgroundColor: 'rgba(0,0,0,0.5)' }
   },
     React.createElement('div', {
-      className: "rounded-lg p-6 w-full max-w-md",
+      className: "rounded-lg p-6 w-full max-w-md max-h-[85vh] overflow-y-auto",
       style: { backgroundColor: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)' }
     },
       React.createElement('div', { className: "flex justify-between items-center mb-4" },
@@ -4921,7 +4921,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
             className: "text-sm font-bold mb-3 transition-colors",
             style: { color: 'var(--text-primary)' }
           }, "Breakdown by Form Type:"),
-          React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
             React.createElement('div', {
               className: "flex items-center justify-between p-2 rounded",
               style: { backgroundColor: 'var(--bg-primary)' }
@@ -5423,7 +5423,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       onClick: () => setShowAdminReroute(false)
     },
       React.createElement('div', {
-        className: "rounded-lg p-6 w-full max-w-md",
+        className: "rounded-lg p-6 w-full max-w-md max-h-[85vh] overflow-y-auto",
         style: {
           backgroundColor: 'var(--bg-primary)',
           boxShadow: 'var(--shadow-lg)'
@@ -5950,7 +5950,7 @@ function CreateRequisition({ user, setView, loadData }) {
             prNumber
           )
         ),
-        React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
           React.createElement('div', null,
             React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Department"),
             React.createElement('div', { className: "px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-900" },
@@ -5994,7 +5994,7 @@ function CreateRequisition({ user, setView, loadData }) {
                     className: "text-red-600 hover:text-red-800 font-medium text-sm"
                   }, 'Remove')
                 ),
-                React.createElement('div', { className: "grid grid-cols-12 gap-3" },
+                React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-12 gap-3" },
                   React.createElement('div', { className: "col-span-2 relative" },
                     React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
                       "Item Code"
@@ -6121,7 +6121,7 @@ function CreateRequisition({ user, setView, loadData }) {
           )
         ),
         // General Requisition Details
-        React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
           React.createElement('div', null,
             React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Date Required *"),
             React.createElement('input', {
@@ -6141,7 +6141,7 @@ function CreateRequisition({ user, setView, loadData }) {
         ),
         // Urgency and Tax Type (tax only for procurement)
         user.role === 'procurement'
-          ? React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          ? React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
               React.createElement('div', null,
                 React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Urgency Level *"),
                 React.createElement('select', {
@@ -6605,7 +6605,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
       ),
       React.createElement('div', { className: "space-y-6" },
         React.createElement(ApprovalStepper, { formType: 'purchase_requisition', status: req.status, approvals: req.approvals }),
-        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition Number"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, req.req_number)
@@ -6632,7 +6632,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
               className: "form-input w-full"
             })
           ),
-          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Quantity *"),
               React.createElement('input', {
@@ -6680,7 +6680,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
         // Procurement Details Display (for Finance and MD)
         (['finance', 'finance_manager', 'md'].includes(user.role)) && (req.selected_vendor || req.unit_price || selectedVendor || unitPrice) && React.createElement('div', { className: "p-6 bg-purple-50 rounded-lg border border-purple-200" },
           React.createElement('h3', { className: "text-lg font-semibold text-purple-900 mb-4" }, "Procurement Details"),
-          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Vendor"),
               React.createElement('p', { className: "text-base font-semibold text-gray-900" },
@@ -6758,7 +6758,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           ),
 
           // Quantity and unit price in a grid
-          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Quantity *"),
               React.createElement('div', { className: "px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-lg font-semibold text-gray-700" },
@@ -6779,7 +6779,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           ),
 
           // Vendor and currency selection
-          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Select Vendor *"),
               React.createElement('select', {
@@ -6813,7 +6813,7 @@ function ApproveRequisition({ req, user, data, setView, loadData }) {
           ),
 
           // Total cost calculation
-          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Total Cost (Vendor Currency)"),
               React.createElement('div', { className: "px-4 py-3 bg-white border border-gray-300 rounded-lg text-lg font-semibold text-blue-600" },
@@ -7043,6 +7043,7 @@ function DataManagementPanel({ user }) {
       React.createElement('p', { className: "text-sm mb-6", style: { color: 'var(--text-tertiary)' } },
         "Every entry is backed up to a JSON file on the server before it's deleted. This can't be undone from inside the app — type DELETE to confirm each one."
       ),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', { style: { backgroundColor: 'var(--bg-secondary)' } },
           React.createElement('tr', null,
@@ -7066,6 +7067,7 @@ function DataManagementPanel({ user }) {
             )
           )
         )
+      )
       )
     )
   );
@@ -7859,6 +7861,7 @@ function AdminPanel({ data, loadData }) {
           }, "Cancel")
         )
       ),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
           React.createElement('tr', { className: "border-b" },
@@ -7918,9 +7921,10 @@ function AdminPanel({ data, loadData }) {
             )
           )
         )
+      )
       ),
       showPasswordReset && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" },
-        React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },
+        React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full max-h-[85vh] overflow-y-auto" },
           React.createElement('h3', { className: "text-lg font-bold mb-4" }, "Reset User Password"),
           React.createElement('input', {
             type: "password",
@@ -8053,6 +8057,7 @@ function AdminPanel({ data, loadData }) {
         )
       ),
       React.createElement('p', { className: "text-sm text-gray-500 mb-2" }, `${vendors.length} vendors`),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
           React.createElement('tr', { className: "border-b" },
@@ -8103,6 +8108,7 @@ function AdminPanel({ data, loadData }) {
             )
           )
         )
+      )
       )
     ),
 
@@ -8167,6 +8173,7 @@ function AdminPanel({ data, loadData }) {
           }, "Cancel")
         )
       ),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', { className: "bg-gray-50" },
           React.createElement('tr', null,
@@ -8205,6 +8212,7 @@ function AdminPanel({ data, loadData }) {
             )
           )
         )
+      )
       )
     ),
 
@@ -8272,6 +8280,7 @@ function AdminPanel({ data, loadData }) {
           }, "Cancel")
         )
       ),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', { className: "bg-gray-50" },
           React.createElement('tr', null,
@@ -8311,13 +8320,14 @@ function AdminPanel({ data, loadData }) {
           )
         )
       )
+      )
     ),
 
     // Reroute Requisitions Tab
     activeTab === 'reroute' && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "Reroute Requisitions"),
       showRerouteModal && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" },
-        React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },
+        React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full max-h-[85vh] overflow-y-auto" },
           React.createElement('h3', { className: "text-lg font-bold mb-4" }, "Reroute Requisition"),
           React.createElement('select', {
             value: rerouteForm.to_user_id,
@@ -8363,6 +8373,7 @@ function AdminPanel({ data, loadData }) {
           )
         )
       ),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', { className: "bg-gray-50" },
           React.createElement('tr', null,
@@ -8389,6 +8400,7 @@ function AdminPanel({ data, loadData }) {
             )
           )
         )
+      )
       )
     ),
     activeTab === 'grn-approvers' && React.createElement('div', { className: "card" },
@@ -8422,7 +8434,8 @@ function AdminPanel({ data, loadData }) {
       // Table
       grnApprovers.length === 0
         ? React.createElement('p', { className: "text-gray-500 text-center py-4" }, "No approver assignments yet. Click the tab to load them or add one above.")
-        : React.createElement('table', { className: "w-full" },
+        : React.createElement('div', { className: "overflow-x-auto" },
+          React.createElement('table', { className: "w-full" },
             React.createElement('thead', { className: "bg-gray-50" },
               React.createElement('tr', null,
                 React.createElement('th', { className: "tbl-th tbl-td-sm uppercase" }, "Initiator (GRN Creator)"),
@@ -8444,6 +8457,7 @@ function AdminPanel({ data, loadData }) {
                 )
               )
             )
+          )
           )
     ),
 
@@ -8557,6 +8571,7 @@ function AdminPanel({ data, loadData }) {
       ),
       // Client Table
       React.createElement('p', { className: "text-sm text-gray-500 mb-2" }, `${clients.length} clients`),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
           React.createElement('tr', { className: "border-b" },
@@ -8609,6 +8624,7 @@ function AdminPanel({ data, loadData }) {
             )
           )
         )
+      )
       )
     )
   );
@@ -9898,7 +9914,7 @@ function ApproveExpenseClaim({ claim, user, setView }) {
       // Claim Details
       React.createElement('div', { className: "space-y-6" },
         React.createElement(ApprovalStepper, { formType: 'expense_claim', status: claim.status, approvals: claim.approvals }),
-        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Claim ID"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, claim.id)
@@ -10076,7 +10092,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
       // Requisition Details
       React.createElement('div', { className: "space-y-6" },
         React.createElement(ApprovalStepper, { formType: 'eft', status: requisition.status, approvals: requisition.approvals }),
-        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition ID"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
@@ -10096,7 +10112,7 @@ function ApproveEFTRequisition({ requisition, user, setView }) {
         ),
 
         // Payment Details
-        React.createElement('div', { className: "grid grid-cols-2 gap-6 p-4 bg-blue-50 rounded-lg" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 bg-blue-50 rounded-lg" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "In Favour Of"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.in_favour_of || 'N/A')
@@ -10408,7 +10424,7 @@ function ApprovePettyCash({ requisition, user, setView }) {
       // Requisition Details
       React.createElement('div', { className: "space-y-6" },
         React.createElement(ApprovalStepper, { formType: 'petty_cash', status: requisition.status, approvals: requisition.approvals }),
-        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Requisition ID"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
@@ -10651,7 +10667,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
 
       React.createElement('div', { className: "space-y-6" },
         React.createElement(ApprovalStepper, { formType: 'it_equipment', status: requisition.status, approvals: requisition.approvals }),
-        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Request ID"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, requisition.id)
@@ -10692,7 +10708,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
         // IT fills these in when actually handing the equipment over
         isIssuanceStep && React.createElement('div', { className: "card-section" },
           React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Issued Equipment Details"),
-          React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
             React.createElement('div', null,
               React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Make *"),
               React.createElement('input', {
@@ -10731,7 +10747,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
         // Already issued — show what was recorded
         requisition.status === 'issued' && requisition.issuance_details && React.createElement('div', { className: "card-section bg-green-50" },
           React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Issued Equipment Details"),
-          React.createElement('div', { className: "grid grid-cols-2 gap-4 text-sm" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm" },
             React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Make: "), requisition.issuance_details.make || 'N/A'),
             React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Model: "), requisition.issuance_details.model || 'N/A'),
             React.createElement('div', null, React.createElement('span', { className: "text-gray-600" }, "Serial Number: "), requisition.issuance_details.serial_number || 'N/A'),
@@ -10746,7 +10762,7 @@ function ApproveITEquipmentRequest({ requisition, user, setView, loadData }) {
         // bypassing the normal linear approval chain.
         canRerouteOrDelete && React.createElement('div', { className: "card-section bg-gray-50" },
           React.createElement('h3', { className: "text-sm font-semibold text-gray-700 mb-3" }, "Reroute (Admin/IT)"),
-          React.createElement('div', { className: "grid grid-cols-2 gap-4 mb-3" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3" },
             React.createElement('select', {
               className: "form-input w-full",
               value: rerouteStatus,
@@ -12973,7 +12989,8 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
             heading: search ? 'No results match your search.' : 'No PRs in the pipeline',
             sub: search ? 'Try a different search term.' : 'Requisitions pending procurement processing will appear here.'
           })
-        : React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 14 } },
+        : React.createElement('div', { style: { overflowX: 'auto' } },
+          React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 14 } },
             React.createElement('thead', null,
               React.createElement('tr', { style: { background: '#1e3a5f', color: 'white' } },
                 ['PR Number', 'Title', 'Department', 'Initiated By', 'Date', 'Status', 'Est. Value', ''].map(h =>
@@ -12999,6 +13016,7 @@ function IncomingPRsView({ user, setView, setSelectedReq }) {
                 )
               )
             )
+          )
           )
   );
 }
@@ -14709,7 +14727,8 @@ function FXRatesManagement({ user }) {
           className: "px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
         }, "Close")
       ),
-      history.length > 0 ? React.createElement('table', { className: "w-full" },
+      history.length > 0 ? React.createElement('div', { className: "overflow-x-auto" },
+      React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
           React.createElement('tr', { className: "border-b" },
             React.createElement('th', { className: "text-left py-2 px-4" }, "Date"),
@@ -14728,14 +14747,16 @@ function FXRatesManagement({ user }) {
               React.createElement('td', { className: "py-2 px-4" }, item.old_rate),
               React.createElement('td', { className: "py-2 px-4 font-semibold" }, item.new_rate),
               React.createElement('td', { className: "tbl-td tbl-td-sm" }, item.changed_by_name),
-              React.createElement('td', { className: "tbl-td tbl-td-sm text-gray-600" }, item.change_reason)
+              React.createElement('td', { className: "tbl-td tbl-td-sm text-gray-600 max-w-xs truncate", title: item.change_reason }, item.change_reason)
             )
           )
         )
+      )
       ) : React.createElement('p', { className: "text-gray-600 text-center py-4" }, "No history available")
     ),
     (['finance', 'finance_manager', 'md', 'admin'].includes(user.role)) && allRates.length > 0 && React.createElement('div', { className: "card" },
       React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "All FX Rates (Including Inactive)"),
+      React.createElement('div', { className: "overflow-x-auto" },
       React.createElement('table', { className: "w-full" },
         React.createElement('thead', null,
           React.createElement('tr', { className: "border-b" },
@@ -14769,6 +14790,7 @@ function FXRatesManagement({ user }) {
             )
           )
         )
+      )
       )
     ),
     (['finance', 'finance_manager', 'md', 'procurement', 'admin'].includes(user.role)) &&
@@ -15192,7 +15214,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
           React.createElement('p', { className: "text-sm text-gray-600 mb-4" }, "Fill in all three quote forms below, then submit all at once"),
 
           // Grid of 3 forms
-          React.createElement('div', { className: "grid grid-cols-3 gap-4 mb-6" },
+          React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" },
             // Quote 1
             React.createElement('div', { className: "bg-white p-4 rounded-lg border-2 border-purple-300" },
               React.createElement('h5', { className: "font-semibold text-purple-900 mb-3" }, "Quote 1"),
@@ -15467,7 +15489,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
           React.createElement('div', { className: "mb-6 bg-gray-50 p-4 rounded-lg" },
             React.createElement('h4', { className: "font-semibold text-gray-900 mb-3" }, "Uploaded Quotes Summary"),
             React.createElement('p', { className: "text-sm text-gray-600 mb-3" }, "Review the quotes below before creating your adjudication:"),
-            React.createElement('div', { className: "grid grid-cols-3 gap-3" },
+            React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-3 gap-3" },
               quotes.map((quote, idx) =>
                 React.createElement('div', {
                   key: quote.id,
@@ -15502,7 +15524,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
             React.createElement('p', { className: "text-sm text-gray-700 mb-4 bg-yellow-50 p-3 rounded border border-yellow-200" },
               "Manually enter your analysis below. Review the quotes above and provide your professional assessment."
             ),
-            React.createElement('div', { className: "grid grid-cols-3 gap-4" },
+            React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-3 gap-4" },
               React.createElement('div', null,
                 React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Recommended Vendor *"),
                 React.createElement('select', {
@@ -15592,7 +15614,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
                 placeholder: "Comparison of the 3 vendor quotes and pricing breakdown..."
               })
             ),
-            React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+            React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
               React.createElement('div', null,
                 React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Delivery Terms"),
                 React.createElement('textarea', {
@@ -15679,7 +15701,7 @@ function QuotesAndAdjudication({ user, setView, loadData }) {
       className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
       onClick: (e) => { if (e.target === e.currentTarget) { setShowAddVendorModal(false); setAddVendorForQuote(null); } }
     },
-      React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full" },
+      React.createElement('div', { className: "bg-white rounded-lg p-6 max-w-md w-full max-h-[85vh] overflow-y-auto" },
         React.createElement('h3', { className: "text-lg font-bold mb-4" }, "Add New Vendor"),
         React.createElement('div', { className: "space-y-3" },
           React.createElement('div', null,
@@ -16050,7 +16072,7 @@ function ApproveIssueSlip({ slip, user, setView }) {
       // Slip Details
       React.createElement('div', { className: "space-y-6" },
         React.createElement(ApprovalStepper, { formType: 'issue_slip', status: slipData.status, approvals: slipData.approvals }),
-        React.createElement('div', { className: "grid grid-cols-2 gap-6" },
+        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
           React.createElement('div', null,
             React.createElement('p', { className: "text-sm text-gray-600 mb-1" }, "Slip ID"),
             React.createElement('p', { className: "text-lg font-semibold text-gray-900" }, slipData.id)
