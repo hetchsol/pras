@@ -4242,7 +4242,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       pending_hr:          'badge-pending',
       pending_issuance:    'badge-warning',
       issued:              'badge-success',
-      rejected:            'badge-danger'
+      rejected:            'badge-danger',
+      recalled:            'badge-info'
     };
     return colors[status] || 'badge-neutral';
   };
@@ -4262,7 +4263,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       pending_hr: 'Pending HR',
       pending_issuance: 'Pending IT Issuance',
       issued: 'Issued',
-      rejected: 'Rejected'
+      rejected: 'Rejected',
+      recalled: 'Recalled'
     };
     return text[status] || status;
   };
@@ -10834,10 +10836,71 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
   const userIdStr = String(user.id || user._id || '');
+  const isOwn = (row) => String(row._row.initiator_id || row._row.created_by || '') === userIdStr;
   const canEditResubmit = (row) =>
     row._formType === 'purchase' &&
-    String(row._row.status || '').toLowerCase() === 'rejected' &&
-    String(row._row.initiator_id || row._row.created_by || '') === userIdStr;
+    ['rejected', 'recalled'].includes(String(row._row.status || '').toLowerCase()) &&
+    isOwn(row);
+
+  // Recall / resubmit / discard — an initiator pulling their own
+  // submission back out of the approval queue before anyone has acted on
+  // it (recall), pushing it back in unchanged (resubmit), or deleting it
+  // outright (discard). Purchase Requisitions reuse the existing
+  // edit-and-resubmit flow above once recalled; the other four form
+  // types have no edit form yet, so they only get resubmit-as-is/discard.
+  const RECALL_BASE_PATH = {
+    purchase: `${API_URL}/requisitions`,
+    eft: `${API_URL}/forms/eft-requisitions`,
+    pettyCash: `${API_URL}/forms/petty-cash-requisitions`,
+    expense: `${API_URL}/forms/expense-claims`,
+    itEquipment: `${API_URL}/forms/it-equipment-requests`
+  };
+  const FIRST_STAGE = {
+    purchase: 'pending_hod', eft: 'pending_hod', pettyCash: 'pending_hod',
+    expense: 'pending_hod', itEquipment: 'pending_hr'
+  };
+  const canRecall = (row) => isOwn(row) && String(row._row.status || '').toLowerCase() === FIRST_STAGE[row._formType];
+  const canResubmitOrDiscard = (row) => isOwn(row) && String(row._row.status || '').toLowerCase() === 'recalled';
+
+  const handleRecall = async (row) => {
+    const label = row._row.req_number || row._row.id;
+    if (!confirm(`Recall ${label}? This pulls it out of the approval queue and back to you — you can edit, resubmit, or discard it from here.`)) return;
+    try {
+      const id = row._row.id || row._row._id;
+      const res = await fetchWithAuth(`${RECALL_BASE_PATH[row._formType]}/${id}/recall`, { method: 'PUT' });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Recall failed'); }
+      showToast('Recalled — it\'s back with you now.');
+      fetchAll();
+    } catch (err) {
+      showToast(err.message || 'Failed to recall');
+    }
+  };
+  const handleResubmitRecalled = async (row) => {
+    const label = row._row.req_number || row._row.id;
+    if (!confirm(`Resubmit ${label} as-is? This sends it back into the approval queue.`)) return;
+    try {
+      const id = row._row.id || row._row._id;
+      const res = await fetchWithAuth(`${RECALL_BASE_PATH[row._formType]}/${id}/resubmit`, { method: 'PUT' });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Resubmit failed'); }
+      showToast('Resubmitted.');
+      fetchAll();
+    } catch (err) {
+      showToast(err.message || 'Failed to resubmit');
+    }
+  };
+  const handleDiscard = async (row) => {
+    const label = row._row.req_number || row._row.id;
+    if (!confirm(`Permanently discard ${label}? This cannot be undone.`)) return;
+    try {
+      const id = row._row.id || row._row._id;
+      const res = await fetchWithAuth(`${RECALL_BASE_PATH[row._formType]}/${id}/discard`, { method: 'DELETE' });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Discard failed'); }
+      showToast('Discarded.');
+      fetchAll();
+    } catch (err) {
+      showToast(err.message || 'Failed to discard');
+    }
+  };
 
   const openEdit = (row) => {
     const r = row._row;
@@ -11023,6 +11086,7 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
     if (s === 'rejected') return 'bg-red-600 text-white';
     if (s === 'approved' || s === 'completed' || s === 'issued' || s.endsWith('_approved')) return 'border border-green-500 text-green-700 bg-transparent';
     if (s === 'draft') return 'border border-gray-300 text-gray-600 bg-transparent';
+    if (s === 'recalled') return 'border border-blue-400 text-blue-700 bg-transparent';
     return 'border border-yellow-400 text-yellow-700 bg-transparent';
   };
 
@@ -11133,7 +11197,28 @@ function MySubmissions({ user, setView, setSelectedReq, mode }) {
                         color: '#FFFFFF'
                       },
                       title: 'Resubmit this requisition to HOD'
-                    }, 'Resubmit')
+                    }, 'Resubmit'),
+                    // Recall — only while still at the form's first stage, before anyone has acted on it.
+                    canRecall(row) && React.createElement('button', {
+                      onClick: () => handleRecall(row),
+                      className: "text-xs px-2 py-1 rounded border",
+                      style: { backgroundColor: 'transparent', borderColor: 'var(--color-warning-dark)', color: 'var(--color-warning-dark)' },
+                      title: 'Pull this back out of the approval queue'
+                    }, 'Recall'),
+                    // Resubmit-as-is — only for the four form types with no edit form yet;
+                    // Purchase Requisitions get Edit+Resubmit above instead.
+                    canResubmitOrDiscard(row) && !canEditResubmit(row) && React.createElement('button', {
+                      onClick: () => handleResubmitRecalled(row),
+                      className: "text-xs px-2 py-1 rounded",
+                      style: { backgroundColor: 'var(--color-primary)', color: '#FFFFFF' },
+                      title: 'Resubmit this into the approval queue, unchanged'
+                    }, 'Resubmit'),
+                    canResubmitOrDiscard(row) && React.createElement('button', {
+                      onClick: () => handleDiscard(row),
+                      className: "text-xs px-2 py-1 rounded",
+                      style: { backgroundColor: 'var(--color-danger)', color: '#FFFFFF' },
+                      title: 'Permanently discard this recalled submission'
+                    }, 'Discard')
                   )
                 )
               ))

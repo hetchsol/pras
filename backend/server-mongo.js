@@ -227,6 +227,86 @@ function registerFormDeleteRoute(path, getModel, label) {
   });
 }
 
+// Recall / resubmit / discard for the four form types whose approval
+// history lives in their own embedded `approvals` array (unlike
+// Requisition, which uses a separate Approval collection — see its
+// dedicated routes above). Every action is initiator-only, and scoped to
+// the document's own current status: recall only works at the form's
+// first stage (before anyone has acted on it), resubmit/discard only
+// work on something already recalled.
+function registerRecallRoutes(basePath, getModel, label, firstStage) {
+  const findDoc = async (Model, docId) => {
+    let doc = null;
+    try { doc = await Model.findById(docId); } catch (e) { /* not an ObjectId — fall through */ }
+    if (!doc) doc = await Model.findOne({ id: docId });
+    return doc;
+  };
+  const logHistory = (doc, user, action, comments) => {
+    if (!doc.approvals) doc.approvals = [];
+    doc.approvals.push({ role: 'initiator', name: user.full_name || 'Initiator', action, comments, date: new Date() });
+  };
+
+  app.put(`${basePath}/:id/recall`, authenticate, async (req, res) => {
+    try {
+      const doc = await findDoc(getModel(), req.params.id);
+      if (!doc) return res.status(404).json({ error: `${label} not found` });
+      if (String(doc.initiator_id) !== String(req.user.id)) {
+        return res.status(403).json({ error: `You can only recall your own ${label.toLowerCase()}` });
+      }
+      if (doc.status !== firstStage) {
+        return res.status(400).json({ error: `Can only recall a ${label.toLowerCase()} still at its first approval stage` });
+      }
+      doc.status = 'recalled';
+      logHistory(doc, req.user, 'recalled', 'Recalled by submitter');
+      doc.updated_at = new Date();
+      await doc.save();
+      res.json({ success: true, message: `${label} recalled`, status: 'recalled' });
+    } catch (error) {
+      console.error(`Error recalling ${label.toLowerCase()}:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  app.put(`${basePath}/:id/resubmit`, authenticate, async (req, res) => {
+    try {
+      const doc = await findDoc(getModel(), req.params.id);
+      if (!doc) return res.status(404).json({ error: `${label} not found` });
+      if (String(doc.initiator_id) !== String(req.user.id)) {
+        return res.status(403).json({ error: `You can only resubmit your own ${label.toLowerCase()}` });
+      }
+      if (doc.status !== 'recalled') {
+        return res.status(400).json({ error: `Only a recalled ${label.toLowerCase()} can be resubmitted` });
+      }
+      doc.status = firstStage;
+      logHistory(doc, req.user, 'resubmitted', 'Resubmitted by submitter');
+      doc.updated_at = new Date();
+      await doc.save();
+      res.json({ success: true, message: `${label} resubmitted`, status: firstStage });
+    } catch (error) {
+      console.error(`Error resubmitting ${label.toLowerCase()}:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  app.delete(`${basePath}/:id/discard`, authenticate, async (req, res) => {
+    try {
+      const doc = await findDoc(getModel(), req.params.id);
+      if (!doc) return res.status(404).json({ error: `${label} not found` });
+      if (String(doc.initiator_id) !== String(req.user.id)) {
+        return res.status(403).json({ error: `You can only discard your own ${label.toLowerCase()}` });
+      }
+      if (doc.status !== 'recalled') {
+        return res.status(400).json({ error: `Only a recalled ${label.toLowerCase()} can be discarded` });
+      }
+      await getModel().deleteOne({ _id: doc._id });
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`Error discarding ${label.toLowerCase()}:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+}
+
 // Data Management: live per-collection counts + "empty this collection",
 // admin/IT only. Same safety model as scripts/archiveEntriesBeforeDate.js
 // (backup to JSON before deleting anything) but reachable from the UI for
@@ -1064,6 +1144,86 @@ app.delete('/api/admin/requisitions/:id', authenticate, authorizeAny('admin', 'i
     }
     res.json({ success: true });
   } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Recall / resubmit / discard a Purchase Requisition — initiator-only,
+// and only while it's still sitting at its first stage (pending_hod),
+// before anyone has acted on it. Recalling pulls it out of the HOD's
+// queue back to the initiator ("My Submissions"); from there it can be
+// resubmitted as-is (or after using the existing edit flow) or discarded
+// outright. See registerRecallRoutes() below for the other four form
+// types — Requisition can't share that helper because its approval
+// history lives in a separate Approval collection, not an embedded array.
+app.put('/api/requisitions/:id/recall', authenticate, async (req, res) => {
+  try {
+    const reqDoc = await db.Requisition.findOne({ id: req.params.id });
+    if (!reqDoc) return res.status(404).json({ error: 'Requisition not found' });
+    if (String(reqDoc.initiator_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You can only recall your own requisition' });
+    }
+    if (reqDoc.status !== 'pending_hod') {
+      return res.status(400).json({ error: 'Can only recall a requisition still pending HOD approval' });
+    }
+    reqDoc.status = 'recalled';
+    reqDoc.updated_at = new Date();
+    await reqDoc.save();
+    await db.createApproval({
+      requisition_id: reqDoc.id,
+      role: 'initiator',
+      user_name: req.user.full_name || 'Initiator',
+      action: 'recalled',
+      comment: 'Recalled by submitter'
+    });
+    res.json({ success: true, message: 'Requisition recalled', status: 'recalled' });
+  } catch (error) {
+    console.error('Error recalling requisition:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/requisitions/:id/resubmit', authenticate, async (req, res) => {
+  try {
+    const reqDoc = await db.Requisition.findOne({ id: req.params.id });
+    if (!reqDoc) return res.status(404).json({ error: 'Requisition not found' });
+    if (String(reqDoc.initiator_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You can only resubmit your own requisition' });
+    }
+    if (reqDoc.status !== 'recalled') {
+      return res.status(400).json({ error: 'Only a recalled requisition can be resubmitted' });
+    }
+    reqDoc.status = 'pending_hod';
+    reqDoc.updated_at = new Date();
+    await reqDoc.save();
+    await db.createApproval({
+      requisition_id: reqDoc.id,
+      role: 'initiator',
+      user_name: req.user.full_name || 'Initiator',
+      action: 'resubmitted',
+      comment: 'Resubmitted by submitter'
+    });
+    res.json({ success: true, message: 'Requisition resubmitted', status: 'pending_hod' });
+  } catch (error) {
+    console.error('Error resubmitting requisition:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/requisitions/:id/discard', authenticate, async (req, res) => {
+  try {
+    const reqDoc = await db.Requisition.findOne({ id: req.params.id });
+    if (!reqDoc) return res.status(404).json({ error: 'Requisition not found' });
+    if (String(reqDoc.initiator_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You can only discard your own requisition' });
+    }
+    if (reqDoc.status !== 'recalled') {
+      return res.status(400).json({ error: 'Only a recalled requisition can be discarded' });
+    }
+    await db.Requisition.deleteOne({ _id: reqDoc._id });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error discarding requisition:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -3075,6 +3235,15 @@ registerFormDeleteRoute('/api/forms/petty-cash-requisitions/:id', () => db.Petty
 registerFormDeleteRoute('/api/stores/issue-slips/:id', () => IssueSlip, 'Issue slip');
 registerFormDeleteRoute('/api/stores/picking-slips/:id', () => PickingSlip, 'Picking slip');
 registerFormDeleteRoute('/api/stores/grns/:id', () => GoodsReceiptNote, 'GRN');
+
+// Recall / resubmit / discard — initiator pulling back their own
+// submission before anyone has acted on it. See registerRecallRoutes()
+// above; Purchase Requisition has its own equivalent routes further up
+// since its approval history is a separate collection, not embedded.
+registerRecallRoutes('/api/forms/eft-requisitions', () => db.EFTRequisition, 'EFT requisition', 'pending_hod');
+registerRecallRoutes('/api/forms/petty-cash-requisitions', () => db.PettyCashRequisition, 'Petty cash requisition', 'pending_hod');
+registerRecallRoutes('/api/forms/expense-claims', () => db.ExpenseClaim, 'Expense claim', 'pending_hod');
+registerRecallRoutes('/api/forms/it-equipment-requests', () => db.ITEquipmentRequest, 'IT equipment request', 'pending_hr');
 
 // Redirect an IT Equipment Request to any stage (admin or IT). Lets a stuck
 // or mis-routed ticket be sent back to HR/MD/IT (or resolved directly)
