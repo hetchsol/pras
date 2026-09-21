@@ -70,6 +70,22 @@ const hasAnyRole = (userRole, roles) => {
   return roles.some(role => normalized.includes(role.toLowerCase()));
 };
 
+// A recalled item is out of the approval pipeline — it's not actionable
+// by anyone except the person who submitted it, so nobody but the
+// initiator and admin should see it in shared/aggregate views (counts,
+// department-wide lists, management screens). Apply this filter at
+// every point that aggregates requisitions/forms across users, before
+// any role- or department-based sub-filtering.
+const filterVisibleGivenRecall = (items, user) => {
+  const roles = getUserRoles(user);
+  if (roles.includes('admin')) return items;
+  const userIdStr = String((user && (user.id || user._id)) || '');
+  return items.filter(item =>
+    String(item.status || '').toLowerCase() !== 'recalled' ||
+    String(item.initiator_id || item.created_by || '') === userIdStr
+  );
+};
+
 // ============================================
 // ICON SYSTEM — small stroke-based SVG icon set (Lucide-style), used in
 // place of emoji/plain text across the sidebar and dashboard. Each entry
@@ -2548,7 +2564,7 @@ function App() {
         view === 'dept-budget' && React.createElement(HODBudgetView, { user: currentUser }),
         view === 'budget' && React.createElement(BudgetManagement, { user: currentUser, allDepartments: data.departments }),
         view === 'fx-rates' && React.createElement(FXRatesManagement, { user: currentUser }),
-        view === 'reports' && React.createElement(Reports, { data }),
+        view === 'reports' && React.createElement(Reports, { data, user: currentUser }),
         view === 'analytics' && React.createElement(AnalyticsDashboard, { user: currentUser }),
         view === 'quotes-adjudication' && React.createElement(QuotesAndAdjudication, { user: currentUser, setView, loadData }),
         view === 'expense-claims' && React.createElement(ExpenseClaimsList, { user: currentUser, setView, setSelectedReq }),
@@ -3243,14 +3259,17 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
   const [expandedMenus, setExpandedMenus] = useState({});
   const eftAccess = useEFTAccess(user && user.role);
   const canControlBypass = ['admin', 'finance_manager', 'md'].includes(user && user.role) || (user && user.username === 'hetch.mbunda');
-  // Role-agnostic "is the scheduled window naturally open right now" check,
-  // used only to decide whether the bypass toggle is needed. eftAccess
-  // itself can't be used for this: admins always have canApprove === true
-  // regardless of the time window, which would permanently disable the
-  // toggle for the very role most likely to control it.
+  // Role-agnostic "is a bypass genuinely not needed right now" check.
+  // eftAccess itself can't be used for this: admins always have
+  // canApprove === true regardless of the time window, which would
+  // permanently disable the toggle for the very role most likely to
+  // control it. Needs AND, not OR: the approve window (closes 12:30)
+  // stays open later than the create window (closes 11:00), so between
+  // 11:00-12:30 creation is genuinely blocked even though approval
+  // isn't — bypass is only truly unneeded when BOTH are open.
   const eftWindowNaturallyOpen = (() => {
     const generic = getEFTAccessClient('initiator');
-    return generic.canCreate || generic.canApprove;
+    return generic.canCreate && generic.canApprove;
   })();
   const [bypassEnabled, setBypassEnabled] = useState(false);
   const [bypassUntil, setBypassUntil] = useState(null);
@@ -4264,7 +4283,10 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
         filtered = [];
     }
     // Add formType to purchase requisitions for consistent handling
-    return filtered.map(r => ({...r, formType: 'purchase_requisition', displayType: 'Purchase Requisition'}));
+    return filterVisibleGivenRecall(
+      filtered.map(r => ({...r, formType: 'purchase_requisition', displayType: 'Purchase Requisition'})),
+      user
+    );
   };
 
   // Get all forms for the user (EFT, Petty Cash, Expense Claims)
@@ -4285,7 +4307,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
       user.role === 'initiator' ? r.initiator_id === user.id : true
     ).map(r => ({...r, formType: 'it_equipment', displayType: 'IT Equipment Request'}));
 
-    return [...expenseClaims, ...eftReqs, ...pettyCash, ...itEquipment];
+    return filterVisibleGivenRecall([...expenseClaims, ...eftReqs, ...pettyCash, ...itEquipment], user);
   };
 
   // Helper function to check if a form is approved (any approval status)
@@ -5323,7 +5345,7 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                   React.createElement('p', {
                     className: "text-sm mb-2",
                     style: { color: 'var(--text-secondary)' }
-                  }, req.description || req.title || req.purpose || req.employee_name || 'No description'),
+                  }, req.description || req.title || req.purpose || req.equipment_description || req.employee_name || 'No description'),
                   React.createElement('div', { className: "flex items-center justify-between text-sm" },
                     React.createElement('span', { style: { color: 'var(--text-tertiary)' } },
                       `${req.department || 'N/A'} • Created: ${new Date(req.created_at).toLocaleDateString()}`
@@ -5384,8 +5406,8 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
                       React.createElement('td', {
                         className: "tbl-td text-sm max-w-xs truncate",
                         style: { color: 'var(--text-secondary)' },
-                        title: req.description || req.title || req.purpose || req.employee_name || ''
-                      }, req.description || req.title || req.purpose || req.employee_name || 'No description'),
+                        title: req.description || req.title || req.purpose || req.equipment_description || req.employee_name || ''
+                      }, req.description || req.title || req.purpose || req.equipment_description || req.employee_name || 'No description'),
                       React.createElement('td', { className: "tbl-td text-sm", style: { color: 'var(--text-tertiary)' } }, req.department || 'N/A'),
                       React.createElement('td', { className: "tbl-td text-sm font-bold", style: { color: 'var(--text-primary)' } },
                         `ZMW ${(req.amount || req.total_amount || req.total_claim || 0).toLocaleString()}`
@@ -8754,7 +8776,7 @@ function AdminPanel({ data, loadData }) {
   );
 }
 
-function Reports({ data }) {
+function Reports({ data, user }) {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -8762,11 +8784,14 @@ function Reports({ data }) {
     department: ''
   });
 
-  const totalReqs = data.requisitions.length;
-  const approvedReqs = data.requisitions.filter(r => r.status === 'completed' || r.status === 'approved').length;
-  const pendingReqs = data.requisitions.filter(r => r.status.includes('pending') || r.status === 'hod_approved' || r.status === 'finance_approved').length;
-  const rejectedReqs = data.requisitions.filter(r => r.status === 'rejected').length;
-  const totalValue = data.requisitions.reduce((sum, r) => sum + (r.total_amount || r.amount || 0), 0);
+  // Recalled items are out of the pipeline — exclude them from these
+  // tallies for everyone except admin, same rule as everywhere else.
+  const visibleRequisitions = filterVisibleGivenRecall(data.requisitions, user);
+  const totalReqs = visibleRequisitions.length;
+  const approvedReqs = visibleRequisitions.filter(r => r.status === 'completed' || r.status === 'approved').length;
+  const pendingReqs = visibleRequisitions.filter(r => r.status.includes('pending') || r.status === 'hod_approved' || r.status === 'finance_approved').length;
+  const rejectedReqs = visibleRequisitions.filter(r => r.status === 'rejected').length;
+  const totalValue = visibleRequisitions.reduce((sum, r) => sum + (r.total_amount || r.amount || 0), 0);
 
   const handleDownloadExcel = () => {
     const params = {};
@@ -11699,7 +11724,7 @@ function ITEquipmentRequestsList({ user, setView, setSelectedReq, loadData }) {
       const res = await fetchWithAuth(`${API_URL}/forms/it-equipment-requests`);
       if (!res.ok) throw new Error('Failed to fetch IT equipment requests');
       const data = await res.json();
-      setRequisitions(data);
+      setRequisitions(filterVisibleGivenRecall(data, user));
     } catch (error) {
       console.error('Error fetching IT equipment requests:', error);
     } finally {
