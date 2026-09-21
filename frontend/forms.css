@@ -14,43 +14,49 @@
    same design tokens and base input/button/table styling.
    =================================================================== */
 
-/* Design tokens — mirrors the :root block in index.html for shared
-   colors, extended with the paper/ink palette the request forms use. */
+/* Design tokens. These forms default to a dark theme (no toggle —
+   they're standalone pages reached from the main app, which most
+   people here already run in Dark). Card / page / input each get a
+   distinct tone so editable fields don't visually vanish into their
+   container. */
 :root {
-    --color-primary:       #0070AF;
-    --color-primary-dark:  #005A8C;
-    --color-primary-light: #D0E3F2;
-    --color-danger:        #EF4444;
-    --color-danger-dark:   #DC2626;
-    --color-success:       #10B981;
-    --color-success-dark:  #059669;
-    --text-primary:        #0B1220;
-    --text-secondary:      #2A3441;
-    --text-tertiary:       #5A6573;
-    --border-color:        #DCE4EE;
-    --bg-page:             #0070AF;
-    --bg-card:             #FFFFFF;
-    --bg-surface:          #F4F7FB;
-    --shadow-card: 0 24px 60px -16px rgba(11, 18, 32, 0.35), 0 8px 24px -8px rgba(11, 18, 32, 0.15);
+    --color-primary:       #3B9BD9;
+    --color-primary-dark:  #2C7CB3;
+    --color-primary-light: rgba(59, 155, 217, 0.16);
+    --color-danger:        #F0685F;
+    --color-danger-dark:   #D9483F;
+    --color-success:       #3FBE83;
+    --color-success-dark:  #2C9A69;
+    --text-primary:        #EDEFF2;
+    --text-secondary:      #AAB4BE;
+    --text-tertiary:       #77828C;
+    --border-color:        #333E48;
+    --bg-page:             #0A0F14;
+    --bg-card:             #141B23;
+    --bg-surface:          #1B242D;
+    --shadow-card: 0 24px 60px -16px rgba(0, 0, 0, 0.55), 0 8px 24px -8px rgba(0, 0, 0, 0.4);
 
-    /* Paper/ink palette — the request forms' document-style surface */
-    --ink:          #12212E;
-    --ink-soft:     #3D4C58;
-    --ink-faint:    #6B7A86;
-    --paper:        #F4F3EF;
-    --panel:        #FFFFFF;
-    --rule:         #DBD9D1;
-    --rule-strong:  #C7C4B9;
-    --amber:        #9A6A17;
-    --amber-tint:   #F6EDDB;
-    --green:        #2F7A52;
-    --green-tint:   #E5F1EA;
-    --red:          #B23A34;
-    --red-tint:     #F7E7E5;
-    --stub-bg:      #12212E;
-    --stub-ink:     #F4F3EF;
-    --stub-ink-soft:#AAB8C2;
-    --stub-rule:    #2A3A47;
+    /* Paper/ink palette — the request forms' document-style surface.
+       paper = page background, panel = card surface, input fields get
+       their own tone (see input rules below) distinct from both. */
+    --ink:          #EDEFF2;
+    --ink-soft:     #AAB4BE;
+    --ink-faint:    #77828C;
+    --paper:        #0A0F14;
+    --panel:        #141B23;
+    --input-bg:     #1B242D;
+    --rule:         #232D37;
+    --rule-strong:  #3A4650;
+    --amber:        #E0AC65;
+    --amber-tint:   rgba(224, 172, 101, 0.14);
+    --green:        #6FCB9A;
+    --green-tint:   rgba(111, 203, 154, 0.13);
+    --red:          #F0908A;
+    --red-tint:     rgba(240, 144, 138, 0.13);
+    --stub-bg:      #060A0E;
+    --stub-ink:     #EDEFF2;
+    --stub-ink-soft:#8B98A3;
+    --stub-rule:    #1E2831;
 }
 
 /* ---- Reset ---- */
@@ -61,6 +67,7 @@
 }
 
 /* ---- Base ---- */
+html { color-scheme: dark; }
 body {
     font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-size: 14px;
@@ -114,7 +121,7 @@ body {
     background: var(--panel);
     border: 1px solid var(--rule);
     border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(18,33,46,.06), 0 8px 24px -12px rgba(18,33,46,.18);
+    box-shadow: var(--shadow-card);
     padding: 36px 40px;
 }
 
@@ -193,22 +200,24 @@ input[type="email"],
 textarea,
 select {
     padding: 10px 12px;
-    background: var(--panel);
+    background: var(--input-bg);
     color: var(--ink);
     border: 1px solid var(--rule-strong);
     border-radius: 6px;
     font-family: inherit;
     font-size: 14.5px;
     line-height: 1.5;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
     outline: none;
+    background: var(--panel);
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-light);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 3px var(--color-primary-light);
 }
 
 input::placeholder,
@@ -216,11 +225,36 @@ textarea::placeholder {
     color: var(--ink-faint);
 }
 
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23AAB4BE' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 34px;
+    cursor: pointer;
+}
+select:disabled { cursor: default; }
+
+input[type="date"] {
+    cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.75;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
 input[readonly],
-textarea[readonly] {
+textarea[readonly],
+input:disabled,
+select:disabled {
     background: var(--paper);
     color: var(--ink-soft);
     cursor: default;
+    opacity: 1;
 }
 
 textarea {
@@ -277,6 +311,12 @@ td select {
     font-size: 13px;
 }
 
+td select {
+    padding-right: 28px;
+    background-position: right 8px center;
+    background-size: 9px;
+}
+
 td input[type="checkbox"] {
     width: 15px;
     height: 15px;
@@ -326,13 +366,13 @@ td input[type="checkbox"] {
 .btn-add:hover { background: var(--color-primary-dark); }
 
 .btn-danger {
-    background: var(--red);
+    background: var(--color-danger);
     color: #fff;
     padding: 4px 10px;
     font-size: 12px;
     border-radius: 5px;
 }
-.btn-danger:hover { background: #8f2e29; }
+.btn-danger:hover { background: var(--color-danger-dark); }
 
 /* ---- Actions row (Stores pages) ---- */
 .actions {
@@ -357,12 +397,12 @@ td input[type="checkbox"] {
 }
 .alert-success {
     background: var(--green-tint);
-    color: #1F5C3B;
+    color: #CFF3E1;
     border-left-color: var(--green);
 }
 .alert-error {
     background: var(--red-tint);
-    color: #7A2924;
+    color: #FBD8D5;
     border-left-color: var(--red);
 }
 
@@ -559,10 +599,12 @@ td input[type="checkbox"] {
     border: none;
 }
 
-.rf-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 20px; }
+.rf-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 20px; }
 .rf-grid.cols-1 { grid-template-columns: 1fr; }
 @media (max-width: 560px) { .rf-grid { grid-template-columns: 1fr; } }
+.rf-field { display: flex; flex-direction: column; }
 .rf-field.span-2 { grid-column: 1 / -1; }
+.rf-field textarea { min-height: 96px; }
 
 .rf-check-row { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink-soft); margin-bottom: 18px; }
 .rf-check-row input { width: 16px; height: 16px; accent-color: var(--color-primary); }
@@ -611,6 +653,7 @@ td input[type="checkbox"] {
 .rf-table td { padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
 .rf-table tbody tr:last-child td { border-bottom: none; }
 .rf-table input, .rf-table select { padding: 7px 9px; font-size: 13px; min-width: 60px; }
+.rf-table select { padding-right: 28px; background-position: right 8px center; background-size: 9px; }
 .rf-table .rf-num { font-family: 'IBM Plex Mono'; text-align: right; }
 .rf-table .rf-center { text-align: center; }
 .rf-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--color-primary); }

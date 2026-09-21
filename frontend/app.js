@@ -2554,7 +2554,6 @@ function App() {
         view === 'my-submissions' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'mine' }),
         view === 'approval-console' && React.createElement(ApprovalConsole, { user: currentUser, setView, setSelectedReq, loadData }),
         view === 'rejected' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'rejected' }),
-        view === 'create' && React.createElement(CreateRequisition, { user: currentUser, setView, loadData }),
         view === 'approve' && React.createElement(ApproveRequisition, { req: selectedReq, user: currentUser, data, setView, loadData }),
         view === 'purchase-orders' && React.createElement(MySubmissions, { user: currentUser, setView, setSelectedReq, mode: 'approved' }),
         view === 'purchase-orders-list' && React.createElement(PurchaseOrders, { user: currentUser }),
@@ -3412,28 +3411,19 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         { id: 'rejected', label: 'Rejected Submissions', show: true }
       ]
     },
-    // Procurement Group - Purchase Requisition-specific actions only
-    {
-      id: 'procurement-group',
-      label: 'Procurement',
-      show: true,
-      isGroup: true,
-      children: [
-        { id: 'create', label: 'Create Requisition', show: hasRole(getUserRoles(user), 'initiator', 'procurement', 'admin') },
-        { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(getUserRoles(user), 'procurement', 'admin') },
-        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
-      ]
-    },
     // Request Forms Group — every creatable request type (mirrors the
     // Dashboard's Quick Actions), plus IT's own management view for the
     // requests it owns. EFT carries the same time-gate (greyed out when
-    // canCreate is false) as the Dashboard card.
+    // canCreate is false) as the Dashboard card. Placed right after My
+    // Work since creating a request is the highest-frequency action for
+    // nearly every role, ahead of the narrower Procurement group.
     {
       id: 'forms-group',
       label: 'Request Forms',
       show: true,
       isGroup: true,
       children: [
+        { id: 'purchase-requisitions', label: 'Purchase Requisition', isLink: true, href: 'purchase-requisition.html', show: hasRole(getUserRoles(user), 'initiator', 'admin') },
         { id: 'expense-claims', label: 'Expense Claim', isLink: true, href: 'expense-claim.html', show: true },
         { id: 'eft-requisitions', label: 'EFT Requisition', isLink: true, href: 'eft-requisition.html', gated: 'eft-create', show: true },
         { id: 'eft-bypass-toggle', label: 'EFT Bypass', isToggle: true, show: canControlBypass,
@@ -3450,6 +3440,17 @@ function Sidebar({ user, logout, setView, view, setSelectedReq, isMobile, sideba
         // Admin/IT management view — lists every IT Equipment Request at
         // any stage, with the ability to redirect or delete entries.
         { id: 'it-equipment-requests', label: 'Manage IT Equipment Requests', show: hasRole(getUserRoles(user), 'admin', 'it') }
+      ]
+    },
+    // Procurement Group - Purchase Requisition-specific actions only
+    {
+      id: 'procurement-group',
+      label: 'Procurement',
+      show: hasAnyRole(getUserRoles(user), ['procurement', 'admin', 'finance', 'finance_manager', 'md']),
+      isGroup: true,
+      children: [
+        { id: 'incoming-prs', label: 'Incoming PRs', show: hasRole(getUserRoles(user), 'procurement', 'admin') },
+        { id: 'quotes-adjudication', label: 'Adjudication', show: hasRole(getUserRoles(user), 'procurement', 'finance', 'finance_manager', 'md', 'admin') }
       ]
     },
     // Stores Management Group - Issue Slips & Picking Slips
@@ -4863,19 +4864,12 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
   };
 
   return React.createElement('div', { className: "space-y-4" },
-    // Header with Initiate Requisition button for procurement
+    // Header for procurement — requisition creation now lives under Request Forms.
     user.role === 'procurement' && React.createElement('div', { className: "flex justify-between items-center" },
       React.createElement('h2', {
         className: "text-2xl font-bold",
         style: { color: 'var(--text-primary)' }
-      }, "Dashboard"),
-      React.createElement('button', {
-        onClick: () => setView('create'),
-        className: "px-6 py-3 text-white rounded-lg font-medium transition-colors",
-        style: { backgroundColor: 'var(--color-primary)' },
-        onMouseEnter: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'; },
-        onMouseLeave: (e) => { e.currentTarget.style.backgroundColor = 'var(--color-primary)'; }
-      }, "Initiate Purchase Requisition")
+      }, "Dashboard")
     ),
     // Summary metric cards — icon chip + big number, elevated on hover for
     // the clickable ones.
@@ -4961,13 +4955,14 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               }, props.disabled && props.disabledText ? props.disabledText : description)
             )
         );
-        // Purchase Requisition leads the row (initiators/procurement only);
+        // Purchase Requisition leads the row (initiators only — procurement
+        // no longer creates PRs, they work Incoming PRs/Adjudication instead);
         // the financial/stores forms follow in their usual order.
         const cards = [];
-        if (hasRole(getUserRoles(user), 'initiator', 'procurement')) {
+        if (hasRole(getUserRoles(user), 'initiator')) {
           cards.push(actionCard('pr', 'Purchase Requisition', 'Create new purchase requisition for goods or services', {
             icon: 'fileText', iconBg: 'var(--color-primary-light)', iconColor: 'var(--color-primary)',
-            attrs: { onClick: (e) => { e.preventDefault(); setView('create'); } }
+            attrs: { href: 'purchase-requisition.html' }
           }));
         }
         cards.push(
@@ -5776,599 +5771,6 @@ function Dashboard({ user, data, setView, setSelectedReq, loadData }) {
               color: 'var(--text-primary)'
             }
           }, 'Cancel')
-        )
-      )
-    )
-  );
-}
-
-function CreateRequisition({ user, setView, loadData }) {
-  const [formData, setFormData] = useState({
-    dateRequired: '',
-    justification: '',
-    department: user.department,
-    urgency: 'standard',
-    selectedHod: '', // For procurement to select HOD
-    taxType: user.role === 'procurement' ? 'VAT' : null // Only for procurement
-  });
-  const [lineItems, setLineItems] = useState([
-    { item_code: '', item_name: '', quantity: 1, unit_price: '' }
-  ]);
-  const [loading, setLoading] = useState(false);
-  const [hodUsers, setHodUsers] = useState([]);
-  const [stockItemsCatalog, setStockItemsCatalog] = useState([]);
-  const [openItemSearchIndex, setOpenItemSearchIndex] = useState(null);
-
-  // Soft-assist only: fetch the Stock Items catalog for the item search.
-  // Never blocks PR creation if it fails - PRs cover all company
-  // procurement, not just stores/spares, so item_code stays optional here.
-  useEffect(() => {
-    fetchWithAuth(`${API_URL}/stores/stock-items`)
-      .then(res => res.ok ? res.json() : [])
-      .then(setStockItemsCatalog)
-      .catch(() => setStockItemsCatalog([]));
-  }, []);
-
-  // Generate PR Number: KSB-DeptCode-Initials-FullTimeStamp
-  const generatePRNumber = () => {
-    const deptCode = user.department ? user.department.substring(0, 3).toUpperCase() : 'GEN';
-    const initials = (user.full_name || user.name)
-      .split(' ')
-      .map(name => name.charAt(0))
-      .join('')
-      .toUpperCase();
-    const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14); // YYYYMMDDHHmmss
-    return `KSB-${deptCode}-${initials}-${timestamp}`;
-  };
-
-  const [prNumber] = useState(generatePRNumber());
-
-  // Load HOD users if procurement is creating the requisition
-  useEffect(() => {
-    if (user.role === 'procurement') {
-      const fetchHodUsers = async () => {
-        try {
-          const users = await api.getUsers();
-          // Filter users with role 'hod' and ensure they have proper data
-          const hods = Array.isArray(users) ? users.filter(u => u.role === 'hod' && u.id) : [];
-          console.log('Fetched HOD users:', hods); // Debug log
-          setHodUsers(hods);
-        } catch (error) {
-          console.error('Error loading HOD users:', error);
-          setHodUsers([]); // Set empty array on error
-        }
-      };
-      fetchHodUsers();
-    }
-  }, [user.role]);
-
-  // Get department code
-  const getDeptCode = () => {
-    return user.department ? user.department.substring(0, 3).toUpperCase() : 'GEN';
-  };
-
-  // Get current date in YYYY-MM-DD format
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
-  const addLineItem = () => {
-    if (lineItems.length >= 15) {
-      showToast('Maximum of 15 line items allowed');
-      return;
-    }
-    setLineItems([...lineItems, { item_code: '', item_name: '', quantity: 1, unit_price: '' }]);
-  };
-
-  // Calculate totals for display
-  const calculateTotals = () => {
-    const subtotal = lineItems.reduce((sum, item) => {
-      const qty = parseFloat(item.quantity) || 0;
-      const price = parseFloat(item.unit_price) || 0;
-      return sum + (qty * price);
-    }, 0);
-    // TOT = no tax calculated, VAT = 16% tax, null = initiator (no tax selection yet)
-    const tax = formData.taxType === 'VAT' ? subtotal * 0.16 : 0;
-    const grandTotal = subtotal + tax;
-    return { subtotal, tax, grandTotal, taxType: formData.taxType };
-  };
-
-  const removeLineItem = (index) => {
-    if (lineItems.length === 1) {
-      showToast('At least one line item is required');
-      return;
-    }
-    const newItems = lineItems.filter((_, i) => i !== index);
-    setLineItems(newItems);
-  };
-
-  const updateLineItem = (index, field, value) => {
-    const newItems = [...lineItems];
-    newItems[index][field] = value;
-    setLineItems(newItems);
-  };
-
-  const handleItemCodeChange = (index, value) => {
-    const newItems = [...lineItems];
-    newItems[index].item_code = value;
-    // Typing an exact catalog code (without using the suggestion list)
-    // still auto-fills the description - always overwrite so switching
-    // to a different code replaces the previous item's description too.
-    const match = stockItemsCatalog.find(i => (i.item_number || '').trim().toLowerCase() === value.trim().toLowerCase());
-    if (match) {
-      newItems[index].item_name = match.item_description || '';
-    }
-    setLineItems(newItems);
-    setOpenItemSearchIndex(value ? index : null);
-  };
-
-  const selectCatalogItem = (index, catalogItem) => {
-    const newItems = [...lineItems];
-    newItems[index].item_code = catalogItem.item_number || '';
-    newItems[index].item_name = catalogItem.item_description || '';
-    setLineItems(newItems);
-    setOpenItemSearchIndex(null);
-  };
-
-  // Search the catalog by code, description, material, pump model, or
-  // accessories - not just item_code - so users who don't know the exact
-  // code can still find the right part.
-  const filterCatalogItems = (term) => {
-    if (!term || !term.trim()) return [];
-    const t = term.trim().toLowerCase();
-    return stockItemsCatalog.filter(i =>
-      (i.item_number || '').toLowerCase().includes(t) ||
-      (i.item_description || '').toLowerCase().includes(t) ||
-      (i.material || '').toLowerCase().includes(t) ||
-      (i.pump_model || '').toLowerCase().includes(t) ||
-      (i.accessories || '').toLowerCase().includes(t)
-    ).slice(0, 20);
-  };
-
-  const handleSaveAsDraft = async () => {
-    // Validate at least one item has description
-    const validItems = lineItems.filter(item => item.item_name.trim() !== '');
-    if (validItems.length === 0) {
-      showToast('Please add at least one item with a description');
-      return;
-    }
-
-    if (!formData.dateRequired) {
-      showToast('Please select a required date');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Add justification and calculate total_price for each item
-      const itemsWithSpecs = validItems.map(item => {
-        const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.unit_price) || 0;
-        return {
-          item_code: item.item_code || null,
-          item_name: item.item_name,
-          quantity: qty,
-          unit_price: price,
-          total_price: qty * price,
-          specifications: formData.justification || 'Draft - No justification provided yet',
-          currency: 'ZMW'
-        };
-      });
-
-      const reqData = {
-        description: validItems[0].item_name, // Primary description from first item
-        delivery_location: 'Office',
-        urgency: formData.urgency,
-        required_date: formData.dateRequired,
-        account_code: null,
-        initiatorId: user.id,
-        items: itemsWithSpecs,
-        tax_type: formData.taxType // Include tax type
-      };
-
-      const response = await api.createRequisition(reqData);
-      await loadData();
-      let msg = 'Requisition saved as draft successfully!';
-      if (response && response.budget_warning) {
-        const w = response.budget_warning;
-        msg += `\n\nBudget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
-      }
-      showToast(msg);
-      setView('dashboard');
-    } catch (error) {
-      console.error('Error saving requisition:', error);
-      showToast(`Error saving requisition: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmitForApproval = async () => {
-    // Validate at least one item has description
-    const validItems = lineItems.filter(item => item.item_name.trim() !== '');
-    if (validItems.length === 0) {
-      showToast('Please add at least one item with a description');
-      return;
-    }
-
-    if (!formData.dateRequired) {
-      showToast('Please select a required date');
-      return;
-    }
-
-    if (!formData.justification || formData.justification.trim() === '') {
-      showToast('Please provide a justification for this requisition');
-      return;
-    }
-
-    // Validate that items with pricing have unit prices (only for procurement)
-    if (user.role === 'procurement') {
-      const itemsWithPrices = validItems.filter(item => item.unit_price && parseFloat(item.unit_price) > 0);
-      if (itemsWithPrices.length === 0) {
-        showToast('Please provide unit price for at least one item');
-        return;
-      }
-    }
-
-    // If procurement is creating, they must select an HOD
-    if (user.role === 'procurement' && !formData.selectedHod) {
-      showToast('Please select an HOD approver');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Add justification and calculate total_price for each item
-      const itemsWithSpecs = validItems.map(item => {
-        const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.unit_price) || 0;
-        return {
-          item_code: item.item_code || null,
-          item_name: item.item_name,
-          quantity: qty,
-          unit_price: price,
-          total_price: qty * price,
-          specifications: formData.justification,
-          currency: 'ZMW'
-        };
-      });
-
-      // First create as draft
-      const reqData = {
-        description: validItems[0].item_name, // Primary description from first item
-        delivery_location: 'Office',
-        urgency: formData.urgency,
-        required_date: formData.dateRequired,
-        account_code: null,
-        initiatorId: user.id,
-        items: itemsWithSpecs,
-        tax_type: formData.taxType // Include tax type
-      };
-
-      const response = await api.createRequisition(reqData);
-
-      // Then submit for approval
-      if (response.requisition_id) {
-        await api.submitRequisition(response.requisition_id, user.id, formData.selectedHod);
-      }
-
-      await loadData();
-      let msg = 'Requisition submitted for approval successfully!';
-      if (response && response.budget_warning) {
-        const w = response.budget_warning;
-        msg += `\n\nBudget warning: this exceeds the available department budget by K${(w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 })}. Finance/MD approval will require a budget override.`;
-      }
-      showToast(msg);
-      setView('dashboard');
-    } catch (error) {
-      console.error('Error submitting requisition:', error);
-      showToast(`Error submitting requisition: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return React.createElement('div', { className: "max-w-6xl mx-auto" },
-    // Navigation Header
-    React.createElement('div', { className: "flex gap-3 mb-4" },
-      React.createElement('button', {
-        onClick: () => setView('dashboard'),
-        className: "inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 border-2 border-blue-600 rounded-lg font-semibold hover:bg-blue-600 hover:text-white transition-all"
-      }, "\u{1F3E0} Home"),
-      React.createElement('button', {
-        onClick: () => setView('dashboard'),
-        className: "inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-200 transition-all"
-      }, "\u2190 Back")
-    ),
-    React.createElement('div', { className: "card card-lg" },
-      React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Create New Requisition"),
-
-      // Auto-generated information section
-      React.createElement('div', { className: "mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200" },
-        React.createElement('h3', { className: "text-sm font-semibold text-blue-900 mb-3" }, "Auto-Generated Information"),
-        // PR Number gets its own full-width row - the timestamped format
-        // (KSB-DEPT-XX-YYYYMMDDHHMMSS) is too long to share a 3-column
-        // grid without wrapping mid-string.
-        React.createElement('div', { className: "mb-3" },
-          React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "PR Number"),
-          React.createElement('div', { className: "px-3 py-2 bg-white border border-blue-300 rounded text-sm font-semibold text-blue-900 whitespace-nowrap overflow-x-auto" },
-            prNumber
-          )
-        ),
-        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
-          React.createElement('div', null,
-            React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Department"),
-            React.createElement('div', { className: "px-3 py-2 bg-white border border-gray-300 rounded text-sm text-gray-900" },
-              user.department || 'N/A'
-            )
-          ),
-          React.createElement('div', null,
-            React.createElement('label', { className: "block text-xs font-medium text-gray-600 mb-1" }, "Dept Code"),
-            React.createElement('div', { className: "px-3 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-900" },
-              getDeptCode()
-            )
-          )
-        )
-      ),
-
-      React.createElement('div', { className: "space-y-6" },
-        // Line Items Section
-        React.createElement('div', { className: "border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50" },
-          React.createElement('div', { className: "card-header mb-4" },
-            React.createElement('h3', { className: "text-lg font-semibold text-gray-800" },
-              `Line Items (${lineItems.length}/15)`
-            ),
-            React.createElement('button', {
-              onClick: addLineItem,
-              disabled: lineItems.length >= 15,
-              className: "px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-            }, 'Add Item')
-          ),
-          React.createElement('div', { className: "space-y-4" },
-            lineItems.map((item, index) =>
-              React.createElement('div', {
-                key: index,
-                className: "bg-white border border-gray-300 rounded-lg p-4 relative"
-              },
-                React.createElement('div', { className: "flex items-center justify-between mb-3" },
-                  React.createElement('span', { className: "text-sm font-semibold text-gray-700" },
-                    `Item ${index + 1}`
-                  ),
-                  lineItems.length > 1 && React.createElement('button', {
-                    onClick: () => removeLineItem(index),
-                    className: "text-red-600 hover:text-red-800 font-medium text-sm"
-                  }, 'Remove')
-                ),
-                React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-12 gap-3" },
-                  React.createElement('div', { className: "col-span-2 relative" },
-                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
-                      "Item Code"
-                    ),
-                    React.createElement('input', {
-                      type: "text",
-                      value: item.item_code,
-                      onChange: (e) => handleItemCodeChange(index, e.target.value),
-                      onFocus: () => item.item_code && setOpenItemSearchIndex(index),
-                      onBlur: () => setOpenItemSearchIndex(null),
-                      className: "form-input w-full",
-                      placeholder: "Code, description, pump model..."
-                    }),
-                    openItemSearchIndex === index && filterCatalogItems(item.item_code).length > 0 &&
-                      React.createElement('div', {
-                        className: "absolute z-20 mt-1 w-72 max-h-56 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg"
-                      },
-                        filterCatalogItems(item.item_code).map(ci =>
-                          React.createElement('div', {
-                            key: ci._id || ci.item_number,
-                            onMouseDown: (e) => { e.preventDefault(); selectCatalogItem(index, ci); },
-                            className: "px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          },
-                            React.createElement('div', { className: "font-medium text-gray-900" }, ci.item_number || '(no code)'),
-                            React.createElement('div', { className: "text-xs text-gray-500" },
-                              [ci.item_description, ci.pump_model, ci.material].filter(Boolean).join(' — ')
-                            )
-                          )
-                        )
-                      )
-                  ),
-                  React.createElement('div', { className: "col-span-6" },
-                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
-                      "Item Description *"
-                    ),
-                    React.createElement('input', {
-                      type: "text",
-                      value: item.item_name,
-                      maxLength: 128,
-                      onChange: (e) => updateLineItem(index, 'item_name', e.target.value),
-                      className: "form-input w-full",
-                      placeholder: "e.g., Office Supplies"
-                    })
-                  ),
-                  React.createElement('div', { className: "col-span-2" },
-                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
-                      "Qty *"
-                    ),
-                    React.createElement('input', {
-                      type: "number",
-                      min: "1",
-                      value: item.quantity,
-                      onChange: (e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1),
-                      className: "form-input w-full",
-                      placeholder: "Qty"
-                    })
-                  ),
-                  React.createElement('div', { className: "col-span-2" },
-                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
-                      hasRole(getUserRoles(user), 'initiator') ? "Unit Price (ZMW)" : "Unit Price (ZMW) *"
-                    ),
-                    React.createElement('input', {
-                      type: "number",
-                      min: "0",
-                      step: "0.01",
-                      value: item.unit_price,
-                      onChange: (e) => updateLineItem(index, 'unit_price', e.target.value),
-                      disabled: hasRole(getUserRoles(user), 'initiator'),
-                      className: `w-full px-3 py-2 border rounded-lg ${hasRole(getUserRoles(user), 'initiator') ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-500'}`,
-                      placeholder: hasRole(getUserRoles(user), 'initiator') ? 'To be filled by Procurement' : '0.00',
-                      title: hasRole(getUserRoles(user), 'initiator') ? 'Unit price will be filled by Procurement' : 'Enter unit price'
-                    })
-                  )
-                ),
-                // Display item total
-                (item.quantity && item.unit_price) && React.createElement('div', { className: "mt-2 text-right" },
-                  React.createElement('span', { className: "text-sm font-semibold text-gray-700" },
-                    `Item Total: ZMW ${((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  )
-                )
-              )
-            )
-          ),
-          // Totals Summary (only show for procurement or if there are prices)
-          (user.role === 'procurement' || calculateTotals().subtotal > 0) && React.createElement('div', { className: "mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" },
-            React.createElement('h4', { className: "text-sm font-semibold text-blue-900 mb-3" }, "Requisition Totals"),
-            hasRole(getUserRoles(user), 'initiator') && calculateTotals().subtotal === 0 ?
-              React.createElement('p', { className: "text-sm text-gray-600 italic" },
-                "Unit prices will be filled by Procurement"
-              ) :
-              React.createElement('div', { className: "space-y-2" },
-                React.createElement('div', { className: "flex justify-between text-sm" },
-                  React.createElement('span', { className: "text-gray-700" }, "Subtotal:"),
-                  React.createElement('span', { className: "font-semibold text-gray-900" },
-                    `ZMW ${calculateTotals().subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  )
-                ),
-                // Only show tax line for procurement users
-                user.role === 'procurement' && formData.taxType === 'VAT' && React.createElement('div', { className: "flex justify-between text-sm" },
-                  React.createElement('span', { className: "text-gray-700" }, "VAT (16%):"),
-                  React.createElement('span', { className: "font-semibold text-gray-900" },
-                    `ZMW ${calculateTotals().tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  )
-                ),
-                // Show TOT notice if TOT is selected (procurement only)
-                user.role === 'procurement' && formData.taxType === 'TOT' && React.createElement('div', { className: "flex justify-between text-sm" },
-                  React.createElement('span', { className: "text-gray-700 italic" }, "Tax:"),
-                  React.createElement('span', { className: "font-semibold text-gray-600 italic" }, "TOT - No Tax Applied")
-                ),
-                // Show note for initiators that tax will be determined by procurement
-                hasRole(getUserRoles(user), 'initiator') && calculateTotals().subtotal > 0 && React.createElement('div', { className: "flex justify-between text-sm" },
-                  React.createElement('span', { className: "text-gray-700 italic" }, "Tax:"),
-                  React.createElement('span', { className: "font-semibold text-gray-600 italic text-xs" }, "Will be determined by Procurement")
-                ),
-                React.createElement('div', { className: "flex justify-between text-base pt-2 border-t border-blue-300" },
-                  React.createElement('span', { className: "font-bold text-blue-900" },
-                    hasRole(getUserRoles(user), 'initiator') ? "Subtotal:" : "Grand Total:"
-                  ),
-                  React.createElement('span', { className: "font-bold text-blue-900 text-lg" },
-                    `ZMW ${calculateTotals().grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  )
-                )
-              )
-          )
-        ),
-        // General Requisition Details
-        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
-          React.createElement('div', null,
-            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Date Required *"),
-            React.createElement('input', {
-              type: "date",
-              value: formData.dateRequired,
-              min: getCurrentDate(),
-              onChange: (e) => setFormData({...formData, dateRequired: e.target.value}),
-              className: "form-input w-full"
-            })
-          ),
-          React.createElement('div', null,
-            React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Current Date"),
-            React.createElement('div', { className: "px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900" },
-              getCurrentDate()
-            )
-          )
-        ),
-        // Urgency and Tax Type (tax only for procurement)
-        user.role === 'procurement'
-          ? React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
-              React.createElement('div', null,
-                React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Urgency Level *"),
-                React.createElement('select', {
-                  value: formData.urgency,
-                  onChange: (e) => setFormData({...formData, urgency: e.target.value}),
-                  className: "form-input w-full"
-                },
-                  React.createElement('option', { value: "standard" }, "Standard (30 days)"),
-                  React.createElement('option', { value: "urgent" }, "Urgent (15 days)"),
-                  React.createElement('option', { value: "critical" }, "Critical (7 days)")
-                )
-              ),
-              React.createElement('div', null,
-                React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Tax Type *"),
-                React.createElement('select', {
-                  value: formData.taxType,
-                  onChange: (e) => setFormData({...formData, taxType: e.target.value}),
-                  className: "form-input w-full"
-                },
-                  React.createElement('option', { value: "VAT" }, "VAT (16% Tax)"),
-                  React.createElement('option', { value: "TOT" }, "TOT (No Tax)")
-                )
-              )
-            )
-          : React.createElement('div', null,
-              React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Urgency Level *"),
-              React.createElement('select', {
-                value: formData.urgency,
-                onChange: (e) => setFormData({...formData, urgency: e.target.value}),
-                className: "form-input w-full"
-              },
-                React.createElement('option', { value: "standard" }, "Standard (30 days)"),
-                React.createElement('option', { value: "urgent" }, "Urgent (15 days)"),
-                React.createElement('option', { value: "critical" }, "Critical (7 days)")
-              )
-            ),
-        React.createElement('div', null,
-          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, "Justification for Requisition *"),
-          React.createElement('textarea', {
-            rows: "4",
-            value: formData.justification,
-            onChange: (e) => setFormData({...formData, justification: e.target.value}),
-            className: "form-input w-full",
-            placeholder: "Explain the business need for this requisition and all items listed above..."
-          })
-        ),
-        // HOD Selection for Procurement
-        user.role === 'procurement' && React.createElement('div', { className: "p-4 bg-yellow-50 border border-yellow-200 rounded-lg" },
-          React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" },
-            "Select HOD Approver *",
-            React.createElement('span', { className: "text-xs text-gray-500 ml-2" }, "(Required for procurement-initiated requisitions)")
-          ),
-          React.createElement('select', {
-            value: formData.selectedHod,
-            onChange: (e) => setFormData({...formData, selectedHod: e.target.value}),
-            className: "form-input w-full"
-          },
-            React.createElement('option', { value: "" }, "-- Select HOD Approver --"),
-            hodUsers.map(hod =>
-              React.createElement('option', { key: hod.id, value: hod.id },
-                `${hod.full_name || hod.name} (${hod.department})`
-              )
-            )
-          )
-        ),
-        React.createElement('div', { className: "flex gap-3" },
-          React.createElement('button', {
-            onClick: handleSubmitForApproval,
-            disabled: loading,
-            className: "btn-primary btn-lg flex-1"
-          }, loading ? 'Submitting...' : 'Submit for Approval'),
-          React.createElement('button', {
-            onClick: handleSaveAsDraft,
-            disabled: loading,
-            className: "flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors disabled:bg-gray-400"
-          }, loading ? 'Saving...' : 'Save as Draft'),
-          React.createElement('button', {
-            onClick: () => setView('dashboard'),
-            disabled: loading,
-            className: "btn-secondary btn-lg"
-          }, "Cancel")
         )
       )
     )

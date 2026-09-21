@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Requisition - Internal Approvals System</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230070AF'/%3E%3Cpath d='M8 4h10l6 6v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' fill='white'/%3E%3Cpath d='M18 4v6h6' fill='%23D0E3F2'/%3E%3Cpath d='M10 19 L14 23 L22 14' stroke='%230070AF' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+    <!-- Auth gate: redirect anonymous visitors to login before paint. -->
+    <script>
+      (function() {
+        var token = localStorage.getItem('authToken');
+        var userData = localStorage.getItem('userData');
+        if (!token || !userData) { window.location.replace('index.html'); return; }
+        try {
+          var payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('refreshToken');
+            window.location.replace('index.html');
+          }
+        } catch (e) { window.location.replace('index.html'); }
+      })();
+    </script>
+    <!-- Inter typeface -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Shared financial form styles -->
+    <link rel="stylesheet" href="forms.css">
+    <style>
+        .nav-header { max-width: 1150px; }
+        .container  { max-width: 1150px; }
+
+        /* Inline loading (not fullscreen overlay) */
+        .loading {
+            position: static;
+            background: transparent;
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading .spinner {
+            border-color: #E6EDF5;
+            border-top-color: var(--color-primary);
+            width: 36px;
+            height: 36px;
+        }
+
+        /* Searchable item-catalog combobox — a single floating panel shared
+           by every row (per-row absolute panels would get clipped by the
+           table wrapper's overflow-x: auto). */
+        #itemCatalogDropdown {
+            position: fixed;
+            background: var(--panel);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 50;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+            display: none;
+        }
+        .equipment-option {
+            padding: 9px 11px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .equipment-option:hover { background: var(--paper); }
+        .equipment-option .opt-code { font-weight: 600; font-family: 'IBM Plex Mono'; }
+        .equipment-option .opt-desc { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+        .equipment-empty {
+            padding: 9px 11px;
+            font-size: 13px;
+            font-style: italic;
+            color: var(--ink-faint);
+        }
+
+        .rf-item-cell { position: relative; }
+    </style>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <div class="nav-header">
+        <a href="index.html" class="nav-btn nav-btn-home">
+            Home
+        </a>
+        <button onclick="goBack()" class="nav-btn nav-btn-back">
+            <span>&#8592;</span> Back
+        </button>
+    </div>
+
+    <div class="container">
+        <div class="rf-title-block">
+            <div>
+                <h1>Purchase Requisition</h1>
+                <div class="rf-subtitle">HOD, then Procurement, Finance, and MD approval</div>
+            </div>
+        </div>
+
+        <div id="alert" class="alert"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <form id="purchaseRequisitionForm">
+            <div class="rf-layout">
+                <div>
+                    <!-- Requisition Details -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">01</span><h2>Requisition Details</h2></div>
+                        <div class="rf-grid">
+                            <div class="rf-field">
+                                <label for="prNumberPreview">PR Number</label>
+                                <input type="text" id="prNumberPreview" class="mono" readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="department">Department</label>
+                                <input type="text" id="department" readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="deptCode">Dept Code</label>
+                                <input type="text" id="deptCode" class="mono" readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="dateRequired">Date Required <span class="required">*</span></label>
+                                <input type="date" id="dateRequired" required>
+                            </div>
+                            <div class="rf-field">
+                                <label for="urgency">Urgency Level <span class="required">*</span></label>
+                                <select id="urgency">
+                                    <option value="standard">Standard (30 days)</option>
+                                    <option value="urgent">Urgent (15 days)</option>
+                                    <option value="critical">Critical (7 days)</option>
+                                </select>
+                            </div>
+                            <div class="rf-field" id="taxTypeField" style="display:none;">
+                                <label for="taxType">Tax Type <span class="required">*</span></label>
+                                <select id="taxType">
+                                    <option value="VAT">VAT (16% Tax)</option>
+                                    <option value="TOT">TOT (No Tax)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Line Items -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Line Items <span id="itemCountLabel"></span></h2></div>
+                        <div class="rf-table-wrap">
+                            <table class="rf-table" id="itemsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;">#</th>
+                                        <th style="width: 130px;">Item Code</th>
+                                        <th>Description</th>
+                                        <th style="width: 70px;">Qty</th>
+                                        <th style="width: 140px;">Unit Price (ZMW)</th>
+                                        <th style="width: 130px;">Total</th>
+                                        <th style="width: 44px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody">
+                                    <!-- Rows added by addLineItem() -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="rf-add-row-btn" id="addItemBtn" onclick="addLineItem()">+ Add item</button>
+                        <p class="help-text" id="priceHelpText" style="display:none;">Unit prices will be filled in by Procurement once this requisition is approved by your HOD.</p>
+                    </div>
+
+                    <!-- Justification -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">03</span><h2>Justification</h2></div>
+                        <div class="rf-grid cols-1">
+                            <div class="rf-field">
+                                <label for="justification">Justification for Requisition <span class="required">*</span></label>
+                                <textarea id="justification" placeholder="Explain the business need for this requisition and all items listed above..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Approval Routing (procurement-initiated requisitions only) -->
+                    <div class="field-section" id="hodSection" style="display:none;">
+                        <div class="rf-section-head"><span class="rf-section-num">04</span><h2>Approval Routing</h2></div>
+                        <div class="rf-grid cols-1">
+                            <div class="rf-field">
+                                <label for="selectedHod">Select HOD Approver <span class="required">*</span></label>
+                                <select id="selectedHod">
+                                    <option value="">-- Select HOD Approver --</option>
+                                </select>
+                                <p class="help-text">Required for procurement-initiated requisitions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="stub">
+                    <div class="stub-amount">
+                        <span class="stub-label" id="totalsLabel">Grand Total</span>
+                        <div class="stub-figure" id="grandTotalDisplay">ZMW 0.00</div>
+                    </div>
+                    <div class="stub-row" id="subtotalRow" style="display:none;">
+                        <span class="stub-label">Subtotal</span>
+                        <span class="stub-value mono" id="subtotalDisplay">ZMW 0.00</span>
+                    </div>
+                    <div class="stub-row" id="taxRow" style="display:none;">
+                        <span class="stub-label" id="taxRowLabel">VAT (16%)</span>
+                        <span class="stub-value mono" id="taxDisplay">ZMW 0.00</span>
+                    </div>
+                    <div class="stub-row" id="taxNoteRow" style="display:none;">
+                        <span class="stub-label">Tax</span>
+                        <span class="stub-value" id="taxNoteDisplay" style="font-style:italic;"></span>
+                    </div>
+                    <div class="stub-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Submit for Approval</button>
+                        <button type="button" class="btn btn-secondary" id="draftBtn" onclick="handleSaveAsDraft()">Save as Draft</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                    </div>
+                    <div class="stub-foot">Routes to HOD &rarr; Procurement &rarr; Finance &rarr; MD for approval.</div>
+                </aside>
+            </div>
+        </form>
+    </div>
+
+    <!-- Floating catalog-search panel, shared by every line-item row -->
+    <div id="itemCatalogDropdown"></div>
+
+    <script src="config.js"></script>
+    <script src="stores-item-lookup.js"></script>
+    <script>
+        const API_URL = window.API_URL || 'http://localhost:3001/api';
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        const userRoles = [userData.role, userData.secondary_role].filter(Boolean);
+
+        // Case-insensitive role check — mirrors the main app's hasRole() helper.
+        function hasRole(...allowedRoles) {
+            if (userRoles.length === 0) return false;
+            const normalized = userRoles.map(r => r.toLowerCase());
+            return allowedRoles.some(role => normalized.includes(role.toLowerCase()));
+        }
+
+        // Only an exact primary-role match triggers the procurement-specific
+        // fields (tax type, HOD routing) — matches the original app logic,
+        // which checked user.role === 'procurement' rather than hasRole().
+        const isProcurement = userData.role === 'procurement';
+        const isInitiator = hasRole('initiator');
+
+        let itemCounter = 0;
+        let stockItemsCatalog = [];
+        let hodUsers = [];
+        let lastCatalogMatches = [];
+        let activeItemRow = null;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function getDeptCode() {
+            return userData.department ? userData.department.substring(0, 3).toUpperCase() : 'GEN';
+        }
+
+        function getCurrentDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // Cosmetic preview only — the backend assigns the real PR number.
+        function generatePRNumber() {
+            const deptCode = getDeptCode();
+            const initials = (userData.full_name || userData.name || '')
+                .split(' ').map(n => n.charAt(0)).join('').toUpperCase();
+            const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').substring(0, 14);
+            return `KSB-${deptCode}-${initials}-${timestamp}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('department').value = userData.department || '';
+            document.getElementById('deptCode').value = getDeptCode();
+            document.getElementById('prNumberPreview').value = generatePRNumber();
+            document.getElementById('dateRequired').min = getCurrentDate();
+
+            if (isProcurement) {
+                document.getElementById('taxTypeField').style.display = '';
+                document.getElementById('hodSection').style.display = '';
+                loadHodUsers();
+            }
+            if (isInitiator) {
+                document.getElementById('priceHelpText').style.display = '';
+            }
+
+            fetchStockItemsCatalog().then(items => { stockItemsCatalog = items || []; });
+
+            addLineItem();
+            updateTotalsDisplay();
+        });
+
+        async function loadHodUsers() {
+            try {
+                const res = await fetch(`${API_URL}/users`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch users');
+                const users = await res.json();
+                hodUsers = Array.isArray(users) ? users.filter(u => u.role === 'hod' && u.id) : [];
+                const select = document.getElementById('selectedHod');
+                hodUsers.forEach(hod => {
+                    const opt = document.createElement('option');
+                    opt.value = hod.id;
+                    opt.textContent = `${hod.full_name || hod.name} (${hod.department})`;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error loading HOD users:', error);
+                hodUsers = [];
+            }
+        }
+
+        // ---- Line items ----
+
+        function addLineItem() {
+            const tbody = document.getElementById('itemsTableBody');
+            if (tbody.rows.length >= 15) {
+                showAlert('Maximum of 15 line items allowed', 'error');
+                return;
+            }
+            itemCounter++;
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td class="rf-center mono">${tbody.rows.length}</td>
+                <td class="rf-item-cell">
+                    <input type="text" class="item_code mono" placeholder="Code" autocomplete="off"
+                           oninput="handleItemCodeInput(this)" onfocus="handleItemCodeInput(this)">
+                </td>
+                <td><input type="text" class="item_name" required maxlength="128" placeholder="e.g., Office Supplies" oninput="updateTotalsDisplay()"></td>
+                <td><input type="number" class="quantity rf-center" min="1" value="1" oninput="updateTotalsDisplay()"></td>
+                <td><input type="number" class="unit_price rf-num" min="0" step="0.01" placeholder="0.00" oninput="updateTotalsDisplay()"
+                           ${isInitiator ? 'disabled' : ''}></td>
+                <td class="rf-num mono item_total">0.00</td>
+                <td><button type="button" class="rf-row-del" title="Remove" onclick="removeLineItem(this)">&times;</button></td>
+            `;
+            renumberRows();
+            updateTotalsDisplay();
+        }
+
+        function removeLineItem(button) {
+            const tbody = document.getElementById('itemsTableBody');
+            if (tbody.rows.length <= 1) {
+                showAlert('At least one item is required', 'error');
+                return;
+            }
+            button.closest('tr').remove();
+            renumberRows();
+            updateTotalsDisplay();
+        }
+
+        function renumberRows() {
+            const tbody = document.getElementById('itemsTableBody');
+            Array.from(tbody.rows).forEach((row, i) => { row.cells[0].textContent = i + 1; });
+            document.getElementById('itemCountLabel').textContent = `(${tbody.rows.length}/15)`;
+        }
+
+        // ---- Catalog search (per-row, single floating panel) ----
+
+        function filterCatalogItems(term) {
+            const t = term.trim().toLowerCase();
+            if (!t) return [];
+            return stockItemsCatalog.filter(i =>
+                (i.item_number || '').toLowerCase().includes(t) ||
+                (i.item_description || '').toLowerCase().includes(t) ||
+                (i.material || '').toLowerCase().includes(t) ||
+                (i.pump_model || '').toLowerCase().includes(t) ||
+                (i.accessories || '').toLowerCase().includes(t)
+            ).slice(0, 20);
+        }
+
+        function handleItemCodeInput(input) {
+            activeItemRow = input.closest('tr');
+            const dropdown = document.getElementById('itemCatalogDropdown');
+            const value = input.value.trim();
+
+            // Typing an exact catalog code still auto-fills the description,
+            // even without picking it from the dropdown.
+            const exactMatch = stockItemsCatalog.find(i => (i.item_number || '').trim().toLowerCase() === value.toLowerCase());
+            if (exactMatch) {
+                activeItemRow.querySelector('.item_name').value = exactMatch.item_description || '';
+                updateTotalsDisplay();
+            }
+
+            lastCatalogMatches = filterCatalogItems(value);
+            if (!value) { dropdown.style.display = 'none'; return; }
+
+            if (lastCatalogMatches.length === 0) {
+                dropdown.innerHTML = '<div class="equipment-empty">No catalog matches — your typed code/description will be used as-is.</div>';
+            } else {
+                dropdown.innerHTML = lastCatalogMatches.map((ci, i) => `
+                    <div class="equipment-option" onmousedown="selectCatalogItemAt(event, ${i})">
+                        <div class="opt-code">${escapeHtml(ci.item_number || '(no code)')}</div>
+                        <div class="opt-desc">${escapeHtml([ci.item_description, ci.pump_model, ci.material].filter(Boolean).join(' — '))}</div>
+                    </div>
+                `).join('');
+            }
+            positionDropdown(input, dropdown);
+            dropdown.style.display = 'block';
+        }
+
+        function selectCatalogItemAt(event, i) {
+            event.preventDefault();
+            const ci = lastCatalogMatches[i];
+            if (!ci || !activeItemRow) return;
+            activeItemRow.querySelector('.item_code').value = ci.item_number || '';
+            activeItemRow.querySelector('.item_name').value = ci.item_description || '';
+            document.getElementById('itemCatalogDropdown').style.display = 'none';
+            updateTotalsDisplay();
+        }
+
+        function positionDropdown(input, dropdown) {
+            const rect = input.getBoundingClientRect();
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.width = Math.max(rect.width, 260) + 'px';
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('itemCatalogDropdown');
+            if (!dropdown.contains(e.target) && !e.target.classList.contains('item_code')) {
+                dropdown.style.display = 'none';
+            }
+        });
+        window.addEventListener('scroll', function() {
+            document.getElementById('itemCatalogDropdown').style.display = 'none';
+        }, true);
+
+        // ---- Totals ----
+
+        function calculateTotals() {
+            const rows = document.getElementById('itemsTableBody').rows;
+            let subtotal = 0;
+            for (const row of rows) {
+                const qty = parseFloat(row.querySelector('.quantity').value) || 0;
+                const price = parseFloat(row.querySelector('.unit_price').value) || 0;
+                const total = qty * price;
+                row.querySelector('.item_total').textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                subtotal += total;
+            }
+            const taxType = isProcurement ? document.getElementById('taxType').value : null;
+            const tax = taxType === 'VAT' ? subtotal * 0.16 : 0;
+            const grandTotal = subtotal + tax;
+            return { subtotal, tax, grandTotal, taxType };
+        }
+
+        function fmtZMW(n) {
+            return 'ZMW ' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function updateTotalsDisplay() {
+            const { subtotal, tax, grandTotal, taxType } = calculateTotals();
+
+            const subtotalRow = document.getElementById('subtotalRow');
+            const taxRow = document.getElementById('taxRow');
+            const taxRowLabel = document.getElementById('taxRowLabel');
+            const taxNoteRow = document.getElementById('taxNoteRow');
+            const taxNoteDisplay = document.getElementById('taxNoteDisplay');
+            subtotalRow.style.display = 'none';
+            taxRow.style.display = 'none';
+            taxNoteRow.style.display = 'none';
+
+            if (isProcurement) {
+                document.getElementById('totalsLabel').textContent = 'Grand Total';
+                document.getElementById('grandTotalDisplay').textContent = fmtZMW(grandTotal);
+                subtotalRow.style.display = '';
+                document.getElementById('subtotalDisplay').textContent = fmtZMW(subtotal);
+                if (taxType === 'VAT') {
+                    taxRow.style.display = '';
+                    taxRowLabel.textContent = 'VAT (16%)';
+                    document.getElementById('taxDisplay').textContent = fmtZMW(tax);
+                } else {
+                    taxNoteRow.style.display = '';
+                    taxNoteDisplay.textContent = 'TOT - No Tax Applied';
+                }
+            } else if (isInitiator) {
+                document.getElementById('totalsLabel').textContent = 'Subtotal';
+                document.getElementById('grandTotalDisplay').textContent = fmtZMW(subtotal);
+                if (subtotal > 0) {
+                    taxNoteRow.style.display = '';
+                    taxNoteDisplay.textContent = 'Will be determined by Procurement';
+                }
+            } else {
+                document.getElementById('totalsLabel').textContent = 'Grand Total';
+                document.getElementById('grandTotalDisplay').textContent = fmtZMW(grandTotal);
+            }
+        }
+
+        // ---- Submission ----
+
+        function collectValidItems() {
+            const rows = document.getElementById('itemsTableBody').rows;
+            const items = [];
+            for (const row of rows) {
+                const name = row.querySelector('.item_name').value.trim();
+                if (!name) continue;
+                const qty = parseFloat(row.querySelector('.quantity').value) || 0;
+                const price = parseFloat(row.querySelector('.unit_price').value) || 0;
+                items.push({
+                    item_code: row.querySelector('.item_code').value.trim() || null,
+                    item_name: name,
+                    quantity: qty,
+                    unit_price: price,
+                    total_price: qty * price
+                });
+            }
+            return items;
+        }
+
+        function buildItemsWithSpecs(validItems, specifications) {
+            return validItems.map(item => ({
+                item_code: item.item_code,
+                item_name: item.item_name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_price: item.total_price,
+                specifications: specifications,
+                currency: 'ZMW'
+            }));
+        }
+
+        function appendBudgetWarning(msg, response) {
+            if (response && response.budget_warning) {
+                const w = response.budget_warning;
+                const overBy = (w.over_by_zmw || 0).toLocaleString('en-ZM', { maximumFractionDigits: 2 });
+                msg += ` Budget warning: this exceeds the available department budget by K${overBy}. Finance/MD approval will require a budget override.`;
+            }
+            return msg;
+        }
+
+        async function handleSaveAsDraft() {
+            const validItems = collectValidItems();
+            if (validItems.length === 0) {
+                showAlert('Please add at least one item with a description', 'error');
+                return;
+            }
+            const dateRequired = document.getElementById('dateRequired').value;
+            if (!dateRequired) {
+                showAlert('Please select a required date', 'error');
+                return;
+            }
+
+            const justification = document.getElementById('justification').value;
+            const reqData = {
+                description: validItems[0].item_name,
+                delivery_location: 'Office',
+                urgency: document.getElementById('urgency').value,
+                required_date: dateRequired,
+                account_code: null,
+                initiatorId: userData.id,
+                items: buildItemsWithSpecs(validItems, justification || 'Draft - No justification provided yet'),
+                tax_type: isProcurement ? document.getElementById('taxType').value : null
+            };
+
+            try {
+                showLoading(true);
+                const response = await createRequisition(reqData);
+                showAlert(appendBudgetWarning('Requisition saved as draft successfully!', response), 'success');
+                setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            } catch (error) {
+                console.error('Error saving requisition:', error);
+                showAlert(`Error saving requisition: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        document.getElementById('purchaseRequisitionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const validItems = collectValidItems();
+            if (validItems.length === 0) {
+                showAlert('Please add at least one item with a description', 'error');
+                return;
+            }
+            const dateRequired = document.getElementById('dateRequired').value;
+            if (!dateRequired) {
+                showAlert('Please select a required date', 'error');
+                return;
+            }
+            const justification = document.getElementById('justification').value;
+            if (!justification || !justification.trim()) {
+                showAlert('Please provide a justification for this requisition', 'error');
+                return;
+            }
+            if (isProcurement) {
+                const itemsWithPrices = validItems.filter(item => item.unit_price > 0);
+                if (itemsWithPrices.length === 0) {
+                    showAlert('Please provide unit price for at least one item', 'error');
+                    return;
+                }
+            }
+            const selectedHod = document.getElementById('selectedHod').value;
+            if (isProcurement && !selectedHod) {
+                showAlert('Please select an HOD approver', 'error');
+                return;
+            }
+
+            const reqData = {
+                description: validItems[0].item_name,
+                delivery_location: 'Office',
+                urgency: document.getElementById('urgency').value,
+                required_date: dateRequired,
+                account_code: null,
+                initiatorId: userData.id,
+                items: buildItemsWithSpecs(validItems, justification),
+                tax_type: isProcurement ? document.getElementById('taxType').value : null
+            };
+
+            try {
+                showLoading(true);
+                const response = await createRequisition(reqData);
+                if (response.requisition_id) {
+                    await submitRequisitionForApproval(response.requisition_id, isProcurement ? selectedHod : null);
+                }
+                showAlert(appendBudgetWarning('Requisition submitted for approval successfully!', response), 'success');
+                setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            } catch (error) {
+                console.error('Error submitting requisition:', error);
+                showAlert(`Error submitting requisition: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        async function createRequisition(data) {
+            const res = await fetch(`${API_URL}/requisitions/simple`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({}));
+                throw new Error(error.error || 'Failed to create requisition');
+            }
+            return res.json();
+        }
+
+        async function submitRequisitionForApproval(requisitionId, selectedHodId) {
+            const res = await fetch(`${API_URL}/requisitions/${requisitionId}/submit`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({ user_id: userData.id, selected_hod_id: selectedHodId })
+            });
+            if (!res.ok) throw new Error('Failed to submit requisition');
+            return res.json();
+        }
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            setTimeout(() => { alert.style.display = 'none'; }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function goBack() {
+            if (document.referrer && document.referrer.includes(window.location.hostname)) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
