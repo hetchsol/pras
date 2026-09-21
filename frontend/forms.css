@@ -1,13 +1,21 @@
 /* ===================================================================
    KSB PRAS — Shared financial form stylesheet
    Linked by: eft-requisition.html, petty-cash-requisition.html,
-              expense-claim.html, issue-slip.html, grn.html,
-              picking-slip.html
+              expense-claim.html, it-equipment-request.html,
+              issue-slip.html, grn.html, picking-slip.html
    Per-page overrides (max-width, unique widgets) live in each file's
    own <style> block below this link.
+
+   The four Request Forms (EFT, Petty Cash, Expense Claim, IT
+   Equipment) use the newer "document + control stub" components
+   further down (.title-block, .rf-layout, .stub, .field-section,
+   .line-table). Issue Slip / GRN / Picking Slip keep the original
+   single-column .container/.form-section structure — both share the
+   same design tokens and base input/button/table styling.
    =================================================================== */
 
-/* Design tokens — mirrors the :root block in index.html */
+/* Design tokens — mirrors the :root block in index.html for shared
+   colors, extended with the paper/ink palette the request forms use. */
 :root {
     --color-primary:       #0070AF;
     --color-primary-dark:  #005A8C;
@@ -24,6 +32,25 @@
     --bg-card:             #FFFFFF;
     --bg-surface:          #F4F7FB;
     --shadow-card: 0 24px 60px -16px rgba(11, 18, 32, 0.35), 0 8px 24px -8px rgba(11, 18, 32, 0.15);
+
+    /* Paper/ink palette — the request forms' document-style surface */
+    --ink:          #12212E;
+    --ink-soft:     #3D4C58;
+    --ink-faint:    #6B7A86;
+    --paper:        #F4F3EF;
+    --panel:        #FFFFFF;
+    --rule:         #DBD9D1;
+    --rule-strong:  #C7C4B9;
+    --amber:        #9A6A17;
+    --amber-tint:   #F6EDDB;
+    --green:        #2F7A52;
+    --green-tint:   #E5F1EA;
+    --red:          #B23A34;
+    --red-tint:     #F7E7E5;
+    --stub-bg:      #12212E;
+    --stub-ink:     #F4F3EF;
+    --stub-ink-soft:#AAB8C2;
+    --stub-rule:    #2A3A47;
 }
 
 /* ---- Reset ---- */
@@ -35,18 +62,18 @@
 
 /* ---- Base ---- */
 body {
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background: radial-gradient(circle at 15% -10%, #1E8AC9 0%, transparent 45%), linear-gradient(160deg, var(--color-primary) 0%, var(--color-primary-dark) 55%, #003C5C 100%);
-    background-attachment: fixed;
-    color: var(--text-primary);
+    background: var(--paper);
+    color: var(--ink);
     min-height: 100vh;
     padding: 20px;
 }
+
+.mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 
 /* ---- Navigation ---- */
 .nav-header {
@@ -60,71 +87,51 @@ body {
     align-items: center;
     gap: 8px;
     padding: 9px 18px;
-    border: 2px solid transparent;
-    border-radius: 10px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 8px;
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    background: var(--panel);
+    color: var(--ink-soft);
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.nav-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
 
 .nav-btn-home {
-    background: #fff;
-    color: var(--color-primary);
-    border-color: transparent;
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
 }
-.nav-btn-home:hover {
-    background: var(--color-primary);
-    color: #fff;
-}
+.nav-btn-home:hover { background: var(--color-primary); border-color: var(--color-primary); }
 
-.nav-btn-back {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.35);
-}
-.nav-btn-back:hover {
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.6);
-}
+.nav-btn-back:hover { border-color: var(--ink-soft); color: var(--ink); }
 
-/* ---- Card container ---- */
+/* ---- Card container (Stores pages: Issue Slip / GRN / Picking Slip) ---- */
 .container {
-    position: relative;
     margin: 0 auto;
-    background: var(--bg-card);
-    border-radius: 18px;
-    box-shadow: var(--shadow-card);
-    padding: 40px 44px;
-    overflow: hidden;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(18,33,46,.06), 0 8px 24px -12px rgba(18,33,46,.18);
+    padding: 36px 40px;
 }
 
-/* Top accent bar — a small signature touch instead of a flat white card. */
-.container::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, var(--color-primary) 0%, #58A6D0 100%);
-}
-
-/* ---- Page title ---- */
+/* ---- Page title (Stores pages) ---- */
 h1 {
     font-family: inherit;
     font-size: 22px;
-    font-weight: 800;
-    color: var(--text-primary);
+    font-weight: 700;
+    color: var(--ink);
     text-align: left;
-    margin-bottom: 30px;
-    letter-spacing: -0.02em;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 26px;
+    letter-spacing: -0.01em;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--ink);
 }
 
-/* ---- Form sections ---- */
+/* ---- Form sections (Stores pages) ---- */
 .form-section {
     margin-bottom: 28px;
 }
@@ -132,23 +139,13 @@ h1 {
 .form-section h2 {
     font-family: inherit;
     font-size: 11px;
-    font-weight: 700;
-    color: var(--color-primary);
+    font-weight: 600;
+    color: var(--ink-soft);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 14px;
     padding-bottom: 8px;
-    padding-left: 12px;
-    border-bottom: 1px solid var(--border-color);
-    position: relative;
-}
-.form-section h2::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 1px;
-    width: 4px; height: 12px;
-    border-radius: 2px;
-    background: var(--color-primary);
+    border-bottom: 1px solid var(--rule);
 }
 
 /* ---- Form layout ---- */
@@ -171,24 +168,21 @@ h1 {
 /* ---- Labels ---- */
 label {
     font-family: inherit;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 5px;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
     letter-spacing: 0.02em;
-    text-transform: uppercase;
 }
 
-label .required { color: var(--color-danger); }
+label .required { color: var(--red); }
 
 .help-text {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    margin-top: 5px;
     font-style: italic;
-    text-transform: none;
     font-weight: 400;
-    letter-spacing: 0;
 }
 
 /* ---- Inputs ---- */
@@ -199,34 +193,33 @@ input[type="email"],
 textarea,
 select {
     padding: 10px 12px;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--rule-strong);
+    border-radius: 6px;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 14.5px;
     line-height: 1.5;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
     outline: none;
-    background: #fff;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 112, 175, 0.14);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 input::placeholder,
 textarea::placeholder {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
 }
 
 input[readonly],
 textarea[readonly] {
-    background: var(--bg-surface);
-    color: var(--text-secondary);
+    background: var(--paper);
+    color: var(--ink-soft);
     cursor: default;
 }
 
@@ -236,11 +229,11 @@ textarea {
     font-family: inherit;
 }
 
-/* ---- Tables ---- */
+/* ---- Tables (Stores pages) ---- */
 .table-container {
     overflow-x: auto;
     margin: 16px 0;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--rule);
     border-radius: 10px;
 }
 
@@ -250,26 +243,26 @@ table {
 }
 
 th {
-    background: var(--bg-surface);
-    color: var(--text-tertiary);
+    background: var(--paper);
+    color: var(--ink-faint);
     padding: 10px 12px;
     text-align: left;
     font-family: inherit;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--rule);
 }
 
 td {
-    padding: 10px 10px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--rule);
     font-size: 13px;
-    color: var(--text-primary);
+    color: var(--ink);
 }
 
-tbody tr:hover td { background: var(--bg-surface); }
+tbody tr:hover td { background: var(--paper); }
 tr:last-child td { border-bottom: none; }
 
 td input[type="text"],
@@ -277,16 +270,16 @@ td input[type="number"],
 td input[type="date"],
 td select {
     width: 100%;
-    padding: 6px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    padding: 7px 9px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 5px;
     font-family: inherit;
     font-size: 13px;
 }
 
 td input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     cursor: pointer;
     accent-color: var(--color-primary);
 }
@@ -297,65 +290,64 @@ td input[type="checkbox"] {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 11px 24px;
+    padding: 12px 20px;
     border: 1px solid transparent;
-    border-radius: 9px;
+    border-radius: 7px;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
     background: var(--color-primary);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 112, 175, 0.35);
 }
-.btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 112, 175, 0.4); }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
 
 .btn-secondary {
-    background: var(--bg-surface);
-    color: var(--text-secondary);
-    border-color: var(--border-color);
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--rule-strong);
 }
-.btn-secondary:hover:not(:disabled) { background: var(--border-color); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--ink-soft); color: var(--ink); }
 
 .btn-add {
     background: var(--color-primary);
     color: #fff;
     padding: 7px 16px;
     font-size: 13px;
-    border-radius: 7px;
+    border-radius: 6px;
     margin-bottom: 10px;
 }
 .btn-add:hover { background: var(--color-primary-dark); }
 
 .btn-danger {
-    background: var(--color-danger);
+    background: var(--red);
     color: #fff;
     padding: 4px 10px;
     font-size: 12px;
-    border-radius: 6px;
+    border-radius: 5px;
 }
-.btn-danger:hover { background: var(--color-danger-dark); }
+.btn-danger:hover { background: #8f2e29; }
 
-/* ---- Actions row ---- */
+/* ---- Actions row (Stores pages) ---- */
 .actions {
     display: flex;
     gap: 12px;
     justify-content: flex-end;
     margin-top: 28px;
     padding-top: 20px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--rule);
 }
 
 /* ---- Alerts ---- */
 .alert {
     padding: 13px 16px;
-    border-radius: 8px;
+    border-radius: 7px;
     margin-bottom: 16px;
     font-size: 14px;
     font-weight: 500;
@@ -364,14 +356,14 @@ td input[type="checkbox"] {
     border-left-style: solid;
 }
 .alert-success {
-    background: #ECFDF5;
-    color: #065F46;
-    border-left-color: var(--color-success);
+    background: var(--green-tint);
+    color: #1F5C3B;
+    border-left-color: var(--green);
 }
 .alert-error {
-    background: #FEF2F2;
-    color: #991B1B;
-    border-left-color: var(--color-danger);
+    background: var(--red-tint);
+    color: #7A2924;
+    border-left-color: var(--red);
 }
 
 /* ---- Loading overlay (used by issue-slip, grn, picking-slip) ---- */
@@ -382,7 +374,7 @@ td input[type="checkbox"] {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(18, 33, 46, 0.6);
     justify-content: center;
     align-items: center;
     flex-direction: column;
@@ -395,7 +387,7 @@ td input[type="checkbox"] {
     font-weight: 500;
 }
 
-/* ---- Inline loading (used by eft, petty-cash, expense-claim) ---- */
+/* ---- Inline loading (used by eft, petty-cash, expense-claim, it-equipment) ---- */
 .loading-inline {
     display: none;
     text-align: center;
@@ -404,7 +396,7 @@ td input[type="checkbox"] {
 
 /* ---- Spinner ---- */
 .spinner {
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    border: 3px solid var(--rule);
     border-top: 3px solid var(--color-primary);
     border-radius: 50%;
     width: 40px;
@@ -412,7 +404,6 @@ td input[type="checkbox"] {
     animation: spin 0.8s linear infinite;
     margin: 0 auto;
 }
-/* White spinner inside dark overlays */
 .loading .spinner {
     border-color: rgba(255, 255, 255, 0.3);
     border-top-color: #fff;
@@ -422,12 +413,12 @@ td input[type="checkbox"] {
     100% { transform: rotate(360deg); }
 }
 
-/* ---- Financial totals / summary ---- */
+/* ---- Financial totals / summary (Stores pages) ---- */
 .totals-section {
-    background: var(--bg-surface);
+    background: var(--paper);
     padding: 18px 20px;
     border-radius: 10px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--rule);
     margin-top: 16px;
 }
 
@@ -451,14 +442,14 @@ td input[type="checkbox"] {
 .totals-label {
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--ink-soft);
     text-align: right;
 }
 
 .totals-value {
     font-size: 13px;
     text-align: right;
-    color: var(--text-primary);
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
 }
 
@@ -468,7 +459,7 @@ td input[type="checkbox"] {
     color: var(--color-primary);
 }
 
-/* ---- EFT amount display ---- */
+/* ---- EFT amount display (legacy, kept for any page not yet on .stub) ---- */
 .amount-display {
     background: var(--color-primary-light);
     padding: 16px;
@@ -484,14 +475,14 @@ td input[type="checkbox"] {
 
 .amount-words-display,
 .amount-words {
-    background: var(--bg-surface);
+    background: var(--paper);
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--rule);
     min-height: 44px;
     font-style: italic;
     font-size: 13px;
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
     text-align: center;
     margin-bottom: 12px;
 }
@@ -499,14 +490,140 @@ td input[type="checkbox"] {
 /* ---- EFT time-lock banner ---- */
 #eftLockBanner {
     display: none;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    border-left: 4px solid #D97706;
-    background: #FEF3C7;
-    color: var(--text-primary);
-    border-radius: 0 8px 8px 0;
-    font-size: 14px;
+    padding: 13px 16px;
+    margin-bottom: 22px;
+    border-radius: 7px;
+    background: var(--amber-tint);
+    border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+    font-size: 13px;
+    color: var(--ink);
 }
+#eftLockBannerText b { color: var(--amber); }
+
+/* ===================================================================
+   Request Forms — document + control stub layout
+   Used by: eft-requisition.html, petty-cash-requisition.html,
+   expense-claim.html, it-equipment-request.html
+   =================================================================== */
+
+.rf-title-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    padding-bottom: 18px;
+    margin-bottom: 26px;
+    border-bottom: 2px solid var(--ink);
+    flex-wrap: wrap;
+}
+.rf-title-block h1 {
+    margin: 0 0 6px;
+    padding: 0;
+    border: none;
+}
+.rf-title-block .rf-subtitle { color: var(--ink-faint); font-size: 13.5px; }
+.rf-doc-meta { text-align: right; font-size: 12px; color: var(--ink-faint); line-height: 1.7; }
+
+.rf-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 36px;
+    align-items: start;
+}
+@media (max-width: 860px) {
+    .rf-layout { grid-template-columns: 1fr; }
+}
+
+.field-section {
+    padding-block: 22px;
+    border-bottom: 1px solid var(--rule);
+}
+.field-section:first-child { padding-top: 0; }
+.field-section:last-child { border-bottom: none; }
+
+.rf-section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.rf-section-num { font-family: 'IBM Plex Mono'; font-size: 12px; color: var(--color-primary); font-weight: 600; }
+.rf-section-head h2 {
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    margin: 0;
+    color: var(--ink-soft);
+    padding: 0;
+    border: none;
+}
+
+.rf-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 20px; }
+.rf-grid.cols-1 { grid-template-columns: 1fr; }
+@media (max-width: 560px) { .rf-grid { grid-template-columns: 1fr; } }
+.rf-field.span-2 { grid-column: 1 / -1; }
+
+.rf-check-row { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink-soft); margin-bottom: 18px; }
+.rf-check-row input { width: 16px; height: 16px; accent-color: var(--color-primary); }
+
+.rf-combo { position: relative; }
+
+/* ---- Control stub — sticky sidebar with summary + submit actions ---- */
+.stub {
+    position: sticky;
+    top: 24px;
+    background: var(--stub-bg);
+    color: var(--stub-ink);
+    border-radius: 10px;
+    padding: 22px;
+    box-shadow: var(--shadow-card);
+}
+.stub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-block: 11px;
+    border-bottom: 1px solid var(--stub-rule);
+    gap: 12px;
+}
+.stub-row:first-child { padding-top: 0; }
+.stub-row:last-of-type { border-bottom: none; }
+.stub-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--stub-ink-soft); }
+.stub-value { font-family: 'IBM Plex Mono'; font-size: 13.5px; text-align: right; }
+.stub-amount { padding-block: 18px; text-align: center; border-bottom: 1px solid var(--stub-rule); margin-bottom: 4px; }
+.stub-amount .stub-label { text-align: center; }
+.stub-amount .stub-figure { font-family: 'IBM Plex Mono'; font-size: 30px; font-weight: 600; margin-top: 6px; letter-spacing: -0.01em; }
+.stub-actions { display: flex; flex-direction: column; gap: 9px; margin-top: 20px; }
+.stub-actions .btn { width: 100%; }
+.stub-actions .btn-secondary { background: transparent; border-color: var(--stub-rule); color: var(--stub-ink-soft); }
+.stub-actions .btn-secondary:hover:not(:disabled) { border-color: var(--stub-ink-soft); color: var(--stub-ink); }
+.stub-foot { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--stub-rule); font-size: 11px; color: var(--stub-ink-soft); line-height: 1.6; }
+
+/* ---- Line-item tables (Petty Cash, Expense Claim) ---- */
+.rf-table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; }
+.rf-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+.rf-table th {
+    text-align: left; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ink-faint); background: var(--paper); padding: 10px 12px; border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+}
+.rf-table td { padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.rf-table tbody tr:last-child td { border-bottom: none; }
+.rf-table input, .rf-table select { padding: 7px 9px; font-size: 13px; min-width: 60px; }
+.rf-table .rf-num { font-family: 'IBM Plex Mono'; text-align: right; }
+.rf-table .rf-center { text-align: center; }
+.rf-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--color-primary); }
+.rf-row-del {
+    width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--rule-strong); background: var(--panel);
+    color: var(--ink-faint); cursor: pointer; font-size: 14px; line-height: 1;
+}
+.rf-row-del:hover { border-color: var(--red); color: var(--red); }
+.rf-add-row-btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--color-primary); background: none;
+    border: none; cursor: pointer; padding: 10px 2px; display: inline-flex; align-items: center; gap: 6px;
+}
+.rf-add-row-btn:hover { text-decoration: underline; }
 
 /* ---- Responsive ---- */
 
@@ -522,6 +639,7 @@ td input[type="checkbox"] {
     .container { padding: 18px 14px; border-radius: 12px; }
     h1 { font-size: 17px; margin-bottom: 20px; }
     .form-grid { grid-template-columns: 1fr; gap: 12px; }
+    .rf-grid { grid-template-columns: 1fr; gap: 12px; }
     .form-section { margin-bottom: 20px; }
     .form-section h2 { font-size: 10px; }
     .actions { flex-direction: column-reverse; gap: 8px; }

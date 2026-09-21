@@ -25,12 +25,12 @@
     <!-- Inter typeface -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Shared financial form styles -->
     <link rel="stylesheet" href="forms.css">
     <style>
-        .nav-header { max-width: 900px; }
-        .container  { max-width: 900px; }
+        .nav-header { max-width: 1040px; }
+        .container  { max-width: 1040px; }
 
         /* Inline loading (not fullscreen overlay) */
         .loading {
@@ -54,8 +54,8 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: #fff;
-            border: 1px solid var(--border-color);
+            background: var(--panel);
+            border: 1px solid var(--rule);
             border-radius: 6px;
             margin-top: 4px;
             max-height: 240px;
@@ -70,7 +70,7 @@
         }
         .equipment-option:hover,
         .equipment-option.active {
-            background: var(--bg-surface, #f0f4f8);
+            background: var(--paper);
         }
         .equipment-category {
             padding: 6px 11px 2px;
@@ -78,13 +78,13 @@
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            color: var(--text-tertiary);
+            color: var(--ink-faint);
         }
         .equipment-empty {
             padding: 9px 11px;
             font-size: 13px;
             font-style: italic;
-            color: var(--text-tertiary);
+            color: var(--ink-faint);
         }
     </style>
 </head>
@@ -100,10 +100,12 @@
     </div>
 
     <div class="container">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: #EDE9FE; color: #6D28D9; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20"/></svg>
+        <div class="rf-title-block">
+            <div>
+                <h1>IT Equipment Request</h1>
+                <div class="rf-subtitle">Routed to HR verification, then MD approval, then IT issuance</div>
+            </div>
         </div>
-        <h1>IT Equipment Request Form</h1>
 
         <div id="alert" class="alert"></div>
         <div id="loading" class="loading">
@@ -112,47 +114,58 @@
         </div>
 
         <form id="itEquipmentForm">
-            <!-- Basic Information -->
-            <div class="form-section">
-                <h2>Request Details</h2>
-                <div style="margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="onBehalfOf" style="width: 20px; height: 20px; margin-right: 10px;" onchange="toggleOnBehalfOf()">
-                        <span style="font-size: 14px;">Submit on behalf of someone else</span>
-                    </label>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="requester_name">Requester Name <span class="required">*</span></label>
-                        <input type="text" id="requester_name" required readonly>
+            <div class="rf-layout">
+                <div>
+                    <!-- Basic Information -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">01</span><h2>Request Details</h2></div>
+                        <label class="rf-check-row">
+                            <input type="checkbox" id="onBehalfOf" onchange="toggleOnBehalfOf()">
+                            Submit on behalf of someone else
+                        </label>
+                        <div class="rf-grid">
+                            <div class="rf-field">
+                                <label for="requester_name">Requester Name <span class="required">*</span></label>
+                                <input type="text" id="requester_name" required readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="department">Department <span class="required">*</span></label>
+                                <input type="text" id="department" required readonly>
+                            </div>
+                            <div class="rf-field span-2 rf-combo combobox-wrapper">
+                                <label for="equipment_description">Equipment Requested <span class="required">*</span></label>
+                                <input type="text" id="equipment_description" required autocomplete="off"
+                                       placeholder="Start typing to search (e.g. laptop, monitor, printer)..."
+                                       oninput="filterEquipmentOptions()" onfocus="filterEquipmentOptions()">
+                                <div id="equipmentDropdown" class="equipment-dropdown" style="display:none;"></div>
+                                <p class="help-text">Can't find what you need? Just type your own description instead.</p>
+                            </div>
+                            <div class="rf-field">
+                                <label for="quantity">Quantity <span class="required">*</span></label>
+                                <input type="number" id="quantity" min="1" value="1" required>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="department">Department <span class="required">*</span></label>
-                        <input type="text" id="department" required readonly>
-                    </div>
-                    <div class="form-group full-width combobox-wrapper">
-                        <label for="equipment_description">Equipment Requested <span class="required">*</span></label>
-                        <input type="text" id="equipment_description" required autocomplete="off"
-                               placeholder="Start typing to search (e.g. laptop, monitor, printer)..."
-                               oninput="filterEquipmentOptions()" onfocus="filterEquipmentOptions()">
-                        <div id="equipmentDropdown" class="equipment-dropdown" style="display:none;"></div>
-                        <p class="help-text">Can't find what you need? Just type your own description instead.</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="quantity">Quantity <span class="required">*</span></label>
-                        <input type="number" id="quantity" min="1" value="1" required>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="justification">Justification <span class="required">*</span></label>
-                        <textarea id="justification" required placeholder="Explain why this equipment is needed"></textarea>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Actions -->
-            <div class="actions">
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
-                <button type="submit" class="btn btn-primary">Submit Request</button>
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Justification</h2></div>
+                        <div class="rf-grid cols-1">
+                            <div class="rf-field">
+                                <label for="justification">Why is this needed? <span class="required">*</span></label>
+                                <textarea id="justification" required placeholder="Explain why this equipment is needed"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="stub">
+                    <div class="stub-row"><span class="stub-label">Next step</span><span class="stub-value">HR verification</span></div>
+                    <div class="stub-actions">
+                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                    </div>
+                    <div class="stub-foot">Routes to HR → MD → IT for issuance. You'll be notified at each stage.</div>
+                </aside>
             </div>
         </form>
     </div>

@@ -26,20 +26,12 @@
     <!-- Inter typeface -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Shared financial form styles -->
     <link rel="stylesheet" href="forms.css">
     <style>
-        .nav-header { max-width: 800px; }
-        .container  { max-width: 800px; }
-
-        /* EFT uses bordered section boxes */
-        .form-section {
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-surface);
-        }
+        .nav-header { max-width: 1040px; }
+        .container  { max-width: 1040px; }
 
         /* Inline loading (not fullscreen overlay) */
         .loading {
@@ -69,7 +61,12 @@
     </div>
 
     <div class="container">
-        <h1>EFT Requisition Form</h1>
+        <div class="rf-title-block">
+            <div>
+                <h1>EFT Requisition</h1>
+                <div class="rf-subtitle">Electronic funds transfer — HOD, Finance, then MD approval</div>
+            </div>
+        </div>
 
         <div id="eftLockBanner">
             <strong>EFT module is currently closed.</strong>
@@ -83,99 +80,113 @@
         </div>
 
         <form id="eftForm">
-            <!-- Initiator Information -->
-            <div class="form-section">
-                <h2>Initiator Information</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="initiator_name">Initiator Name</label>
-                        <input type="text" id="initiator_name" readonly>
+            <div class="rf-layout">
+                <div>
+                    <!-- Initiator Information -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">01</span><h2>Initiator</h2></div>
+                        <div class="rf-grid">
+                            <div class="rf-field">
+                                <label for="initiator_name">Initiator Name</label>
+                                <input type="text" id="initiator_name" readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="initiator_department">Department</label>
+                                <input type="text" id="initiator_department" readonly>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="initiator_department">Department</label>
-                        <input type="text" id="initiator_department" readonly>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Basic Information -->
-            <div class="form-section">
-                <h2>Requisition Details</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="eft_chq_number">EFT Number</label>
-                        <input type="number" id="eft_chq_number" placeholder="Enter number">
-                        <div class="help-text">Leave blank if not yet assigned</div>
+                    <!-- Basic Information -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Requisition Details</h2></div>
+                        <div class="rf-grid">
+                            <div class="rf-field">
+                                <label for="eft_chq_number">EFT Number</label>
+                                <input type="number" id="eft_chq_number" placeholder="Enter number">
+                                <div class="help-text">Leave blank if not yet assigned</div>
+                            </div>
+                            <div class="rf-field">
+                                <label for="account_code">Account Code</label>
+                                <input type="text" id="account_code" placeholder="e.g., 5000-100">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="account_code">Account Code</label>
-                        <input type="text" id="account_code" placeholder="e.g., 5000-100">
-                    </div>
-                </div>
-            </div>
 
-            <!-- Amount Section -->
-            <div class="form-section">
-                <h2>Amount Information</h2>
-                <div class="form-group">
-                    <label for="amount">Amount (K) <span class="required">*</span></label>
-                    <input type="number" id="amount" step="0.01" required
-                           placeholder="Enter amount" onchange="convertAmountToWords()">
-                </div>
-                <div class="amount-display" id="amountDisplay">K 0.00</div>
-                <div class="amount-words-display" id="amountWords">Amount in words will appear here</div>
-            </div>
+                    <!-- Amount Section -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">03</span><h2>Amount</h2></div>
+                        <div class="rf-grid cols-1">
+                            <div class="rf-field">
+                                <label for="amount">Amount (K) <span class="required">*</span></label>
+                                <input type="number" id="amount" step="0.01" required
+                                       placeholder="Enter amount" onchange="convertAmountToWords()">
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Beneficiary Information -->
-            <div class="form-section">
-                <h2>Beneficiary Details</h2>
-                <div style="margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="payToMyself" style="width: 20px; height: 20px; margin-right: 10px;" onchange="togglePayToMyself()">
-                        <span style="font-size: 14px;">Pay to myself (auto-fill my details)</span>
-                    </label>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group full-width">
-                        <label for="in_favour_of">In Favour Of (Payee Name) <span class="required">*</span></label>
-                        <input type="text" id="in_favour_of" required
-                               placeholder="Enter beneficiary name">
+                    <!-- Beneficiary Information -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">04</span><h2>Beneficiary</h2></div>
+                        <label class="rf-check-row">
+                            <input type="checkbox" id="payToMyself" onchange="togglePayToMyself()">
+                            Pay to myself (auto-fill my details)
+                        </label>
+                        <div class="rf-grid">
+                            <div class="rf-field span-2">
+                                <label for="in_favour_of">In Favour Of (Payee Name) <span class="required">*</span></label>
+                                <input type="text" id="in_favour_of" required
+                                       placeholder="Enter beneficiary name">
+                            </div>
+                            <div class="rf-field">
+                                <label for="bank_name">Bank Name</label>
+                                <input type="text" id="bank_name" placeholder="e.g., Zanaco Bank">
+                            </div>
+                            <div class="rf-field">
+                                <label for="branch">Branch</label>
+                                <input type="text" id="branch" placeholder="e.g., Cairo Road">
+                            </div>
+                            <div class="rf-field span-2">
+                                <label for="bank_account_number">Bank Account Number</label>
+                                <input type="text" id="bank_account_number"
+                                       placeholder="Enter account number">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="bank_name">Bank Name</label>
-                        <input type="text" id="bank_name" placeholder="e.g., Zanaco Bank">
-                    </div>
-                    <div class="form-group">
-                        <label for="branch">Branch</label>
-                        <input type="text" id="branch" placeholder="e.g., Cairo Road">
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="bank_account_number">Bank Account Number</label>
-                        <input type="text" id="bank_account_number"
-                               placeholder="Enter account number">
-                    </div>
-                </div>
-            </div>
 
-            <!-- Purpose Section -->
-            <div class="form-section">
-                <h2>Purpose & Description</h2>
-                <div class="form-group">
-                    <label for="purpose">Purpose <span class="required">*</span></label>
-                    <textarea id="purpose" required
-                              placeholder="Briefly describe the purpose of this payment"></textarea>
+                    <!-- Purpose Section -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">05</span><h2>Purpose &amp; Description</h2></div>
+                        <div class="rf-grid cols-1">
+                            <div class="rf-field">
+                                <label for="purpose">Purpose <span class="required">*</span></label>
+                                <textarea id="purpose" required
+                                          placeholder="Briefly describe the purpose of this payment"></textarea>
+                            </div>
+                            <div class="rf-field">
+                                <label for="description">Additional Description</label>
+                                <textarea id="description"
+                                          placeholder="Any additional details or notes"></textarea>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="description">Additional Description</label>
-                    <textarea id="description"
-                              placeholder="Any additional details or notes"></textarea>
-                </div>
-            </div>
 
-            <!-- Actions -->
-            <div class="actions">
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
-                <button type="submit" class="btn btn-primary">Submit Requisition</button>
+                <aside class="stub">
+                    <div class="stub-amount">
+                        <span class="stub-label">Amount</span>
+                        <div class="stub-figure" id="amountDisplay">K 0.00</div>
+                    </div>
+                    <div class="stub-row">
+                        <span class="stub-label">In words</span>
+                        <span class="stub-value" id="amountWords" style="text-align:right; max-width:170px;">Amount in words will appear here</span>
+                    </div>
+                    <div class="stub-actions">
+                        <button type="submit" class="btn btn-primary">Submit Requisition</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                    </div>
+                    <div class="stub-foot">Routes to HOD → Finance → MD. Creation window: 05:00–11:00 CAT, Mon–Fri.</div>
+                </aside>
             </div>
         </form>
     </div>

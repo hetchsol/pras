@@ -25,12 +25,12 @@
     <!-- Inter typeface -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Shared financial form styles -->
     <link rel="stylesheet" href="forms.css">
     <style>
-        .nav-header { max-width: 1200px; }
-        .container  { max-width: 1200px; }
+        .nav-header { max-width: 1300px; }
+        .container  { max-width: 1300px; }
 
         /* Inline loading (not fullscreen overlay) */
         .loading {
@@ -60,7 +60,12 @@
     </div>
 
     <div class="container">
-        <h1>Expense Claim Form</h1>
+        <div class="rf-title-block">
+            <div>
+                <h1>Expense Claim</h1>
+                <div class="rf-subtitle">Travel &amp; subsistence — HOD, then Finance approval</div>
+            </div>
+        </div>
 
         <div id="alert" class="alert"></div>
         <div id="loading" class="loading">
@@ -69,84 +74,86 @@
         </div>
 
         <form id="expenseClaimForm">
-            <!-- Employee Information -->
-            <div class="form-section">
-                <h2>Employee Information</h2>
-                <div style="margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="onBehalfOf" style="width: 20px; height: 20px; margin-right: 10px;" onchange="toggleOnBehalfOf()">
-                        <span style="font-size: 14px;">Submit on behalf of someone else</span>
-                    </label>
+            <div class="rf-layout">
+                <div>
+                    <!-- Employee Information -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">01</span><h2>Employee Information</h2></div>
+                        <label class="rf-check-row">
+                            <input type="checkbox" id="onBehalfOf" onchange="toggleOnBehalfOf()">
+                            Submit on behalf of someone else
+                        </label>
+                        <div class="rf-grid">
+                            <div class="rf-field">
+                                <label for="employee_name">Employee Name *</label>
+                                <input type="text" id="employee_name" required readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="employee_number">Employee Number *</label>
+                                <input type="text" id="employee_number" required readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="department">Department *</label>
+                                <input type="text" id="department" required readonly>
+                            </div>
+                            <div class="rf-field">
+                                <label for="reason_for_trip">Reason for Trip *</label>
+                                <textarea id="reason_for_trip" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expense Items -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Expense Details</h2></div>
+                        <div class="rf-table-wrap">
+                            <table class="rf-table" id="expenseTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 36px;">No</th>
+                                        <th style="width: 96px;">Date</th>
+                                        <th>Details</th>
+                                        <th class="rf-center" style="width: 34px;">B</th>
+                                        <th class="rf-center" style="width: 34px;">L</th>
+                                        <th class="rf-center" style="width: 34px;">D</th>
+                                        <th style="width: 100px;">Meals (K)</th>
+                                        <th style="width: 100px;">Accom (K)</th>
+                                        <th style="width: 100px;">Incid. (K)</th>
+                                        <th style="width: 100px;">Total (K)</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenseTableBody">
+                                    <!-- Rows will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="rf-add-row-btn" onclick="addExpenseRow()">+ Add day</button>
+                    </div>
                 </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="employee_name">Employee Name *</label>
-                        <input type="text" id="employee_name" required readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="employee_number">Employee Number *</label>
-                        <input type="text" id="employee_number" required readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="department">Department *</label>
-                        <input type="text" id="department" required readonly>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="reason_for_trip">Reason for Trip *</label>
-                        <textarea id="reason_for_trip" required></textarea>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Expense Items -->
-            <div class="form-section">
-                <h2>Expense Details</h2>
-                <button type="button" class="btn btn-add" onclick="addExpenseRow()">+ Add Row</button>
-                <div class="table-container">
-                    <table id="expenseTable">
-                        <thead>
-                            <tr>
-                                <th style="width: 50px;">No</th>
-                                <th style="width: 100px;">Date</th>
-                                <th style="width: 200px;">Details</th>
-                                <th style="width: 40px;">B</th>
-                                <th style="width: 40px;">L</th>
-                                <th style="width: 40px;">D</th>
-                                <th style="width: 100px;">Meals (K)</th>
-                                <th style="width: 100px;">Accom (K)</th>
-                                <th style="width: 100px;">Incidental (K)</th>
-                                <th style="width: 100px;">Total (K)</th>
-                                <th style="width: 60px;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="expenseTableBody">
-                            <!-- Rows will be added here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Totals -->
-            <div class="totals-section">
-                <div class="totals-grid">
-                    <div class="totals-label">TOTAL CLAIM:</div>
-                    <div class="totals-value grand-total" id="totalClaim">K 0.00</div>
-
-                    <div class="totals-label">Amount Advanced:</div>
-                    <div class="totals-value">
-                        <input type="number" id="amount_advanced" step="0.01" value="0"
-                               style="text-align: right; width: 120px;" onchange="calculateTotals()">
+                <aside class="stub">
+                    <div class="stub-amount">
+                        <span class="stub-label">Amount Due</span>
+                        <div class="stub-figure" id="amountDue">K 0.00</div>
                     </div>
-
-                    <div class="totals-label">AMOUNT DUE:</div>
-                    <div class="totals-value grand-total" id="amountDue">K 0.00</div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="actions">
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
-                <button type="submit" class="btn btn-primary">Submit Claim</button>
+                    <div class="stub-row">
+                        <span class="stub-label">Total claim</span>
+                        <span class="stub-value" id="totalClaim">K 0.00</span>
+                    </div>
+                    <div class="stub-row">
+                        <span class="stub-label">Advanced</span>
+                        <span class="stub-value">
+                            <input type="number" id="amount_advanced" step="0.01" value="0"
+                                   class="mono" style="text-align:right; width:100px; padding:6px 8px;" onchange="calculateTotals()">
+                        </span>
+                    </div>
+                    <div class="stub-actions">
+                        <button type="submit" class="btn btn-primary">Submit Claim</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                    </div>
+                    <div class="stub-foot">Routes to HOD → Finance. Reimburses the balance after any advance.</div>
+                </aside>
             </div>
         </form>
     </div>
@@ -201,17 +208,17 @@
             const row = tbody.insertRow();
 
             row.innerHTML = `
-                <td><input type="text" class="report_no" value="${rowCounter}" readonly></td>
-                <td><input type="date" class="date" required></td>
+                <td><input type="text" class="report_no mono rf-center" value="${rowCounter}" readonly></td>
+                <td><input type="date" class="date mono" required></td>
                 <td><input type="text" class="details" required></td>
-                <td><input type="checkbox" class="breakfast" onchange="calculateRow(this)"></td>
-                <td><input type="checkbox" class="lunch" onchange="calculateRow(this)"></td>
-                <td><input type="checkbox" class="dinner" onchange="calculateRow(this)"></td>
-                <td><input type="number" class="meals" step="0.01" value="0" onchange="calculateRow(this)"></td>
-                <td><input type="number" class="accommodation" step="0.01" value="0" onchange="calculateRow(this)"></td>
-                <td><input type="number" class="incidental" step="0.01" value="0" onchange="calculateRow(this)"></td>
-                <td><input type="number" class="total" step="0.01" value="0" readonly></td>
-                <td><button type="button" class="btn btn-danger" onclick="deleteRow(this)">×</button></td>
+                <td class="rf-center"><input type="checkbox" class="breakfast" onchange="calculateRow(this)"></td>
+                <td class="rf-center"><input type="checkbox" class="lunch" onchange="calculateRow(this)"></td>
+                <td class="rf-center"><input type="checkbox" class="dinner" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="meals rf-num" step="0.01" value="0" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="accommodation rf-num" step="0.01" value="0" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="incidental rf-num" step="0.01" value="0" onchange="calculateRow(this)"></td>
+                <td><input type="number" class="total rf-num mono" step="0.01" value="0" readonly></td>
+                <td><button type="button" class="rf-row-del" title="Remove" onclick="deleteRow(this)">×</button></td>
             `;
         }
 

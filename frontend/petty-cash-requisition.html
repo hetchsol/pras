@@ -25,12 +25,12 @@
     <!-- Inter typeface -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Shared financial form styles -->
     <link rel="stylesheet" href="forms.css">
     <style>
-        .nav-header { max-width: 900px; }
-        .container  { max-width: 900px; }
+        .nav-header { max-width: 1040px; }
+        .container  { max-width: 1040px; }
 
         /* Inline loading (not fullscreen overlay) */
         .loading {
@@ -60,7 +60,12 @@
     </div>
 
     <div class="container">
-        <h1>Petty Cash Requisition Form</h1>
+        <div class="rf-title-block">
+            <div>
+                <h1>Petty Cash Requisition</h1>
+                <div class="rf-subtitle">HOD, then Finance approval</div>
+            </div>
+        </div>
 
         <div id="alert" class="alert"></div>
         <div id="loading" class="loading">
@@ -69,70 +74,73 @@
         </div>
 
         <form id="pettyCashForm">
-            <!-- Basic Information -->
-            <div class="form-section">
-                <h2>Requisition Details</h2>
-                <div style="margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="onBehalfOf" style="width: 20px; height: 20px; margin-right: 10px;" onchange="toggleOnBehalfOf()">
-                        <span style="font-size: 14px;">Submit on behalf of someone else</span>
-                    </label>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="payee_name">Payee Name <span class="required">*</span></label>
-                        <input type="text" id="payee_name" required readonly placeholder="Name of person/entity receiving cash">
+            <div class="rf-layout">
+                <div>
+                    <!-- Basic Information -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">01</span><h2>Requisition Details</h2></div>
+                        <label class="rf-check-row">
+                            <input type="checkbox" id="onBehalfOf" onchange="toggleOnBehalfOf()">
+                            Submit on behalf of someone else
+                        </label>
+                        <div class="rf-grid">
+                            <div class="rf-field">
+                                <label for="payee_name">Payee Name <span class="required">*</span></label>
+                                <input type="text" id="payee_name" required readonly placeholder="Name of person/entity receiving cash">
+                            </div>
+                            <div class="rf-field">
+                                <label for="department">Department <span class="required">*</span></label>
+                                <input type="text" id="department" required readonly>
+                            </div>
+                            <div class="rf-field span-2">
+                                <label for="purpose">Purpose <span class="required">*</span></label>
+                                <textarea id="purpose" required placeholder="Describe the purpose of this petty cash request"></textarea>
+                            </div>
+                            <div class="rf-field span-2">
+                                <label for="description">Additional Description</label>
+                                <textarea id="description" placeholder="Any additional details or notes"></textarea>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="department">Department <span class="required">*</span></label>
-                        <input type="text" id="department" required readonly>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="purpose">Purpose <span class="required">*</span></label>
-                        <textarea id="purpose" required placeholder="Describe the purpose of this petty cash request"></textarea>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="description">Additional Description</label>
-                        <textarea id="description" placeholder="Any additional details or notes"></textarea>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Line Items -->
-            <div class="form-section">
-                <h2>Items</h2>
-                <button type="button" class="btn btn-add" onclick="addItemRow()">+ Add Item</button>
-                <div class="table-container">
-                    <table id="itemsTable">
-                        <thead>
-                            <tr>
-                                <th style="width: 60px;">Item No</th>
-                                <th>Description</th>
-                                <th style="width: 80px;">Qty</th>
-                                <th style="width: 150px;">Amount (K)</th>
-                                <th style="width: 80px;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="itemsTableBody">
-                            <!-- Rows will be added here -->
-                        </tbody>
-                    </table>
+                    <!-- Line Items -->
+                    <div class="field-section">
+                        <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Items</h2></div>
+                        <div class="rf-table-wrap">
+                            <table class="rf-table" id="itemsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">Item No</th>
+                                        <th>Description</th>
+                                        <th style="width: 80px;">Qty</th>
+                                        <th style="width: 150px;">Amount (K)</th>
+                                        <th style="width: 44px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody">
+                                    <!-- Rows will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="rf-add-row-btn" onclick="addItemRow()">+ Add item</button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Totals -->
-            <div class="totals-section">
-                <div class="total-row">
-                    <span>TOTAL AMOUNT:</span>
-                    <span id="totalAmount">K 0.00</span>
-                </div>
-                <div class="amount-words" id="amountWords">Amount in words will appear here</div>
-            </div>
-
-            <!-- Actions -->
-            <div class="actions">
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
-                <button type="submit" class="btn btn-primary">Submit Requisition</button>
+                <aside class="stub">
+                    <div class="stub-amount">
+                        <span class="stub-label">Total Amount</span>
+                        <div class="stub-figure" id="totalAmount">K 0.00</div>
+                    </div>
+                    <div class="stub-row">
+                        <span class="stub-label">In words</span>
+                        <span class="stub-value" id="amountWords" style="text-align:right; max-width:170px;">Amount in words will appear here</span>
+                    </div>
+                    <div class="stub-actions">
+                        <button type="submit" class="btn btn-primary">Submit Requisition</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancel</button>
+                    </div>
+                    <div class="stub-foot">Routes to HOD → Finance. Reimbursed against attached receipts on issue.</div>
+                </aside>
             </div>
         </form>
     </div>
@@ -180,11 +188,11 @@
             const row = tbody.insertRow();
 
             row.innerHTML = `
-                <td><input type="number" class="item_no" value="${itemCounter}" readonly></td>
+                <td><input type="number" class="item_no mono rf-center" value="${itemCounter}" readonly></td>
                 <td><input type="text" class="description" required placeholder="Item description"></td>
-                <td><input type="number" class="quantity" value="1" min="1" placeholder="Qty"></td>
-                <td><input type="number" class="amount" step="0.01" value="0" onchange="calculateTotal()" required></td>
-                <td><button type="button" class="btn btn-danger" onclick="deleteItemRow(this)">×</button></td>
+                <td><input type="number" class="quantity rf-center" value="1" min="1" placeholder="Qty"></td>
+                <td><input type="number" class="amount rf-num" step="0.01" value="0" onchange="calculateTotal()" required></td>
+                <td><button type="button" class="rf-row-del" title="Remove" onclick="deleteItemRow(this)">×</button></td>
             `;
         }
 
