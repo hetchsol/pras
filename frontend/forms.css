@@ -574,6 +574,10 @@ td input[type="checkbox"] {
     .rf-layout { grid-template-columns: 1fr; }
 }
 
+/* Lets a section (e.g. a wide line-item table) break out of the two-column
+   layout and span the full width of the form, below the stub. */
+.rf-span-all { grid-column: 1 / -1; }
+
 .field-section {
     padding-block: 22px;
     border-bottom: 1px solid var(--rule);
@@ -652,11 +656,12 @@ td input[type="checkbox"] {
 }
 .rf-table td { padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
 .rf-table tbody tr:last-child td { border-bottom: none; }
-.rf-table input, .rf-table select { padding: 7px 9px; font-size: 13px; min-width: 60px; }
+.rf-table input, .rf-table select { padding: 7px 9px; font-size: 13px; min-width: 60px; width: 100%; }
 .rf-table select { padding-right: 28px; background-position: right 8px center; background-size: 9px; }
 .rf-table .rf-num { font-family: 'IBM Plex Mono'; text-align: right; }
 .rf-table .rf-center { text-align: center; }
-.rf-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--color-primary); }
+.rf-table th.rf-check, .rf-table td.rf-check { padding-left: 4px; padding-right: 4px; }
+.rf-table input[type="checkbox"] { width: 15px; height: 15px; min-width: 0; accent-color: var(--color-primary); }
 .rf-row-del {
     width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--rule-strong); background: var(--panel);
     color: var(--ink-faint); cursor: pointer; font-size: 14px; line-height: 1;

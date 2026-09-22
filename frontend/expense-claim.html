@@ -102,34 +102,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Expense Items -->
-                    <div class="field-section">
-                        <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Expense Details</h2></div>
-                        <div class="rf-table-wrap">
-                            <table class="rf-table" id="expenseTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 36px;">No</th>
-                                        <th style="width: 96px;">Date</th>
-                                        <th>Details</th>
-                                        <th class="rf-center" style="width: 34px;">B</th>
-                                        <th class="rf-center" style="width: 34px;">L</th>
-                                        <th class="rf-center" style="width: 34px;">D</th>
-                                        <th style="width: 100px;">Meals (K)</th>
-                                        <th style="width: 100px;">Accom (K)</th>
-                                        <th style="width: 100px;">Incid. (K)</th>
-                                        <th style="width: 100px;">Total (K)</th>
-                                        <th style="width: 40px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="expenseTableBody">
-                                    <!-- Rows will be added here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <button type="button" class="rf-add-row-btn" onclick="addExpenseRow()">+ Add day</button>
-                    </div>
                 </div>
 
                 <aside class="stub">
@@ -154,6 +126,33 @@
                     </div>
                     <div class="stub-foot">Routes to HOD → Finance. Reimburses the balance after any advance.</div>
                 </aside>
+
+                <!-- Expense Items — full width so the line-item table has room to breathe -->
+                <div class="field-section rf-span-all">
+                    <div class="rf-section-head"><span class="rf-section-num">02</span><h2>Expense Details</h2></div>
+                    <div class="rf-table-wrap">
+                        <table class="rf-table" id="expenseTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 132px;">Date</th>
+                                    <th>Details</th>
+                                    <th class="rf-center rf-check" style="width: 30px;">B</th>
+                                    <th class="rf-center rf-check" style="width: 30px;">L</th>
+                                    <th class="rf-center rf-check" style="width: 30px;">D</th>
+                                    <th style="width: 112px;">Meals (K)</th>
+                                    <th style="width: 112px;">Accom (K)</th>
+                                    <th style="width: 112px;">Incid. (K)</th>
+                                    <th style="width: 112px;">Total (K)</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenseTableBody">
+                                <!-- Rows will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="rf-add-row-btn" onclick="addExpenseRow()">+ Add day</button>
+                </div>
             </div>
         </form>
     </div>
@@ -161,7 +160,6 @@
     <script src="config.js"></script>
     <script>
         const API_URL = window.API_URL || 'http://localhost:3001/api';
-        let rowCounter = 0;
 
         // Initialize form
         document.addEventListener('DOMContentLoaded', function() {
@@ -203,17 +201,15 @@
         }
 
         function addExpenseRow() {
-            rowCounter++;
             const tbody = document.getElementById('expenseTableBody');
             const row = tbody.insertRow();
 
             row.innerHTML = `
-                <td><input type="text" class="report_no mono rf-center" value="${rowCounter}" readonly></td>
                 <td><input type="date" class="date mono" required></td>
                 <td><input type="text" class="details" required></td>
-                <td class="rf-center"><input type="checkbox" class="breakfast" onchange="calculateRow(this)"></td>
-                <td class="rf-center"><input type="checkbox" class="lunch" onchange="calculateRow(this)"></td>
-                <td class="rf-center"><input type="checkbox" class="dinner" onchange="calculateRow(this)"></td>
+                <td class="rf-center rf-check"><input type="checkbox" class="breakfast" onchange="calculateRow(this)"></td>
+                <td class="rf-center rf-check"><input type="checkbox" class="lunch" onchange="calculateRow(this)"></td>
+                <td class="rf-center rf-check"><input type="checkbox" class="dinner" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="meals rf-num" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="accommodation rf-num" step="0.01" value="0" onchange="calculateRow(this)"></td>
                 <td><input type="number" class="incidental rf-num" step="0.01" value="0" onchange="calculateRow(this)"></td>
@@ -284,7 +280,7 @@
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 items.push({
-                    report_no: parseInt(row.querySelector('.report_no').value),
+                    report_no: i + 1,
                     date: row.querySelector('.date').value,
                     details: row.querySelector('.details').value,
                     breakfast: row.querySelector('.breakfast').checked ? 1 : 0,
